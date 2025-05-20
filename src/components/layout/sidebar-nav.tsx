@@ -1,9 +1,10 @@
+// src/components/layout/sidebar-nav.tsx
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
-import { LayoutDashboard, DollarSign, Receipt, TrendingUp, Users, Lightbulb } from 'lucide-react';
+import { LayoutDashboard, DollarSign, Receipt, TrendingUp, Users, Lightbulb, ListPlus } from 'lucide-react'; // Added ListPlus
 import { cn } from '@/lib/utils';
 
 const navItems = [
@@ -12,6 +13,7 @@ const navItems = [
   { href: '/expenses', label: 'Expenses', icon: Receipt },
   { href: '/profits', label: 'Profits', icon: TrendingUp },
   { href: '/performance', label: 'Performance', icon: Users },
+  { href: '/menu', label: 'Menu', icon: ListPlus }, // New Menu Item
   { href: '/insights', label: 'Insights AI', icon: Lightbulb },
 ];
 

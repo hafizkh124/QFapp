@@ -58,3 +58,10 @@ export interface EmployeeSalary {
   deductions: number;
   netSalary: number;
 }
+
+export interface MenuItem {
+  id: string;
+  name: string;
+  price: number;
+  category?: string; // Optional for now
+}
