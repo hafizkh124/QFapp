@@ -15,6 +15,9 @@ import { PlusCircle, Trash2, UtensilsCrossed } from 'lucide-react';
 import type { SaleRecord, SaleItem, MenuItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import SalesReports from '@/components/sales/SalesReports'; // New component for reports
+import { format } from 'date-fns';
 
 interface NewSaleItem extends Omit<SaleItem, 'id' | 'total'> {
   tempId: string; // for client-side list management
@@ -53,7 +56,6 @@ export default function SalesPage() {
         setMenuItems(loadedMenuItems);
       } catch (error) {
         console.error("Error parsing menu items from localStorage:", error);
-        // Optionally, clear the malformed data or set to default
         localStorage.removeItem(MENU_LOCAL_STORAGE_KEY);
       }
     }
@@ -72,10 +74,10 @@ export default function SalesPage() {
         localStorage.removeItem(SALES_LOCAL_STORAGE_KEY);
       }
     } else {
-        // Fallback to placeholder if nothing in local storage
+        // Fallback to placeholder if nothing in local storage, with standardized date format
         const initialRecords: SaleRecord[] = [
-          { id: 'S001', date: new Date().toLocaleDateString(), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card' },
-          { id: 'S002', date: new Date().toLocaleDateString(), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash' },
+          { id: 'S001', date: format(new Date(), 'yyyy-MM-dd'), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card' },
+          { id: 'S002', date: format(new Date(Date.now() - 86400000 * 1 ), 'yyyy-MM-dd'), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash' },
         ];
         setSalesRecords(initialRecords);
     }
@@ -191,7 +193,7 @@ export default function SalesPage() {
 
     const newSale: SaleRecord = {
       id: `S${Date.now().toString().slice(-5)}`,
-      date: new Date().toLocaleDateString(),
+      date: format(new Date(), 'yyyy-MM-dd'), // Standardized date format
       items: currentOrderItems.map(item => ({ ...item, id: `I${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2, 3)}`, total: item.quantity * item.price })),
       totalAmount: currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0),
       paymentMethod,
@@ -206,165 +208,180 @@ export default function SalesPage() {
 
   return (
     <>
-      <PageHeader title="Sales Tracker" description="Select multiple items, adjust quantities, and record sales." />
+      <PageHeader title="Sales Management" description="Record sales and view sales reports." />
+      
+      <Tabs defaultValue="recordSale" className="w-full">
+        <TabsList className="grid w-full grid-cols-2 mb-6">
+          <TabsTrigger value="recordSale">Record Sale</TabsTrigger>
+          <TabsTrigger value="salesReports">Sales Reports</TabsTrigger>
+        </TabsList>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Record New Sale</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSubmitSale} className="space-y-4">
-              <div>
-                <Label className="mb-2 block">Select Menu Items</Label>
-                <ScrollArea className="h-[400px] w-full rounded-md border p-3">
-                  {menuSelection.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No menu items available. Add items in Menu page.</p>}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {menuSelection.map(item => (
-                      <div key={item.id} className="border rounded-md p-3 flex flex-col space-y-2 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="flex items-start justify-between mb-1">
-                          <div className="flex-1 pr-2">
-                            <Label htmlFor={`item-select-${item.id}`} className="text-sm font-medium leading-tight cursor-pointer block">
-                              {item.name}
-                            </Label>
-                            <p className="text-xs text-muted-foreground">PKR {item.price.toFixed(2)}</p>
+        <TabsContent value="recordSale">
+          <div className="grid gap-6 lg:grid-cols-3">
+            <Card className="lg:col-span-1">
+              <CardHeader>
+                <CardTitle>Record New Sale</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmitSale} className="space-y-4">
+                  <div>
+                    <Label className="mb-2 block">Select Menu Items</Label>
+                    <ScrollArea className="h-[300px] w-full rounded-md border p-3"> {/* Adjusted height */}
+                      {menuSelection.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No menu items available. Add items in Menu page.</p>}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3"> {/* Adjusted grid for potentially narrower card */}
+                        {menuSelection.map(item => (
+                          <div key={item.id} className="border rounded-md p-3 flex flex-col space-y-2 shadow-sm hover:shadow-md transition-shadow">
+                            <div className="flex items-start justify-between mb-1">
+                              <div className="flex-1 pr-2">
+                                <Label htmlFor={`item-select-${item.id}`} className="text-sm font-medium leading-tight cursor-pointer block">
+                                  {item.name}
+                                </Label>
+                                <p className="text-xs text-muted-foreground">PKR {item.price.toFixed(2)}</p>
+                              </div>
+                              <Checkbox
+                                id={`item-select-${item.id}`}
+                                checked={item.selected}
+                                onCheckedChange={(checked) => handleMenuSelectionChange(item.id, !!checked)}
+                                aria-label={`Select ${item.name}`}
+                                className="mt-1 flex-shrink-0"
+                              />
+                            </div>
+                            <Input
+                              type="number"
+                              value={item.quantity}
+                              onChange={(e: ChangeEvent<HTMLInputElement>) => handleMenuSelectionQuantityChange(item.id, parseInt(e.target.value) || 1)}
+                              className="w-full h-8 text-sm"
+                              min="1"
+                              disabled={!item.selected}
+                              aria-label={`Quantity for ${item.name}`}
+                              placeholder="Qty"
+                            />
                           </div>
-                          <Checkbox
-                            id={`item-select-${item.id}`}
-                            checked={item.selected}
-                            onCheckedChange={(checked) => handleMenuSelectionChange(item.id, !!checked)}
-                            aria-label={`Select ${item.name}`}
-                            className="mt-1 flex-shrink-0"
-                          />
-                        </div>
-                        <Input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e: ChangeEvent<HTMLInputElement>) => handleMenuSelectionQuantityChange(item.id, parseInt(e.target.value) || 1)}
-                          className="w-full h-8 text-sm"
-                          min="1"
-                          disabled={!item.selected}
-                          aria-label={`Quantity for ${item.name}`}
-                          placeholder="Qty"
-                        />
+                        ))}
                       </div>
-                    ))}
+                    </ScrollArea>
                   </div>
-                </ScrollArea>
-              </div>
-              
-              <Button type="button" variant="outline" onClick={handleAddSelectedItemsToOrder} className="w-full">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Selected Items to Order
-              </Button>
+                  
+                  <Button type="button" variant="outline" onClick={handleAddSelectedItemsToOrder} className="w-full">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Selected Items to Order
+                  </Button>
 
-              {!showCustomItemForm && (
-                <Button type="button" variant="secondary" onClick={() => setShowCustomItemForm(true)} className="w-full">
-                  <UtensilsCrossed className="mr-2 h-4 w-4" /> Add New Custom Item
-                </Button>
-              )}
+                  {!showCustomItemForm && (
+                    <Button type="button" variant="secondary" onClick={() => setShowCustomItemForm(true)} className="w-full">
+                      <UtensilsCrossed className="mr-2 h-4 w-4" /> Add New Custom Item
+                    </Button>
+                  )}
 
-              {showCustomItemForm && (
-                <div className="space-y-3 border p-3 rounded-md bg-muted/50">
-                  <h4 className="font-medium text-sm text-center">Add Custom Item</h4>
-                  <div>
-                    <Label htmlFor="customItemName" className="text-xs">Custom Item Name</Label>
-                    <Input id="customItemName" value={customItemName} onChange={(e) => setCustomItemName(e.target.value)} placeholder="e.g., Special Deal" />
-                  </div>
-                  <div>
-                    <Label htmlFor="customItemPrice" className="text-xs">Custom Item Price (PKR)</Label>
-                    <Input id="customItemPrice" type="number" value={customItemPrice} onChange={(e) => setCustomItemPrice(e.target.value)} placeholder="e.g., 500" min="0" step="0.01" />
-                  </div>
-                  <div className="flex gap-2">
-                    <Button type="button" onClick={handleAddCustomItemToOrderAndMenu} className="flex-1">Add to Order & Menu</Button>
-                    <Button type="button" variant="ghost" onClick={() => setShowCustomItemForm(false)} className="flex-1">Cancel</Button>
-                  </div>
-                </div>
-              )}
-
-
-              {currentOrderItems.length > 0 && (
-                <div className="mt-4 space-y-2 border-t pt-4">
-                  <h4 className="font-medium">Current Order Items:</h4>
-                  <ScrollArea className="max-h-40 pr-2">
-                    <div className="space-y-1">
-                      {currentOrderItems.map(item => (
-                        <div key={item.tempId} className="flex justify-between items-center p-1.5 bg-background rounded text-sm">
-                          <span>{item.name} (x{item.quantity})</span>
-                          <div className="flex items-center gap-2">
-                            <span>PKR {(item.quantity * item.price).toFixed(2)}</span>
-                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveItemFromOrder(item.tempId)}>
-                              <Trash2 className="h-3 w-3 text-destructive" />
-                            </Button>
-                          </div>
-                        </div>
-                      ))}
+                  {showCustomItemForm && (
+                    <div className="space-y-3 border p-3 rounded-md bg-muted/50">
+                      <h4 className="font-medium text-sm text-center">Add Custom Item</h4>
+                      <div>
+                        <Label htmlFor="customItemName" className="text-xs">Custom Item Name</Label>
+                        <Input id="customItemName" value={customItemName} onChange={(e) => setCustomItemName(e.target.value)} placeholder="e.g., Special Deal" />
+                      </div>
+                      <div>
+                        <Label htmlFor="customItemPrice" className="text-xs">Custom Item Price (PKR)</Label>
+                        <Input id="customItemPrice" type="number" value={customItemPrice} onChange={(e) => setCustomItemPrice(e.target.value)} placeholder="e.g., 500" min="0" step="0.01" />
+                      </div>
+                      <div className="flex gap-2">
+                        <Button type="button" onClick={handleAddCustomItemToOrderAndMenu} className="flex-1">Add to Order & Menu</Button>
+                        <Button type="button" variant="ghost" onClick={() => setShowCustomItemForm(false)} className="flex-1">Cancel</Button>
+                      </div>
                     </div>
-                  </ScrollArea>
-                  <p className="font-semibold text-right pt-1">Order Total: PKR {currentOrderTotal.toFixed(2)}</p>
-                </div>
-              )}
-              
-              <div className="pt-4 border-t">
-                <Label htmlFor="paymentMethod">Payment Method</Label>
-                <Select value={paymentMethod} onValueChange={(value: 'cash' | 'card' | 'online' | 'credit') => setPaymentMethod(value)}>
-                  <SelectTrigger id="paymentMethod">
-                    <SelectValue placeholder="Select payment method" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cash">Cash</SelectItem>
-                    <SelectItem value="card">Card</SelectItem>
-                    <SelectItem value="online">Online</SelectItem>
-                    <SelectItem value="credit">Credit</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                  )}
 
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={currentOrderItems.length === 0}>
-                Complete Sale (Total: PKR {currentOrderTotal.toFixed(2)})
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
 
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle>Sales History</CardTitle>
-            <CardDescription>Daily, weekly, and monthly sales reports will be available here.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Items</TableHead>
-                  <TableHead>Payment Method</TableHead>
-                  <TableHead className="text-right">Total Amount</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {salesRecords.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
-                      No sales records yet.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  salesRecords.map((sale) => (
-                    <TableRow key={sale.id}>
-                      <TableCell className="font-medium">{sale.id}</TableCell>
-                      <TableCell>{sale.date}</TableCell>
-                      <TableCell>{sale.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
-                      <TableCell>{sale.paymentMethod.charAt(0).toUpperCase() + sale.paymentMethod.slice(1)}</TableCell>
-                      <TableCell className="text-right">PKR {sale.totalAmount.toFixed(2)}</TableCell>
+                  {currentOrderItems.length > 0 && (
+                    <div className="mt-4 space-y-2 border-t pt-4">
+                      <h4 className="font-medium">Current Order Items:</h4>
+                      <ScrollArea className="max-h-32 pr-2"> {/* Adjusted height */}
+                        <div className="space-y-1">
+                          {currentOrderItems.map(item => (
+                            <div key={item.tempId} className="flex justify-between items-center p-1.5 bg-background rounded text-sm">
+                              <span>{item.name} (x{item.quantity})</span>
+                              <div className="flex items-center gap-2">
+                                <span>PKR {(item.quantity * item.price).toFixed(2)}</span>
+                                <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveItemFromOrder(item.tempId)}>
+                                  <Trash2 className="h-3 w-3 text-destructive" />
+                                </Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                      <p className="font-semibold text-right pt-1">Order Total: PKR {currentOrderTotal.toFixed(2)}</p>
+                    </div>
+                  )}
+                  
+                  <div className="pt-4 border-t">
+                    <Label htmlFor="paymentMethod">Payment Method</Label>
+                    <Select value={paymentMethod} onValueChange={(value: 'cash' | 'card' | 'online' | 'credit') => setPaymentMethod(value)}>
+                      <SelectTrigger id="paymentMethod">
+                        <SelectValue placeholder="Select payment method" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="cash">Cash</SelectItem>
+                        <SelectItem value="card">Card</SelectItem>
+                        <SelectItem value="online">Online</SelectItem>
+                        <SelectItem value="credit">Credit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={currentOrderItems.length === 0}>
+                    Complete Sale (Total: PKR {currentOrderTotal.toFixed(2)})
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+
+            <Card className="lg:col-span-2">
+              <CardHeader>
+                <CardTitle>Sales History</CardTitle>
+                <CardDescription>Most recent sales. Detailed reports available in "Sales Reports" tab.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>ID</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Items</TableHead>
+                      <TableHead>Payment Method</TableHead>
+                      <TableHead className="text-right">Total Amount</TableHead>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+                  </TableHeader>
+                  <TableBody>
+                    {salesRecords.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
+                          No sales records yet.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      salesRecords.slice(0, 10).map((sale) => ( // Show only recent sales here
+                        <TableRow key={sale.id}>
+                          <TableCell className="font-medium">{sale.id}</TableCell>
+                          <TableCell>{sale.date}</TableCell>
+                          <TableCell>{sale.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
+                          <TableCell>{sale.paymentMethod.charAt(0).toUpperCase() + sale.paymentMethod.slice(1)}</TableCell>
+                          <TableCell className="text-right">PKR {sale.totalAmount.toFixed(2)}</TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="salesReports">
+           <SalesReports allSalesData={salesRecords} menuItems={menuItems} />
+        </TabsContent>
+      </Tabs>
     </>
   );
 }
+
+    
