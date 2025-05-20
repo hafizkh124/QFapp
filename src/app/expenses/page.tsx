@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, type FormEvent, useEffect } from 'react';
@@ -22,7 +23,7 @@ export default function ExpensesPage() {
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState(0);
   const [category, setCategory] = useState(expenseCategories[0]);
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [date, setDate] = useState<Date | undefined>(); // Initialize as undefined
 
   useEffect(() => {
     // Load initial expenses records from local storage or API if desired
@@ -31,6 +32,7 @@ export default function ExpensesPage() {
       { id: 'E002', date: format(new Date(Date.now() - 86400000), 'PPP'), category: 'Utilities', description: 'Electricity Bill', amount: 220.50 },
     ];
     setExpenses(initialExpenses);
+    setDate(new Date()); // Set date on client-side mount
   }, []);
 
   const handleSubmit = (e: FormEvent) => {

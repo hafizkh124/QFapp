@@ -12,16 +12,17 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { CalendarIcon, SearchIcon, BarChartIcon } from 'lucide-react';
-import { 
-  format, 
-  parse, 
-  isSameDay, 
-  isSameWeek, 
-  isSameMonth, 
-  startOfWeek, 
-  endOfWeek, 
-  startOfMonth, 
-  endOfMonth, 
+import { ScrollArea } from '@/components/ui/scroll-area';
+import {
+  format,
+  parse,
+  isSameDay,
+  isSameWeek,
+  isSameMonth,
+  startOfWeek,
+  endOfWeek,
+  startOfMonth,
+  endOfMonth,
   isWithinInterval,
   isValid,
   subDays,
@@ -42,16 +43,24 @@ type PaymentMethodSummary = { method: string; count: number; totalAmount: number
 
 export default function SalesReports({ allSalesData, menuItems }: SalesReportsProps) {
   const [reportPeriodType, setReportPeriodType] = useState<ReportPeriodType>('all');
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCustomStart, setSelectedCustomStart] = useState<Date | undefined>();
   const [selectedCustomEnd, setSelectedCustomEnd] = useState<Date | undefined>();
   const [selectedReportMenuItemId, setSelectedReportMenuItemId] = useState<string | undefined>(undefined);
 
-  // For monthly selection
-  const currentYear = getYear(new Date());
-  const years = Array.from({ length: 10 }, (_, i) => currentYear - 5 + i); // Last 5 years, current, next 4
-  const [selectedMonth, setSelectedMonth] = useState<number>(getMonth(new Date()));
-  const [selectedYear, setSelectedYear] = useState<number>(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
+  const [selectedYear, setSelectedYear] = useState<number | undefined>();
+  const [yearsForDropdown, setYearsForDropdown] = useState<number[]>([]);
+
+  useEffect(() => {
+    const now = new Date();
+    setSelectedDate(now);
+    setSelectedMonth(getMonth(now));
+    const currentActualYear = getYear(now);
+    setSelectedYear(currentActualYear);
+    setYearsForDropdown(Array.from({ length: 10 }, (_, i) => currentActualYear - 5 + i));
+  }, []);
+
 
   const salesDataWithParsedDates = useMemo(() => {
     return allSalesData.map(sale => ({
@@ -71,8 +80,8 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
       const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
       const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: weekStart, end: weekEnd }));
-    } else if (reportPeriodType === 'monthly') {
-      const monthDate = setYear(setMonth(new Date(), selectedMonth), selectedYear);
+    } else if (reportPeriodType === 'monthly' && selectedMonth !== undefined && selectedYear !== undefined) {
+      const monthDate = setYear(setMonth(new Date(0,0), selectedMonth), selectedYear); // Use day 1 to avoid month overflow issues initially
       const monthStart = startOfMonth(monthDate);
       const monthEnd = endOfMonth(monthDate);
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: monthStart, end: monthEnd }));
@@ -137,7 +146,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
       percentage: salesSummary.totalOrders > 0 ? (data.totalAmount / totalSalesForPercentage) * 100 : 0,
     }));
   }, [filteredSales, salesSummary.totalRevenue, salesSummary.totalOrders]);
-  
+
   const itemSpecificReport = useMemo(() => {
     if (!selectedReportMenuItemId) return null;
     const selectedItem = menuItems.find(item => item.id === selectedReportMenuItemId);
@@ -145,7 +154,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
 
     let totalQuantitySold = 0;
     let totalRevenueFromItem = 0;
-    
+
     filteredSales.forEach(sale => { // Use already time-filtered sales
       sale.items.forEach(item => {
         if (item.name === selectedItem.name) {
@@ -196,7 +205,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
       case 'monthly':
         return (
           <div className="flex gap-2">
-            <Select value={selectedMonth.toString()} onValueChange={(val) => setSelectedMonth(parseInt(val))}>
+            <Select value={selectedMonth?.toString()} onValueChange={(val) => setSelectedMonth(parseInt(val))}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Select Month" />
               </SelectTrigger>
@@ -208,12 +217,12 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
                 ))}
               </SelectContent>
             </Select>
-            <Select value={selectedYear.toString()} onValueChange={(val) => setSelectedYear(parseInt(val))}>
+            <Select value={selectedYear?.toString()} onValueChange={(val) => setSelectedYear(parseInt(val))}>
               <SelectTrigger className="w-[120px]">
                 <SelectValue placeholder="Select Year" />
               </SelectTrigger>
               <SelectContent>
-                {years.map(year => (
+                {yearsForDropdown.map(year => (
                   <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
                 ))}
               </SelectContent>
@@ -242,7 +251,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-auto p-0">
-                <Calendar mode="single" selected={selectedCustomEnd} onSelect={setSelectedCustomEnd} initialFocus disabled={(date) => selectedCustomStart && date < selectedCustomStart} />
+                <Calendar mode="single" selected={selectedCustomEnd} onSelect={setSelectedCustomEnd} initialFocus disabled={(date) => selectedCustomStart ? date < selectedCustomStart : false} />
               </PopoverContent>
             </Popover>
           </div>
@@ -320,31 +329,33 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
              </div>
              <CardTitle className="text-lg pt-4">Orders Containing {itemSpecificReport.itemName}</CardTitle>
               {filteredSales.filter(sale => sale.items.some(item => item.name === itemSpecificReport.itemName)).length > 0 ? (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Order ID</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Quantity of Item</TableHead>
-                      <TableHead>Total Order Amount</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredSales
-                      .filter(sale => sale.items.some(item => item.name === itemSpecificReport.itemName))
-                      .map(sale => {
-                        const itemInSale = sale.items.find(i => i.name === itemSpecificReport.itemName);
-                        return (
-                          <TableRow key={sale.id}>
-                            <TableCell>{sale.id}</TableCell>
-                            <TableCell>{sale.date}</TableCell>
-                            <TableCell>{itemInSale?.quantity || 0}</TableCell>
-                            <TableCell>PKR {sale.totalAmount.toFixed(2)}</TableCell>
-                          </TableRow>
-                        );
-                    })}
-                  </TableBody>
-                </Table>
+                <ScrollArea className="h-[300px]">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Quantity of Item</TableHead>
+                        <TableHead>Total Order Amount</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredSales
+                        .filter(sale => sale.items.some(item => item.name === itemSpecificReport.itemName))
+                        .map(sale => {
+                          const itemInSale = sale.items.find(i => i.name === itemSpecificReport.itemName);
+                          return (
+                            <TableRow key={sale.id}>
+                              <TableCell>{sale.id}</TableCell>
+                              <TableCell>{sale.date}</TableCell>
+                              <TableCell>{itemInSale?.quantity || 0}</TableCell>
+                              <TableCell>PKR {sale.totalAmount.toFixed(2)}</TableCell>
+                            </TableRow>
+                          );
+                      })}
+                    </TableBody>
+                  </Table>
+                </ScrollArea>
               ) : (
                 <p className="text-muted-foreground">No orders found for this item in the selected period.</p>
               )}
@@ -492,5 +503,3 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
     </div>
   );
 }
-
-    
