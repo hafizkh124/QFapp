@@ -22,9 +22,9 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en">
       {/* Removed GeistSans.variable and GeistMono.variable from className */}
-      <body className="antialiased">
+      <body className="antialiased" suppressHydrationWarning={true}>
         <SidebarProvider defaultOpen={true} collapsible="icon">
           <Sidebar side="left" variant="sidebar" className="flex flex-col">
             <SidebarHeader className="p-4">
