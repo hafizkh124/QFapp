@@ -11,7 +11,7 @@ export interface SaleRecord {
   date: string;
   items: SaleItem[];
   totalAmount: number;
-  paymentMethod: 'cash' | 'card' | 'online';
+  paymentMethod: 'cash' | 'card' | 'online' | 'credit';
 }
 
 export interface ExpenseRecord {

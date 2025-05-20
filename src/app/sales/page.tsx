@@ -34,7 +34,7 @@ export default function SalesPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [menuSelection, setMenuSelection] = useState<MenuSelectionItem[]>([]);
   
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online'>('cash');
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online' | 'credit'>('cash');
   const [currentOrderItems, setCurrentOrderItems] = useState<NewSaleItem[]>([]);
 
   const [showCustomItemForm, setShowCustomItemForm] = useState(false);
@@ -306,7 +306,7 @@ export default function SalesPage() {
               
               <div className="pt-4 border-t">
                 <Label htmlFor="paymentMethod">Payment Method</Label>
-                <Select value={paymentMethod} onValueChange={(value: 'cash' | 'card' | 'online') => setPaymentMethod(value)}>
+                <Select value={paymentMethod} onValueChange={(value: 'cash' | 'card' | 'online' | 'credit') => setPaymentMethod(value)}>
                   <SelectTrigger id="paymentMethod">
                     <SelectValue placeholder="Select payment method" />
                   </SelectTrigger>
@@ -314,6 +314,7 @@ export default function SalesPage() {
                     <SelectItem value="cash">Cash</SelectItem>
                     <SelectItem value="card">Card</SelectItem>
                     <SelectItem value="online">Online</SelectItem>
+                    <SelectItem value="credit">Credit</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
