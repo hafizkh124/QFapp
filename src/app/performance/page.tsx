@@ -71,8 +71,8 @@ export default function PerformancePage() {
                     <TableRow key={record.id}>
                       <TableCell>{record.employeeName}</TableCell>
                       <TableCell>{record.date}</TableCell>
-                      <TableCell>${record.salesTarget?.toLocaleString() || 'N/A'}</TableCell>
-                      <TableCell>${record.salesAchieved?.toLocaleString() || 'N/A'}</TableCell>
+                      <TableCell>PKR {record.salesTarget?.toLocaleString() || 'N/A'}</TableCell>
+                      <TableCell>PKR {record.salesAchieved?.toLocaleString() || 'N/A'}</TableCell>
                       <TableCell>{record.tasksCompleted}/{record.tasksAssigned}</TableCell>
                     </TableRow>
                   ))}
@@ -143,11 +143,11 @@ export default function PerformancePage() {
                     <TableRow key={record.id}>
                       <TableCell>{record.employeeName}</TableCell>
                       <TableCell>{record.month}</TableCell>
-                      <TableCell>${record.basicSalary.toLocaleString()}</TableCell>
-                      <TableCell>${record.advances.toLocaleString()}</TableCell>
-                      <TableCell>${record.bonuses.toLocaleString()}</TableCell>
-                      <TableCell>${record.deductions.toLocaleString()}</TableCell>
-                      <TableCell className="font-semibold">${record.netSalary.toLocaleString()}</TableCell>
+                      <TableCell>PKR {record.basicSalary.toLocaleString()}</TableCell>
+                      <TableCell>PKR {record.advances.toLocaleString()}</TableCell>
+                      <TableCell>PKR {record.bonuses.toLocaleString()}</TableCell>
+                      <TableCell>PKR {record.deductions.toLocaleString()}</TableCell>
+                      <TableCell className="font-semibold">PKR {record.netSalary.toLocaleString()}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

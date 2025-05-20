@@ -52,19 +52,19 @@ export default function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mb-6">
         <DashboardCard
           title="Total Sales"
-          value={`$${totalSales.toLocaleString()}`}
+          value={`PKR ${totalSales.toLocaleString()}`}
           icon={<DollarSign className="w-5 h-5" />}
           description="Total revenue generated"
         />
         <DashboardCard
           title="Total Expenses"
-          value={`$${totalExpenses.toLocaleString()}`}
+          value={`PKR ${totalExpenses.toLocaleString()}`}
           icon={<Receipt className="w-5 h-5" />}
           description="Total operational costs"
         />
         <DashboardCard
           title="Total Profit"
-          value={`$${totalProfit.toLocaleString()}`}
+          value={`PKR ${totalProfit.toLocaleString()}`}
           icon={<TrendingUp className="w-5 h-5" />}
           description="Net profit after expenses"
         />

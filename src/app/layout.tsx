@@ -12,7 +12,7 @@ import { BellIcon, SettingsIcon } from 'lucide-react';
 // Comment related to GeistSans and GeistMono removed as they are no longer imported.
 
 export const metadata: Metadata = {
-  title: 'Quoriam Insights',
+  title: 'Quoriam Foods',
   description: 'Restaurant Management App by Quoriam Foods',
 };
 
@@ -30,7 +30,7 @@ export default function RootLayout({
             <SidebarHeader className="p-4">
               <div className="flex items-center gap-2">
                 <AppLogo className="w-8 h-8 text-primary" />
-                <h1 className="text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Quoriam Insights</h1>
+                <h1 className="text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Quoriam Foods</h1>
               </div>
             </SidebarHeader>
             <SidebarContent className="flex-1 overflow-y-auto">

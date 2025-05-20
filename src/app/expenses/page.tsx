@@ -71,7 +71,7 @@ export default function ExpensesPage() {
                 <Input id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="e.g., Purchase of vegetables" />
               </div>
               <div>
-                <Label htmlFor="amount">Amount</Label>
+                <Label htmlFor="amount">Amount (PKR)</Label>
                 <Input id="amount" type="number" value={amount} onChange={(e) => setAmount(parseFloat(e.target.value))} min="0" step="0.01" />
               </div>
               <div>
@@ -140,7 +140,7 @@ export default function ExpensesPage() {
                     <TableCell>{expense.date}</TableCell>
                     <TableCell>{expense.category}</TableCell>
                     <TableCell>{expense.description}</TableCell>
-                    <TableCell className="text-right">${expense.amount.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">PKR {expense.amount.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

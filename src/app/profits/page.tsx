@@ -76,7 +76,7 @@ export default function ProfitsPage() {
         <CardHeader>
           <CardTitle>Profit Overview ({timeframe.charAt(0).toUpperCase() + timeframe.slice(1)})</CardTitle>
           <CardDescription>
-            Total Sales: ${totalSales.toLocaleString()} | Total Expenses: ${totalExpenses.toLocaleString()} | Total Profit: ${totalProfit.toLocaleString()}
+            Total Sales: PKR {totalSales.toLocaleString()} | Total Expenses: PKR {totalExpenses.toLocaleString()} | Total Profit: PKR {totalProfit.toLocaleString()}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -116,9 +116,9 @@ export default function ProfitsPage() {
               {profitData.map((entry) => (
                 <TableRow key={entry.period}>
                   <TableCell className="font-medium">{entry.period}</TableCell>
-                  <TableCell className="text-right">${entry.sales.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">${entry.expenses.toLocaleString()}</TableCell>
-                  <TableCell className="text-right font-semibold">${entry.profit.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">PKR {entry.sales.toLocaleString()}</TableCell>
+                  <TableCell className="text-right">PKR {entry.expenses.toLocaleString()}</TableCell>
+                  <TableCell className="text-right font-semibold">PKR {entry.profit.toLocaleString()}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

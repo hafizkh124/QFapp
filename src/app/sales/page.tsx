@@ -97,7 +97,7 @@ export default function SalesPage() {
                   <Input id="quantity" type="number" value={quantity} onChange={(e) => setQuantity(parseInt(e.target.value))} min="1" />
                 </div>
                 <div>
-                  <Label htmlFor="price">Price (per item)</Label>
+                  <Label htmlFor="price">Price (per item) (PKR)</Label>
                   <Input id="price" type="number" value={price} onChange={(e) => setPrice(parseFloat(e.target.value))} min="0" step="0.01" />
                 </div>
               </div>
@@ -111,14 +111,14 @@ export default function SalesPage() {
                   <ul className="space-y-1 text-sm">
                     {currentOrderItems.map(item => (
                       <li key={item.tempId} className="flex justify-between items-center">
-                        <span>{item.name} (x{item.quantity}) - ${(item.quantity * item.price).toFixed(2)}</span>
+                        <span>{item.name} (x{item.quantity}) - PKR {(item.quantity * item.price).toFixed(2)}</span>
                         <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveItemFromOrder(item.tempId)}>
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </li>
                     ))}
                   </ul>
-                  <p className="font-semibold">Total: ${currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0).toFixed(2)}</p>
+                  <p className="font-semibold">Total: PKR {currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0).toFixed(2)}</p>
                 </div>
               )}
               
@@ -166,7 +166,7 @@ export default function SalesPage() {
                     <TableCell>{sale.date}</TableCell>
                     <TableCell>{sale.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
                     <TableCell>{sale.paymentMethod.charAt(0).toUpperCase() + sale.paymentMethod.slice(1)}</TableCell>
-                    <TableCell className="text-right">${sale.totalAmount.toFixed(2)}</TableCell>
+                    <TableCell className="text-right">PKR {sale.totalAmount.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
