@@ -1,3 +1,5 @@
+'use client';
+
 import { DollarSign, Receipt, TrendingUp, Users, Activity } from 'lucide-react';
 import { DashboardCard } from '@/components/dashboard-card';
 import { PageHeader } from '@/components/page-header';
