@@ -2,79 +2,78 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: Arial, Helvetica, sans-serif;
-}
-
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 0 0% 96.1%;
-    --accent-foreground: 0 0% 9%;
+    --background: 60 56% 91%; /* Light Beige #F5F5DC */
+    --foreground: 30 25% 25%; /* Dark Brown #665B50 */
+    --card: 60 50% 95%; /* Slightly off-white/very light beige #F7F5EC */
+    --card-foreground: 30 25% 25%; /* Dark Brown #665B50 */
+    --popover: 60 50% 95%; /* Slightly off-white/very light beige #F7F5EC */
+    --popover-foreground: 30 25% 25%; /* Dark Brown #665B50 */
+    --primary: 51 100% 50%; /* Warm Gold #FFD700 */
+    --primary-foreground: 51 100% 10%; /* Darker Gold/Brown #332B00 */
+    --secondary: 60 30% 85%; /* Lighter Beige #E8E5D9 */
+    --secondary-foreground: 30 25% 25%; /* Dark Brown #665B50 */
+    --muted: 60 30% 88%; /* Lighter Beige for muted #EDEADF */
+    --muted-foreground: 30 20% 45%; /* Medium Brown #8C7F73 */
+    --accent: 30 60% 50%; /* Bronze #CD7F32 */
+    --accent-foreground: 30 60% 95%; /* Very Light Peach #FBEADB */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.9%;
+    --border: 60 30% 80%; /* Beige Border #DAD6C3 */
+    --input: 60 30% 80%; /* Beige Input #DAD6C3 */
+    --ring: 30 60% 50%; /* Bronze Ring #CD7F32 */
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-    --sidebar-background: 0 0% 98%;
-    --sidebar-foreground: 240 5.3% 26.1%;
-    --sidebar-primary: 240 5.9% 10%;
-    --sidebar-primary-foreground: 0 0% 98%;
-    --sidebar-accent: 240 4.8% 95.9%;
-    --sidebar-accent-foreground: 240 5.9% 10%;
-    --sidebar-border: 220 13% 91%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --sidebar-background: 60 45% 93%; /* Slightly different beige from main background #F5F4EB */
+    --sidebar-foreground: 30 25% 25%; /* Dark Brown #665B50 */
+    --sidebar-primary: 51 100% 50%; /* Warm Gold #FFD700 */
+    --sidebar-primary-foreground: 51 100% 10%; /* Darker Gold/Brown #332B00 */
+    --sidebar-accent: 30 60% 50%; /* Bronze #CD7F32 */
+    --sidebar-accent-foreground: 30 60% 95%; /* Very Light Peach #FBEADB */
+    --sidebar-border: 60 30% 80%; /* Beige Border #DAD6C3 */
+    --sidebar-ring: 30 60% 50%; /* Bronze Ring #CD7F32 */
   }
+
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 0 0% 14.9%;
-    --accent-foreground: 0 0% 98%;
+    --background: 30 10% 15%; /* Dark Bronze/Brown #2E2A26 */
+    --foreground: 60 50% 90%; /* Light Beige #F2F0E6 */
+    --card: 30 10% 20%; /* Darker Bronze/Brown #3A3531 */
+    --card-foreground: 60 50% 90%; /* Light Beige #F2F0E6 */
+    --popover: 30 10% 10%; /* Very Dark Bronze/Brown #211E1B */
+    --popover-foreground: 60 50% 90%; /* Light Beige #F2F0E6 */
+    --primary: 51 100% 60%; /* Lighter Gold #FFDE33 */
+    --primary-foreground: 51 100% 10%; /* Darker Gold/Brown #332B00 */
+    --secondary: 30 10% 25%; /* Dark Bronze/Brown #47413C */
+    --secondary-foreground: 60 50% 90%; /* Light Beige #F2F0E6 */
+    --muted: 30 10% 22%; /* Dark Bronze/Brown #403B36 */
+    --muted-foreground: 60 30% 70%; /* Lighter Beige #CFCAB3 */
+    --accent: 30 60% 60%; /* Lighter Bronze #D6914C */
+    --accent-foreground: 30 60% 10%; /* Dark Bronze/Brown #38230F */
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
+    --border: 30 10% 30%; /* Dark Bronze/Brown Border #544D47 */
+    --input: 30 10% 30%; /* Dark Bronze/Brown Input #544D47 */
+    --ring: 30 60% 60%; /* Lighter Bronze Ring #D6914C */
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
-    --sidebar-background: 240 5.9% 10%;
-    --sidebar-foreground: 240 4.8% 95.9%;
-    --sidebar-primary: 224.3 76.3% 48%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 240 3.7% 15.9%;
-    --sidebar-accent-foreground: 240 4.8% 95.9%;
-    --sidebar-border: 240 3.7% 15.9%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+
+    --sidebar-background: 30 10% 12%; /* Darker than main dark bg #262320 */
+    --sidebar-foreground: 60 50% 90%; /* Light Beige #F2F0E6 */
+    --sidebar-primary: 51 100% 60%; /* Lighter Gold #FFDE33 */
+    --sidebar-primary-foreground: 51 100% 10%; /* Darker Gold/Brown #332B00 */
+    --sidebar-accent: 30 60% 60%; /* Lighter Bronze #D6914C */
+    --sidebar-accent-foreground: 30 60% 10%; /* Dark Bronze/Brown #38230F */
+    --sidebar-border: 30 10% 25%; /* Dark Bronze/Brown Border #47413C */
+    --sidebar-ring: 30 60% 60%; /* Lighter Bronze Ring #D6914C */
   }
 }
 
