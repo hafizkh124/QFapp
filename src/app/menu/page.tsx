@@ -15,6 +15,23 @@ import { useToast } from "@/hooks/use-toast";
 
 const LOCAL_STORAGE_KEY = 'quoriam-menu-items';
 
+const defaultMenuItems: MenuItem[] = [
+  { id: 'default-1', name: 'Quoriam Single', price: 310 },
+  { id: 'default-2', name: 'Quoriam Half', price: 210 },
+  { id: 'default-3', name: 'Quoriam Single Choice', price: 320 },
+  { id: 'default-4', name: 'Quoriam Special', price: 450 },
+  { id: 'default-5', name: 'Quoriam Single Without Kabab', price: 270 },
+  { id: 'default-6', name: 'Quoriam Shami Kabab', price: 40 },
+  { id: 'default-7', name: 'Quoriam Chicken Piece', price: 90 },
+  { id: 'default-8', name: 'Pulao Kabab without Chicken', price: 210 },
+  { id: 'default-9', name: 'Quoriam Beef Pulao - Single', price: 350 },
+  { id: 'default-10', name: 'Quoriam Beef Pulao - Half', price: 230 },
+  { id: 'default-11', name: 'Quoriam Beef Pulao - 1 KG Deal', price: 690 },
+  { id: 'default-12', name: 'Quoriam Raita', price: 30 },
+  { id: 'default-13', name: 'Quoriam Salad', price: 30 },
+  { id: 'default-14', name: 'Quoriam Qehwa', price: 50 },
+];
+
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [newItemName, setNewItemName] = useState('');
@@ -29,12 +46,24 @@ export default function MenuPage() {
   useEffect(() => {
     const storedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
     if (storedItems) {
-      setMenuItems(JSON.parse(storedItems));
+      const parsedItems = JSON.parse(storedItems);
+      if (parsedItems.length > 0) {
+        setMenuItems(parsedItems);
+      } else {
+        // If stored items are empty (e.g., after clearing localStorage), set default items
+        setMenuItems(defaultMenuItems);
+      }
+    } else {
+      // If no items in localStorage, set default items
+      setMenuItems(defaultMenuItems);
     }
   }, []);
 
   useEffect(() => {
-    if (menuItems.length > 0 || localStorage.getItem(LOCAL_STORAGE_KEY)) { // Avoid overwriting with empty on initial load if nothing found yet
+    // Only save to localStorage if menuItems is not the initial empty array during setup,
+    // or if there's already something in localStorage (to overwrite it).
+    // This prevents overwriting defaults with an empty array on first load if defaultMenuItems were just set.
+    if (menuItems.length > 0 || localStorage.getItem(LOCAL_STORAGE_KEY)) {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(menuItems));
     }
   }, [menuItems]);
@@ -80,7 +109,8 @@ export default function MenuPage() {
 
   const handleDeleteItem = (itemId: string) => {
     const itemToDelete = menuItems.find(item => item.id === itemId);
-    if (confirm(`Are you sure you want to delete "${itemToDelete?.name}"?`)) {
+    // Using window.confirm for simplicity. For better UX, consider a custom modal.
+    if (window.confirm(`Are you sure you want to delete "${itemToDelete?.name}"?`)) {
       setMenuItems(prevItems => prevItems.filter(item => item.id !== itemId));
       toast({ title: "Success", description: `Item deleted successfully.` });
     }
