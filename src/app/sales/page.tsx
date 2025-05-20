@@ -1,7 +1,8 @@
+
 // src/app/sales/page.tsx
 'use client';
 
-import { useState, type FormEvent, useEffect } from 'react';
+import { useState, type FormEvent, useEffect, ChangeEvent } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,12 +10,19 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { PlusCircle, Trash2, UtensilsCrossed } from 'lucide-react';
 import type { SaleRecord, SaleItem, MenuItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface NewSaleItem extends Omit<SaleItem, 'id' | 'total'> {
   tempId: string; // for client-side list management
+}
+
+interface MenuSelectionItem extends MenuItem {
+  selected: boolean;
+  quantity: number;
 }
 
 const MENU_LOCAL_STORAGE_KEY = 'quoriam-menu-items';
@@ -24,11 +32,8 @@ const SALES_LOCAL_STORAGE_KEY = 'quoriam-sales-records';
 export default function SalesPage() {
   const [salesRecords, setSalesRecords] = useState<SaleRecord[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [menuSelection, setMenuSelection] = useState<MenuSelectionItem[]>([]);
   
-  const [selectedMenuItemId, setSelectedMenuItemId] = useState<string | undefined>(undefined);
-  const [itemName, setItemName] = useState(''); // Still used for display in order items, or if no menu item selected
-  const [quantity, setQuantity] = useState(1);
-  const [price, setPrice] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online'>('cash');
   const [currentOrderItems, setCurrentOrderItems] = useState<NewSaleItem[]>([]);
 
@@ -41,9 +46,15 @@ export default function SalesPage() {
   useEffect(() => {
     // Load menu items
     const storedMenuItems = localStorage.getItem(MENU_LOCAL_STORAGE_KEY);
+    let loadedMenuItems: MenuItem[] = [];
     if (storedMenuItems) {
-      setMenuItems(JSON.parse(storedMenuItems));
+      loadedMenuItems = JSON.parse(storedMenuItems);
+      setMenuItems(loadedMenuItems);
     }
+    // Initialize menuSelection based on loadedMenuItems
+    setMenuSelection(
+      loadedMenuItems.map(item => ({ ...item, selected: false, quantity: 1 }))
+    );
 
     // Load initial sales records
     const storedSales = localStorage.getItem(SALES_LOCAL_STORAGE_KEY);
@@ -59,6 +70,21 @@ export default function SalesPage() {
     }
   }, []);
 
+  // Update menuSelection when menuItems change (e.g., after adding a custom item)
+  useEffect(() => {
+    setMenuSelection(
+      menuItems.map(item => {
+        const existingSelection = menuSelection.find(ms => ms.id === item.id);
+        return { 
+          ...item, 
+          selected: existingSelection?.selected || false, 
+          quantity: existingSelection?.quantity || 1 
+        };
+      })
+    );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [menuItems]); // Only re-run if menuItems itself changes instance
+
   // Save sales records to local storage
   useEffect(() => {
     if (salesRecords.length > 0 || localStorage.getItem(SALES_LOCAL_STORAGE_KEY)) {
@@ -66,39 +92,43 @@ export default function SalesPage() {
     }
   }, [salesRecords]);
 
-
-  const handleMenuItemSelect = (itemId: string) => {
-    const selectedItem = menuItems.find(item => item.id === itemId);
-    if (selectedItem) {
-      setSelectedMenuItemId(itemId);
-      setItemName(selectedItem.name); // Set item name for display
-      setPrice(selectedItem.price);
-    } else {
-      setSelectedMenuItemId(undefined);
-      setItemName('');
-      setPrice(0);
-    }
+  const handleMenuSelectionChange = (itemId: string, checked: boolean) => {
+    setMenuSelection(prevSelection =>
+      prevSelection.map(item =>
+        item.id === itemId ? { ...item, selected: checked, quantity: checked ? item.quantity : 1 } : item
+      )
+    );
   };
 
-  const handleAddItemToOrder = () => {
-    if (!itemName || quantity <= 0 || price <= 0) {
-      toast({ title: "Error", description: "Please select an item and ensure quantity/price are valid.", variant: "destructive"});
+  const handleMenuSelectionQuantityChange = (itemId: string, quantity: number) => {
+    setMenuSelection(prevSelection =>
+      prevSelection.map(item =>
+        item.id === itemId ? { ...item, quantity: Math.max(0, quantity) } : item
+      )
+    );
+  };
+
+  const handleAddSelectedItemsToOrder = () => {
+    const itemsToAdd = menuSelection.filter(item => item.selected && item.quantity > 0);
+    if (itemsToAdd.length === 0) {
+      toast({ title: "No items selected", description: "Please select items and specify quantities.", variant: "destructive"});
       return;
     }
-    const newItem: NewSaleItem = {
-      tempId: Date.now().toString(),
-      name: itemName,
-      quantity,
-      price,
-    };
-    setCurrentOrderItems([...currentOrderItems, newItem]);
-    // Reset fields for next item entry
-    setSelectedMenuItemId(undefined); // Important to clear selection
-    setItemName('');
-    setQuantity(1);
-    setPrice(0);
-    // Focus the select input after adding an item
-    document.getElementById('menuItemSelect')?.focus();
+
+    const newOrderItems: NewSaleItem[] = itemsToAdd.map(item => ({
+      tempId: `${Date.now().toString()}-${item.id}`,
+      name: item.name,
+      quantity: item.quantity,
+      price: item.price,
+    }));
+
+    setCurrentOrderItems(prevOrderItems => [...prevOrderItems, ...newOrderItems]);
+
+    // Reset selection state
+    setMenuSelection(prevSelection =>
+      prevSelection.map(item => ({ ...item, selected: false, quantity: 1 }))
+    );
+    toast({ title: "Items Added", description: `${itemsToAdd.length} item(s) added to the current order.` });
   };
 
   const handleRemoveItemFromOrder = (tempId: string) => {
@@ -120,14 +150,14 @@ export default function SalesPage() {
     const newItemForOrder: NewSaleItem = {
       tempId: `custom-${newMenuItem.id}`,
       name: newMenuItem.name,
-      quantity: 1, // Default to 1, can be adjusted if needed
+      quantity: 1, 
       price: newMenuItem.price,
     };
     setCurrentOrderItems(prevOrderItems => [...prevOrderItems, newItemForOrder]);
     
     // Add to menu items state and localStorage
     const updatedMenuItems = [...menuItems, newMenuItem];
-    setMenuItems(updatedMenuItems);
+    setMenuItems(updatedMenuItems); // This will trigger the useEffect to update menuSelection
     localStorage.setItem(MENU_LOCAL_STORAGE_KEY, JSON.stringify(updatedMenuItems));
 
     toast({ title: "Success", description: `${newMenuItem.name} added to order and menu.` });
@@ -136,11 +166,6 @@ export default function SalesPage() {
     setCustomItemName('');
     setCustomItemPrice('');
     setShowCustomItemForm(false);
-     // Reset main form fields as well
-    setSelectedMenuItemId(undefined);
-    setItemName(''); // Clear main item name
-    setQuantity(1);
-    setPrice(0);
   };
 
 
@@ -160,10 +185,6 @@ export default function SalesPage() {
     };
     setSalesRecords(prevRecords => [newSale, ...prevRecords]);
     setCurrentOrderItems([]);
-    setSelectedMenuItemId(undefined);
-    setItemName('');
-    setQuantity(1);
-    setPrice(0);
     setPaymentMethod('cash'); // Reset payment method
     toast({ title: "Sale Recorded!", description: `Sale ID: ${newSale.id} completed successfully.`});
   };
@@ -172,7 +193,7 @@ export default function SalesPage() {
 
   return (
     <>
-      <PageHeader title="Sales Tracker" description="Record and manage daily sales using pre-saved menu items." />
+      <PageHeader title="Sales Tracker" description="Select multiple items, adjust quantities, and record sales." />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
@@ -182,33 +203,39 @@ export default function SalesPage() {
           <CardContent>
             <form onSubmit={handleSubmitSale} className="space-y-4">
               <div>
-                <Label htmlFor="menuItemSelect">Select Menu Item</Label>
-                <Select value={selectedMenuItemId} onValueChange={handleMenuItemSelect} name="menuItemSelect" >
-                  <SelectTrigger id="menuItemSelect">
-                    <SelectValue placeholder="Choose an item..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {menuItems.length === 0 && <SelectItem value="no-items" disabled>No menu items available. Add items in Menu page.</SelectItem>}
-                    {menuItems.map(item => (
-                      <SelectItem key={item.id} value={item.id}>{item.name} - PKR {item.price.toFixed(2)}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="quantity">Quantity</Label>
-                  <Input id="quantity" type="number" value={quantity} onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value)))} min="1" />
-                </div>
-                <div>
-                  <Label htmlFor="price">Price (per item) (PKR)</Label>
-                  <Input id="price" type="number" value={price} onChange={(e) => setPrice(parseFloat(e.target.value))} min="0" step="0.01" />
-                </div>
+                <Label className="mb-2 block">Select Menu Items</Label>
+                <ScrollArea className="h-72 w-full rounded-md border p-3">
+                  {menuSelection.length === 0 && <p className="text-sm text-muted-foreground">No menu items available. Add items in Menu page.</p>}
+                  {menuSelection.map(item => (
+                    <div key={item.id} className="flex items-center space-x-3 mb-3 p-2 rounded-md hover:bg-muted/50">
+                      <Checkbox
+                        id={`item-${item.id}`}
+                        checked={item.selected}
+                        onCheckedChange={(checked) => handleMenuSelectionChange(item.id, !!checked)}
+                        aria-label={`Select ${item.name}`}
+                      />
+                      <div className="flex-1">
+                        <Label htmlFor={`item-${item.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
+                          {item.name}
+                        </Label>
+                        <p className="text-xs text-muted-foreground">PKR {item.price.toFixed(2)}</p>
+                      </div>
+                      <Input
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e: ChangeEvent<HTMLInputElement>) => handleMenuSelectionQuantityChange(item.id, parseInt(e.target.value) || 0)}
+                        className="w-20 h-8 text-sm"
+                        min="0"
+                        disabled={!item.selected}
+                        aria-label={`Quantity for ${item.name}`}
+                      />
+                    </div>
+                  ))}
+                </ScrollArea>
               </div>
               
-              <Button type="button" variant="outline" onClick={handleAddItemToOrder} className="w-full" disabled={!selectedMenuItemId && !itemName}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Item to Order
+              <Button type="button" variant="outline" onClick={handleAddSelectedItemsToOrder} className="w-full">
+                <PlusCircle className="mr-2 h-4 w-4" /> Add Selected Items to Order
               </Button>
 
               {!showCustomItemForm && (
@@ -239,19 +266,21 @@ export default function SalesPage() {
               {currentOrderItems.length > 0 && (
                 <div className="mt-4 space-y-2 border-t pt-4">
                   <h4 className="font-medium">Current Order Items:</h4>
-                  <div className="max-h-40 overflow-y-auto pr-2 space-y-1">
-                    {currentOrderItems.map(item => (
-                      <div key={item.tempId} className="flex justify-between items-center p-1.5 bg-background rounded text-sm">
-                        <span>{item.name} (x{item.quantity})</span>
-                        <div className="flex items-center gap-2">
-                           <span>PKR {(item.quantity * item.price).toFixed(2)}</span>
-                           <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveItemFromOrder(item.tempId)}>
-                            <Trash2 className="h-3 w-3 text-destructive" />
-                           </Button>
+                  <ScrollArea className="max-h-40 pr-2">
+                    <div className="space-y-1">
+                      {currentOrderItems.map(item => (
+                        <div key={item.tempId} className="flex justify-between items-center p-1.5 bg-background rounded text-sm">
+                          <span>{item.name} (x{item.quantity})</span>
+                          <div className="flex items-center gap-2">
+                            <span>PKR {(item.quantity * item.price).toFixed(2)}</span>
+                            <Button type="button" variant="ghost" size="icon" className="h-6 w-6" onClick={() => handleRemoveItemFromOrder(item.tempId)}>
+                              <Trash2 className="h-3 w-3 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
+                      ))}
+                    </div>
+                  </ScrollArea>
                   <p className="font-semibold text-right pt-1">Order Total: PKR {currentOrderTotal.toFixed(2)}</p>
                 </div>
               )}
@@ -312,3 +341,4 @@ export default function SalesPage() {
     </>
   );
 }
+
