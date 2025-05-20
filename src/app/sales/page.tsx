@@ -48,8 +48,14 @@ export default function SalesPage() {
     const storedMenuItems = localStorage.getItem(MENU_LOCAL_STORAGE_KEY);
     let loadedMenuItems: MenuItem[] = [];
     if (storedMenuItems) {
-      loadedMenuItems = JSON.parse(storedMenuItems);
-      setMenuItems(loadedMenuItems);
+      try {
+        loadedMenuItems = JSON.parse(storedMenuItems);
+        setMenuItems(loadedMenuItems);
+      } catch (error) {
+        console.error("Error parsing menu items from localStorage:", error);
+        // Optionally, clear the malformed data or set to default
+        localStorage.removeItem(MENU_LOCAL_STORAGE_KEY);
+      }
     }
     // Initialize menuSelection based on loadedMenuItems
     setMenuSelection(
@@ -59,7 +65,12 @@ export default function SalesPage() {
     // Load initial sales records
     const storedSales = localStorage.getItem(SALES_LOCAL_STORAGE_KEY);
     if (storedSales) {
+      try {
         setSalesRecords(JSON.parse(storedSales));
+      } catch (error) {
+        console.error("Error parsing sales records from localStorage:", error);
+        localStorage.removeItem(SALES_LOCAL_STORAGE_KEY);
+      }
     } else {
         // Fallback to placeholder if nothing in local storage
         const initialRecords: SaleRecord[] = [
@@ -83,7 +94,7 @@ export default function SalesPage() {
       })
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuItems]); // Only re-run if menuItems itself changes instance
+  }, [menuItems]); 
 
   // Save sales records to local storage
   useEffect(() => {
@@ -95,7 +106,9 @@ export default function SalesPage() {
   const handleMenuSelectionChange = (itemId: string, checked: boolean) => {
     setMenuSelection(prevSelection =>
       prevSelection.map(item =>
-        item.id === itemId ? { ...item, selected: checked, quantity: checked ? item.quantity : 1 } : item
+        item.id === itemId 
+          ? { ...item, selected: checked, quantity: checked ? (item.quantity > 0 ? item.quantity : 1) : 1 } 
+          : item
       )
     );
   };
@@ -103,7 +116,7 @@ export default function SalesPage() {
   const handleMenuSelectionQuantityChange = (itemId: string, quantity: number) => {
     setMenuSelection(prevSelection =>
       prevSelection.map(item =>
-        item.id === itemId ? { ...item, quantity: Math.max(0, quantity) } : item
+        item.id === itemId ? { ...item, quantity: Math.max(1, quantity) } : item // Ensure quantity is at least 1 if selected
       )
     );
   };
@@ -204,33 +217,39 @@ export default function SalesPage() {
             <form onSubmit={handleSubmitSale} className="space-y-4">
               <div>
                 <Label className="mb-2 block">Select Menu Items</Label>
-                <ScrollArea className="h-72 w-full rounded-md border p-3">
-                  {menuSelection.length === 0 && <p className="text-sm text-muted-foreground">No menu items available. Add items in Menu page.</p>}
-                  {menuSelection.map(item => (
-                    <div key={item.id} className="flex items-center space-x-3 mb-3 p-2 rounded-md hover:bg-muted/50">
-                      <Checkbox
-                        id={`item-${item.id}`}
-                        checked={item.selected}
-                        onCheckedChange={(checked) => handleMenuSelectionChange(item.id, !!checked)}
-                        aria-label={`Select ${item.name}`}
-                      />
-                      <div className="flex-1">
-                        <Label htmlFor={`item-${item.id}`} className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer">
-                          {item.name}
-                        </Label>
-                        <p className="text-xs text-muted-foreground">PKR {item.price.toFixed(2)}</p>
+                <ScrollArea className="h-[400px] w-full rounded-md border p-3">
+                  {menuSelection.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No menu items available. Add items in Menu page.</p>}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {menuSelection.map(item => (
+                      <div key={item.id} className="border rounded-md p-3 flex flex-col space-y-2 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between mb-1">
+                          <div className="flex-1 pr-2">
+                            <Label htmlFor={`item-select-${item.id}`} className="text-sm font-medium leading-tight cursor-pointer block">
+                              {item.name}
+                            </Label>
+                            <p className="text-xs text-muted-foreground">PKR {item.price.toFixed(2)}</p>
+                          </div>
+                          <Checkbox
+                            id={`item-select-${item.id}`}
+                            checked={item.selected}
+                            onCheckedChange={(checked) => handleMenuSelectionChange(item.id, !!checked)}
+                            aria-label={`Select ${item.name}`}
+                            className="mt-1 flex-shrink-0"
+                          />
+                        </div>
+                        <Input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e: ChangeEvent<HTMLInputElement>) => handleMenuSelectionQuantityChange(item.id, parseInt(e.target.value) || 1)}
+                          className="w-full h-8 text-sm"
+                          min="1"
+                          disabled={!item.selected}
+                          aria-label={`Quantity for ${item.name}`}
+                          placeholder="Qty"
+                        />
                       </div>
-                      <Input
-                        type="number"
-                        value={item.quantity}
-                        onChange={(e: ChangeEvent<HTMLInputElement>) => handleMenuSelectionQuantityChange(item.id, parseInt(e.target.value) || 0)}
-                        className="w-20 h-8 text-sm"
-                        min="0"
-                        disabled={!item.selected}
-                        aria-label={`Quantity for ${item.name}`}
-                      />
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </ScrollArea>
               </div>
               
@@ -323,22 +342,28 @@ export default function SalesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {salesRecords.map((sale) => (
-                  <TableRow key={sale.id}>
-                    <TableCell className="font-medium">{sale.id}</TableCell>
-                    <TableCell>{sale.date}</TableCell>
-                    <TableCell>{sale.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
-                    <TableCell>{sale.paymentMethod.charAt(0).toUpperCase() + sale.paymentMethod.slice(1)}</TableCell>
-                    <TableCell className="text-right">PKR {sale.totalAmount.toFixed(2)}</TableCell>
+                {salesRecords.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
+                      No sales records yet.
+                    </TableCell>
                   </TableRow>
-                ))}
+                ) : (
+                  salesRecords.map((sale) => (
+                    <TableRow key={sale.id}>
+                      <TableCell className="font-medium">{sale.id}</TableCell>
+                      <TableCell>{sale.date}</TableCell>
+                      <TableCell>{sale.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
+                      <TableCell>{sale.paymentMethod.charAt(0).toUpperCase() + sale.paymentMethod.slice(1)}</TableCell>
+                      <TableCell className="text-right">PKR {sale.totalAmount.toFixed(2)}</TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
-             {salesRecords.length === 0 && <p className="text-center text-muted-foreground py-4">No sales records yet.</p>}
           </CardContent>
         </Card>
       </div>
     </>
   );
 }
-
