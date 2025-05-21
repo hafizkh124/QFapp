@@ -4,76 +4,98 @@
 
 @layer base {
   :root {
-    --background: 60 56% 91%; /* Light Beige #F5F5DC */
-    --foreground: 30 25% 25%; /* Dark Brown #665B50 */
-    --card: 60 50% 95%; /* Slightly off-white/very light beige #F7F5EC */
-    --card-foreground: 30 25% 25%; /* Dark Brown #665B50 */
-    --popover: 60 50% 95%; /* Slightly off-white/very light beige #F7F5EC */
-    --popover-foreground: 30 25% 25%; /* Dark Brown #665B50 */
-    --primary: 51 100% 50%; /* Warm Gold #FFD700 */
-    --primary-foreground: 51 100% 10%; /* Darker Gold/Brown #332B00 */
-    --secondary: 60 30% 85%; /* Lighter Beige #E8E5D9 */
-    --secondary-foreground: 30 25% 25%; /* Dark Brown #665B50 */
-    --muted: 60 30% 88%; /* Lighter Beige for muted #EDEADF */
-    --muted-foreground: 30 20% 45%; /* Medium Brown #8C7F73 */
-    --accent: 30 60% 50%; /* Bronze #CD7F32 */
-    --accent-foreground: 30 60% 95%; /* Very Light Peach #FBEADB */
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 60 30% 80%; /* Beige Border #DAD6C3 */
-    --input: 60 30% 80%; /* Beige Input #DAD6C3 */
-    --ring: 30 60% 50%; /* Bronze Ring #CD7F32 */
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
+    /* New color scheme based on Quoriam Foods logo (Yellow & Red) */
+    --background: 60 100% 98%; /* Very Light Yellow #FFFDE6 */
+    --foreground: 0 0% 13%;    /* Dark Gray #212121 */
+
+    --card: 60 100% 99%;       /* Almost White with Yellow Tint #FFFEEF */
+    --card-foreground: 0 0% 13%; /* Dark Gray #212121 */
+
+    --popover: 60 100% 99%;    /* Almost White with Yellow Tint #FFFEEF */
+    --popover-foreground: 0 0% 13%; /* Dark Gray #212121 */
+
+    --primary: 54 100% 50%;    /* Bright Yellow #FFEB00 (close to #FFFF00) */
+    --primary-foreground: 0 70% 25%; /* Dark Red-Brown for contrast on yellow #6A2C2C */
+
+    --secondary: 54 90% 85%;  /* Lighter Yellow #FFF9C4 */
+    --secondary-foreground: 0 0% 20%; /* Darker Gray #333333 */
+
+    --muted: 60 60% 92%;       /* Pale Yellow #F7F7E6 */
+    --muted-foreground: 0 0% 40%;  /* Medium Gray #666666 */
+
+    --accent: 0 80% 55%;       /* Bright Red #E83A3A (similar to logo red D92D20) */
+    --accent-foreground: 0 0% 100%;  /* White for contrast on red */
+
+    --destructive: 0 70% 50%;   /* A slightly less intense red for destructive actions #CC3333 */
+    --destructive-foreground: 0 0% 98%; /* Light Gray/White */
+
+    --border: 60 50% 88%;      /* Light Yellow-Gray Border #F0F0D9 */
+    --input: 60 50% 92%;       /* Lighter Yellow-Gray for Input #F5F5E0 */
+    --ring: 0 80% 55%;         /* Red for focus rings (matches accent) */
+
+    --chart-1: 0 75% 60%; /* Red for charts */
+    --chart-2: 45 100% 50%; /* Orange for charts */
+    --chart-3: 197 37% 24%; /* Kept one distinct color from old theme */
+    --chart-4: 25 80% 55%; /* Another warm color for charts */
+    --chart-5: 320 60% 60%; /* Purple-ish for variety */
+
     --radius: 0.5rem;
 
-    --sidebar-background: 60 45% 93%; /* Slightly different beige from main background #F5F4EB */
-    --sidebar-foreground: 30 25% 25%; /* Dark Brown #665B50 */
-    --sidebar-primary: 51 100% 50%; /* Warm Gold #FFD700 */
-    --sidebar-primary-foreground: 51 100% 10%; /* Darker Gold/Brown #332B00 */
-    --sidebar-accent: 30 60% 50%; /* Bronze #CD7F32 */
-    --sidebar-accent-foreground: 30 60% 95%; /* Very Light Peach #FBEADB */
-    --sidebar-border: 60 30% 80%; /* Beige Border #DAD6C3 */
-    --sidebar-ring: 30 60% 50%; /* Bronze Ring #CD7F32 */
+    /* Sidebar specific colors - can mirror main theme or be distinct */
+    --sidebar-background: 0 0% 96%; /* Light Gray, could also be a very desaturated yellow */
+    --sidebar-foreground: 0 0% 13%;   /* Dark Gray */
+    --sidebar-primary: 54 100% 50%;   /* Bright Yellow */
+    --sidebar-primary-foreground: 0 70% 25%; /* Dark Red-Brown */
+    --sidebar-accent: 0 80% 55%;      /* Bright Red */
+    --sidebar-accent-foreground: 0 0% 100%; /* White */
+    --sidebar-border: 0 0% 85%;     /* Medium Gray Border */
+    --sidebar-ring: 0 80% 55%;        /* Red Ring */
   }
 
   .dark {
-    --background: 30 10% 15%; /* Dark Bronze/Brown #2E2A26 */
-    --foreground: 60 50% 90%; /* Light Beige #F2F0E6 */
-    --card: 30 10% 20%; /* Darker Bronze/Brown #3A3531 */
-    --card-foreground: 60 50% 90%; /* Light Beige #F2F0E6 */
-    --popover: 30 10% 10%; /* Very Dark Bronze/Brown #211E1B */
-    --popover-foreground: 60 50% 90%; /* Light Beige #F2F0E6 */
-    --primary: 51 100% 60%; /* Lighter Gold #FFDE33 */
-    --primary-foreground: 51 100% 10%; /* Darker Gold/Brown #332B00 */
-    --secondary: 30 10% 25%; /* Dark Bronze/Brown #47413C */
-    --secondary-foreground: 60 50% 90%; /* Light Beige #F2F0E6 */
-    --muted: 30 10% 22%; /* Dark Bronze/Brown #403B36 */
-    --muted-foreground: 60 30% 70%; /* Lighter Beige #CFCAB3 */
-    --accent: 30 60% 60%; /* Lighter Bronze #D6914C */
-    --accent-foreground: 30 60% 10%; /* Dark Bronze/Brown #38230F */
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 30 10% 30%; /* Dark Bronze/Brown Border #544D47 */
-    --input: 30 10% 30%; /* Dark Bronze/Brown Input #544D47 */
-    --ring: 30 60% 60%; /* Lighter Bronze Ring #D6914C */
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
+    --background: 0 0% 8%;     /* Very Dark Gray/Almost Black #141414 */
+    --foreground: 0 0% 90%;   /* Light Gray #E6E6E6 */
 
-    --sidebar-background: 30 10% 12%; /* Darker than main dark bg #262320 */
-    --sidebar-foreground: 60 50% 90%; /* Light Beige #F2F0E6 */
-    --sidebar-primary: 51 100% 60%; /* Lighter Gold #FFDE33 */
-    --sidebar-primary-foreground: 51 100% 10%; /* Darker Gold/Brown #332B00 */
-    --sidebar-accent: 30 60% 60%; /* Lighter Bronze #D6914C */
-    --sidebar-accent-foreground: 30 60% 10%; /* Dark Bronze/Brown #38230F */
-    --sidebar-border: 30 10% 25%; /* Dark Bronze/Brown Border #47413C */
-    --sidebar-ring: 30 60% 60%; /* Lighter Bronze Ring #D6914C */
+    --card: 0 0% 12%;         /* Dark Gray #1F1F1F */
+    --card-foreground: 0 0% 90%; /* Light Gray #E6E6E6 */
+
+    --popover: 0 0% 10%;      /* Slightly Darker Gray #1A1A1A */
+    --popover-foreground: 0 0% 90%; /* Light Gray #E6E6E6 */
+
+    --primary: 54 100% 55%;    /* Bright Yellow (slightly lighter for dark mode) #FFF033 */
+    --primary-foreground: 0 70% 20%; /* Very Dark Red-Brown #582424 */
+
+    --secondary: 0 0% 20%;    /* Darker Gray #333333 */
+    --secondary-foreground: 0 0% 85%; /* Lighter Gray #D9D9D9 */
+
+    --muted: 0 0% 15%;        /* Dark Muted Gray #262626 */
+    --muted-foreground: 0 0% 55%;  /* Medium-Light Gray #8C8C8C */
+
+    --accent: 0 85% 60%;       /* Vibrant Red (slightly lighter for dark mode) #F04D4D */
+    --accent-foreground: 0 0% 98%;  /* Almost White */
+
+    --destructive: 0 75% 55%;   /* Slightly brighter red for destructive in dark mode #DE4242 */
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 25%;      /* Dark Gray Border #404040 */
+    --input: 0 0% 22%;       /* Slightly lighter dark gray for input #383838 */
+    --ring: 0 85% 60%;         /* Red for focus rings (matches accent) */
+
+    --chart-1: 0 80% 65%; /* Red for charts */
+    --chart-2: 45 100% 60%; /* Orange for charts */
+    --chart-3: 197 40% 70%; /* Lightened distinct color */
+    --chart-4: 25 85% 65%; /* Another warm color for charts */
+    --chart-5: 320 65% 70%; /* Purple-ish for variety */
+
+    /* Sidebar specific colors for dark theme */
+    --sidebar-background: 0 0% 10%; /* Very Dark Gray */
+    --sidebar-foreground: 0 0% 90%;   /* Light Gray */
+    --sidebar-primary: 54 100% 55%;   /* Bright Yellow */
+    --sidebar-primary-foreground: 0 70% 20%; /* Very Dark Red-Brown */
+    --sidebar-accent: 0 85% 60%;      /* Vibrant Red */
+    --sidebar-accent-foreground: 0 0% 98%; /* Almost White */
+    --sidebar-border: 0 0% 20%;     /* Dark Gray Border */
+    --sidebar-ring: 0 85% 60%;        /* Red Ring */
   }
 }
 
