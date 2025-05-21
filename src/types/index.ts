@@ -1,3 +1,4 @@
+
 export interface SaleItem {
   id: string;
   name: string;
@@ -32,6 +33,7 @@ export interface ProfitEntry {
 export interface EmployeePerformance {
   id: string;
   employeeName: string;
+  role?: string; // Added role
   date: string;
   salesTarget?: number;
   salesAchieved?: number;
@@ -42,6 +44,7 @@ export interface EmployeePerformance {
 export interface EmployeeAttendance {
   id: string;
   employeeName: string;
+  role?: string; // Added role
   date: string;
   inTime?: string;
   outTime?: string;
@@ -51,6 +54,7 @@ export interface EmployeeAttendance {
 export interface EmployeeSalary {
   id: string;
   employeeName: string;
+  role?: string; // Added role
   month: string; // e.g., 'Mar 2024'
   basicSalary: number;
   advances: number;
@@ -65,3 +69,5 @@ export interface MenuItem {
   price: number;
   category?: string; // Optional for now
 }
+
+    
