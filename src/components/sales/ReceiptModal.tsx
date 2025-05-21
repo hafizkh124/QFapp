@@ -55,8 +55,8 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
               <span>{formattedDateTime}</span>
             </div>
              <div className="flex justify-between">
-              <span>Cashier:</span>
-              <span>{saleRecord.employeeName} (ID: {saleRecord.employeeId})</span>
+              <span>Cashier ID:</span>
+              <span>{saleRecord.employeeId}</span>
             </div>
             <Separator className="my-3" />
             <h3 className="font-semibold text-md mb-1 items-purchased-header">Items Purchased:</h3>
