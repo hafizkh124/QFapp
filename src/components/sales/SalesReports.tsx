@@ -11,21 +11,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CalendarIcon, SearchIcon, BarChartIcon } from 'lucide-react';
+import { CalendarIcon, SearchIcon, BarChartIcon, Eye } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   format,
   parse,
   isSameDay,
-  isSameWeek,
-  isSameMonth,
+  // isSameWeek, // Not used directly, using start/endOfWeek
+  // isSameMonth, // Not used directly, using start/endOfMonth
   startOfWeek,
   endOfWeek,
   startOfMonth,
   endOfMonth,
   isWithinInterval,
   isValid,
-  subDays,
+  // subDays, // Not used
   getYear,
   getMonth,
   setYear,
@@ -35,13 +35,14 @@ import {
 interface SalesReportsProps {
   allSalesData: SaleRecord[];
   menuItems: MenuItem[];
+  onViewReceipt: (saleId: string) => void; // Callback to open receipt modal
 }
 
 type ReportPeriodType = 'daily' | 'weekly' | 'monthly' | 'custom' | 'all';
-type TopSellingItem = { name: string; quantity: number; revenue: number; };
-type PaymentMethodSummary = { method: string; count: number; totalAmount: number; percentage: number; };
+// type TopSellingItem = { name: string; quantity: number; revenue: number; }; // Defined inline below
+// type PaymentMethodSummary = { method: string; count: number; totalAmount: number; percentage: number; }; // Defined inline below
 
-export default function SalesReports({ allSalesData, menuItems }: SalesReportsProps) {
+export default function SalesReports({ allSalesData, menuItems, onViewReceipt }: SalesReportsProps) {
   const [reportPeriodType, setReportPeriodType] = useState<ReportPeriodType>('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCustomStart, setSelectedCustomStart] = useState<Date | undefined>();
@@ -54,12 +55,15 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
 
   useEffect(() => {
     const now = new Date();
-    setSelectedDate(now);
-    setSelectedMonth(getMonth(now));
-    const currentActualYear = getYear(now);
-    setSelectedYear(currentActualYear);
-    setYearsForDropdown(Array.from({ length: 10 }, (_, i) => currentActualYear - 5 + i));
-  }, []);
+    if (!selectedDate) setSelectedDate(now); // Initialize only if not already set by user
+    if (selectedMonth === undefined) setSelectedMonth(getMonth(now));
+    if (selectedYear === undefined) {
+        const currentActualYear = getYear(now);
+        setSelectedYear(currentActualYear);
+        setYearsForDropdown(Array.from({ length: 10 }, (_, i) => currentActualYear - 5 + i));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Run once on mount
 
 
   const salesDataWithParsedDates = useMemo(() => {
@@ -81,16 +85,14 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
       const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: weekStart, end: weekEnd }));
     } else if (reportPeriodType === 'monthly' && selectedMonth !== undefined && selectedYear !== undefined) {
-      const monthDate = setYear(setMonth(new Date(0,0), selectedMonth), selectedYear); // Use day 1 to avoid month overflow issues initially
+      const monthDate = setYear(setMonth(new Date(0,0), selectedMonth), selectedYear);
       const monthStart = startOfMonth(monthDate);
       const monthEnd = endOfMonth(monthDate);
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: monthStart, end: monthEnd }));
     } else if (reportPeriodType === 'custom' && selectedCustomStart && selectedCustomEnd) {
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: selectedCustomStart, end: selectedCustomEnd }));
     }
-    // 'all' time no date filtering needed initially for general report
-
-    // Further filter by selected menu item if an item is chosen
+    
     if (selectedReportMenuItemId) {
       const selectedItem = menuItems.find(item => item.id === selectedReportMenuItemId);
       if (selectedItem) {
@@ -121,8 +123,8 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
     });
     return Array.from(itemMap.entries())
       .map(([name, data]) => ({ name, ...data }))
-      .sort((a, b) => b.revenue - a.revenue) // Sort by revenue, can change to quantity
-      .slice(0, 5); // Top 5
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
   }, [filteredSales]);
 
   const paymentMethodBreakdown = useMemo(() => {
@@ -138,7 +140,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
         breakdown[sale.paymentMethod].totalAmount += sale.totalAmount;
       }
     });
-    const totalSalesForPercentage = salesSummary.totalRevenue > 0 ? salesSummary.totalRevenue : 1; // Avoid division by zero
+    const totalSalesForPercentage = salesSummary.totalRevenue > 0 ? salesSummary.totalRevenue : 1;
 
     return Object.entries(breakdown).map(([method, data]) => ({
       method: method.charAt(0).toUpperCase() + method.slice(1),
@@ -155,7 +157,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
     let totalQuantitySold = 0;
     let totalRevenueFromItem = 0;
 
-    filteredSales.forEach(sale => { // Use already time-filtered sales
+    filteredSales.forEach(sale => {
       sale.items.forEach(item => {
         if (item.name === selectedItem.name) {
           totalQuantitySold += item.quantity;
@@ -178,7 +180,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
         return (
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[280px] justify-start text-left font-normal">
+              <Button variant="outline" className="w-full md:w-[280px] justify-start text-left font-normal">
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {selectedDate ? format(selectedDate, 'PPP') : <span>Pick a date</span>}
               </Button>
@@ -192,7 +194,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
          return (
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-[280px] justify-start text-left font-normal">
+              <Button variant="outline" className="w-full md:w-[280px] justify-start text-left font-normal">
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {selectedDate ? `Week of ${format(startOfWeek(selectedDate, {weekStartsOn:1}), 'PPP')}` : <span>Pick a date in week</span>}
               </Button>
@@ -204,9 +206,9 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
         );
       case 'monthly':
         return (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Select value={selectedMonth?.toString()} onValueChange={(val) => setSelectedMonth(parseInt(val))}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Select Month" />
               </SelectTrigger>
               <SelectContent>
@@ -218,7 +220,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
               </SelectContent>
             </Select>
             <Select value={selectedYear?.toString()} onValueChange={(val) => setSelectedYear(parseInt(val))}>
-              <SelectTrigger className="w-[120px]">
+              <SelectTrigger className="w-full sm:w-[120px]">
                 <SelectValue placeholder="Select Year" />
               </SelectTrigger>
               <SelectContent>
@@ -231,10 +233,10 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
         );
       case 'custom':
         return (
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+                <Button variant="outline" className="w-full sm:w-[240px] justify-start text-left font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {selectedCustomStart ? format(selectedCustomStart, 'PPP') : <span>Pick start date</span>}
                 </Button>
@@ -245,7 +247,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
             </Popover>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-[240px] justify-start text-left font-normal">
+                <Button variant="outline" className="w-full sm:w-[240px] justify-start text-left font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {selectedCustomEnd ? format(selectedCustomEnd, 'PPP') : <span>Pick end date</span>}
                 </Button>
@@ -269,7 +271,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
           <CardDescription>Select period and item to generate reports.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-4 md:grid-cols-2 items-end">
             <div>
               <Label htmlFor="reportPeriodType">Report Period</Label>
               <Select value={reportPeriodType} onValueChange={(value) => setReportPeriodType(value as ReportPeriodType)}>
@@ -294,7 +296,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
                 <SelectValue placeholder="All Items (General Report)" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value={undefined}>All Items (General Report)</SelectItem>
+                <SelectItem value={undefined}>All Items (General Report)</SelectItem> {/* Explicit undefined value */}
                 {menuItems.map(item => (
                   <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
                 ))}
@@ -337,6 +339,7 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
                         <TableHead>Date</TableHead>
                         <TableHead>Quantity of Item</TableHead>
                         <TableHead>Total Order Amount</TableHead>
+                        <TableHead className="text-center">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -350,6 +353,11 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
                               <TableCell>{sale.date}</TableCell>
                               <TableCell>{itemInSale?.quantity || 0}</TableCell>
                               <TableCell>PKR {sale.totalAmount.toFixed(2)}</TableCell>
+                              <TableCell className="text-center">
+                                <Button variant="ghost" size="icon" onClick={() => onViewReceipt(sale.id)} title="View Receipt">
+                                  <Eye className="h-4 w-4" />
+                                </Button>
+                              </TableCell>
                             </TableRow>
                           );
                       })}
@@ -473,9 +481,10 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
                       <TableRow>
                         <TableHead>Order ID</TableHead>
                         <TableHead>Date</TableHead>
-                        <TableHead>Items (Count)</TableHead>
-                        <TableHead>Payment Method</TableHead>
-                        <TableHead className="text-right">Total Amount</TableHead>
+                        <TableHead>Items (Qty)</TableHead>
+                        <TableHead>Payment</TableHead>
+                        <TableHead className="text-right">Total (PKR)</TableHead>
+                        <TableHead className="text-center">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -483,11 +492,16 @@ export default function SalesReports({ allSalesData, menuItems }: SalesReportsPr
                         <TableRow key={sale.id}>
                           <TableCell>{sale.id}</TableCell>
                           <TableCell>{sale.date}</TableCell>
-                           <TableCell>
-                            {sale.items.map(item => `${item.name} (x${item.quantity})`).join(', ')} ({sale.items.reduce((acc, item) => acc + item.quantity, 0)})
+                           <TableCell className="max-w-[200px] truncate">
+                            {sale.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}
                           </TableCell>
                           <TableCell>{sale.paymentMethod.charAt(0).toUpperCase() + sale.paymentMethod.slice(1)}</TableCell>
-                          <TableCell className="text-right">PKR {sale.totalAmount.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">{sale.totalAmount.toFixed(2)}</TableCell>
+                           <TableCell className="text-center">
+                            <Button variant="ghost" size="icon" onClick={() => onViewReceipt(sale.id)} title="View Receipt">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))}
                     </TableBody>

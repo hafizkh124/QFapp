@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -105,5 +106,80 @@
   }
   body {
     @apply bg-background text-foreground;
+  }
+}
+
+@media print {
+  body {
+    background-color: white !important; /* Ensure background is white for printing */
+    -webkit-print-color-adjust: exact; /* Ensure colors print correctly in Chrome/Safari */
+    color-adjust: exact; /* Standard property for color printing */
+  }
+  .hide-on-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important; /* Or 'table-row', etc., depending on element */
+  }
+  /* Styles for the receipt content itself when printing */
+  #receipt-content {
+    width: 100%;
+    max-width: 300px; /* Typical thermal receipt width */
+    margin: 0 auto;
+    padding: 0;
+    font-family: 'Courier New', Courier, monospace; /* Monospaced font for receipts */
+    font-size: 10pt; /* Adjust as needed */
+    color: black !important; /* Ensure text is black */
+  }
+  #receipt-content .flex, #receipt-content .grid {
+    display: flex !important; /* Ensure flex/grid display for layout */
+  }
+  #receipt-content .justify-between {
+    justify-content: space-between !important;
+  }
+  #receipt-content .text-center {
+    text-align: center !important;
+  }
+  #receipt-content .font-semibold {
+    font-weight: 600 !important;
+  }
+  #receipt-content .font-mono {
+     font-family: 'Courier New', Courier, monospace !important;
+  }
+  #receipt-content .text-muted-foreground {
+    color: #555 !important;
+  }
+  #receipt-content hr, #receipt-content [role="separator"] {
+    border-top: 1px dashed #777 !important; /* Dashed line for separators */
+    margin-top: 0.5rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+   #receipt-content .items-purchased-header {
+    margin-bottom: 0.25rem !important;
+  }
+  #receipt-content .item-row {
+    display: grid !important;
+    grid-template-columns: 1fr auto auto auto !important; /* Ensure grid layout for item rows */
+    gap: 0.5rem !important; /* Adjust gap as needed */
+    margin-bottom: 0.25rem !important;
+  }
+  #receipt-content .item-name {
+    text-align: left !important;
+    word-break: break-word; /* Allow long item names to wrap */
+  }
+  #receipt-content .item-qty,
+  #receipt-content .item-price,
+  #receipt-content .item-total {
+    text-align: right !important;
+    white-space: nowrap !important;
+  }
+   #receipt-content .thank-you-message {
+    margin-top: 1rem !important;
+    text-align: center !important;
+    font-size: 8pt !important;
+  }
+  @page {
+    size: auto; /* Or specify a common receipt size like '80mm 297mm' */
+    margin: 5mm; /* Minimal margin */
   }
 }

@@ -11,12 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Trash2, UtensilsCrossed } from 'lucide-react';
+import { PlusCircle, Trash2, UtensilsCrossed, Eye } from 'lucide-react';
 import type { SaleRecord, SaleItem, MenuItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SalesReports from '@/components/sales/SalesReports'; // New component for reports
+import SalesReports from '@/components/sales/SalesReports';
+import ReceiptModal from '@/components/sales/ReceiptModal'; // New component for receipt
 import { format } from 'date-fns';
 
 interface NewSaleItem extends Omit<SaleItem, 'id' | 'total'> {
@@ -44,6 +45,9 @@ export default function SalesPage() {
   const [customItemName, setCustomItemName] = useState('');
   const [customItemPrice, setCustomItemPrice] = useState('');
   
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
+  const [currentReceipt, setCurrentReceipt] = useState<SaleRecord | null>(null);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -59,7 +63,6 @@ export default function SalesPage() {
         localStorage.removeItem(MENU_LOCAL_STORAGE_KEY);
       }
     }
-    // Initialize menuSelection based on loadedMenuItems
     setMenuSelection(
       loadedMenuItems.map(item => ({ ...item, selected: false, quantity: 1 }))
     );
@@ -74,16 +77,15 @@ export default function SalesPage() {
         localStorage.removeItem(SALES_LOCAL_STORAGE_KEY);
       }
     } else {
-        // Fallback to placeholder if nothing in local storage, with standardized date format
+        const placeholderDate = new Date();
         const initialRecords: SaleRecord[] = [
-          { id: 'S001', date: format(new Date(), 'yyyy-MM-dd'), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card' },
-          { id: 'S002', date: format(new Date(Date.now() - 86400000 * 1 ), 'yyyy-MM-dd'), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash' },
+          { id: 'S001', date: format(placeholderDate, 'yyyy-MM-dd'), dateTime: placeholderDate.toISOString(), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card', cashierName: 'App User' },
+          { id: 'S002', date: format(new Date(Date.now() - 86400000 * 1 ), 'yyyy-MM-dd'), dateTime: new Date(Date.now() - 86400000 * 1 ).toISOString(), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash', cashierName: 'App User' },
         ];
         setSalesRecords(initialRecords);
     }
   }, []);
 
-  // Update menuSelection when menuItems change (e.g., after adding a custom item)
   useEffect(() => {
     setMenuSelection(
       menuItems.map(item => {
@@ -98,7 +100,6 @@ export default function SalesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [menuItems]); 
 
-  // Save sales records to local storage
   useEffect(() => {
     if (salesRecords.length > 0 || localStorage.getItem(SALES_LOCAL_STORAGE_KEY)) {
         localStorage.setItem(SALES_LOCAL_STORAGE_KEY, JSON.stringify(salesRecords));
@@ -118,7 +119,7 @@ export default function SalesPage() {
   const handleMenuSelectionQuantityChange = (itemId: string, quantity: number) => {
     setMenuSelection(prevSelection =>
       prevSelection.map(item =>
-        item.id === itemId ? { ...item, quantity: Math.max(1, quantity) } : item // Ensure quantity is at least 1 if selected
+        item.id === itemId ? { ...item, quantity: Math.max(1, quantity) } : item
       )
     );
   };
@@ -139,7 +140,6 @@ export default function SalesPage() {
 
     setCurrentOrderItems(prevOrderItems => [...prevOrderItems, ...newOrderItems]);
 
-    // Reset selection state
     setMenuSelection(prevSelection =>
       prevSelection.map(item => ({ ...item, selected: false, quantity: 1 }))
     );
@@ -161,7 +161,6 @@ export default function SalesPage() {
       price: parseFloat(customItemPrice),
     };
 
-    // Add to current order
     const newItemForOrder: NewSaleItem = {
       tempId: `custom-${newMenuItem.id}`,
       name: newMenuItem.name,
@@ -170,14 +169,12 @@ export default function SalesPage() {
     };
     setCurrentOrderItems(prevOrderItems => [...prevOrderItems, newItemForOrder]);
     
-    // Add to menu items state and localStorage
     const updatedMenuItems = [...menuItems, newMenuItem];
-    setMenuItems(updatedMenuItems); // This will trigger the useEffect to update menuSelection
+    setMenuItems(updatedMenuItems);
     localStorage.setItem(MENU_LOCAL_STORAGE_KEY, JSON.stringify(updatedMenuItems));
 
     toast({ title: "Success", description: `${newMenuItem.name} added to order and menu.` });
 
-    // Reset custom item form
     setCustomItemName('');
     setCustomItemPrice('');
     setShowCustomItemForm(false);
@@ -190,25 +187,40 @@ export default function SalesPage() {
       toast({ title: "Error", description: "Please add items to the order before completing sale.", variant: "destructive"});
       return;
     }
-
+    const now = new Date();
     const newSale: SaleRecord = {
-      id: `S${Date.now().toString().slice(-5)}`,
-      date: format(new Date(), 'yyyy-MM-dd'), // Standardized date format
+      id: `S${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2,4)}`,
+      date: format(now, 'yyyy-MM-dd'),
+      dateTime: now.toISOString(),
       items: currentOrderItems.map(item => ({ ...item, id: `I${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2, 3)}`, total: item.quantity * item.price })),
       totalAmount: currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0),
       paymentMethod,
+      cashierName: "App User", // Placeholder cashier name
     };
     setSalesRecords(prevRecords => [newSale, ...prevRecords]);
+    setCurrentReceipt(newSale); // Set current receipt to display
+    setIsReceiptModalOpen(true);   // Open modal
+    
+    // Reset form after sale
     setCurrentOrderItems([]);
-    setPaymentMethod('cash'); // Reset payment method
+    setPaymentMethod('cash'); 
     toast({ title: "Sale Recorded!", description: `Sale ID: ${newSale.id} completed successfully.`});
   };
+  
+  const handleViewReceipt = (saleId: string) => {
+    const saleToView = salesRecords.find(sale => sale.id === saleId);
+    if (saleToView) {
+      setCurrentReceipt(saleToView);
+      setIsReceiptModalOpen(true);
+    }
+  };
+
 
   const currentOrderTotal = currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
 
   return (
     <>
-      <PageHeader title="Sales Management" description="Record sales and view sales reports." />
+      <PageHeader title="Sales Management" description="Record sales, view reports, and manage receipts." />
       
       <Tabs defaultValue="recordSale" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6">
@@ -226,9 +238,9 @@ export default function SalesPage() {
                 <form onSubmit={handleSubmitSale} className="space-y-4">
                   <div>
                     <Label className="mb-2 block">Select Menu Items</Label>
-                    <ScrollArea className="h-[300px] w-full rounded-md border p-3"> {/* Adjusted height */}
-                      {menuSelection.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No menu items available. Add items in Menu page.</p>}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3"> {/* Adjusted grid for potentially narrower card */}
+                    <ScrollArea className="h-[300px] w-full rounded-md border p-3">
+                       {menuSelection.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No menu items available. Add items in Menu page.</p>}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {menuSelection.map(item => (
                           <div key={item.id} className="border rounded-md p-3 flex flex-col space-y-2 shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex items-start justify-between mb-1">
@@ -294,7 +306,7 @@ export default function SalesPage() {
                   {currentOrderItems.length > 0 && (
                     <div className="mt-4 space-y-2 border-t pt-4">
                       <h4 className="font-medium">Current Order Items:</h4>
-                      <ScrollArea className="max-h-32 pr-2"> {/* Adjusted height */}
+                      <ScrollArea className="max-h-32 pr-2">
                         <div className="space-y-1">
                           {currentOrderItems.map(item => (
                             <div key={item.tempId} className="flex justify-between items-center p-1.5 bg-background rounded text-sm">
@@ -337,7 +349,7 @@ export default function SalesPage() {
 
             <Card className="lg:col-span-2">
               <CardHeader>
-                <CardTitle>Sales History</CardTitle>
+                <CardTitle>Sales History (Recent 10)</CardTitle>
                 <CardDescription>Most recent sales. Detailed reports available in "Sales Reports" tab.</CardDescription>
               </CardHeader>
               <CardContent>
@@ -347,8 +359,8 @@ export default function SalesPage() {
                       <TableHead>ID</TableHead>
                       <TableHead>Date</TableHead>
                       <TableHead>Items</TableHead>
-                      <TableHead>Payment Method</TableHead>
-                      <TableHead className="text-right">Total Amount</TableHead>
+                      <TableHead className="text-right">Total (PKR)</TableHead>
+                      <TableHead className="text-center">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -359,13 +371,17 @@ export default function SalesPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      salesRecords.slice(0, 10).map((sale) => ( // Show only recent sales here
+                      salesRecords.slice(0, 10).map((sale) => (
                         <TableRow key={sale.id}>
                           <TableCell className="font-medium">{sale.id}</TableCell>
                           <TableCell>{sale.date}</TableCell>
                           <TableCell>{sale.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
-                          <TableCell>{sale.paymentMethod.charAt(0).toUpperCase() + sale.paymentMethod.slice(1)}</TableCell>
-                          <TableCell className="text-right">PKR {sale.totalAmount.toFixed(2)}</TableCell>
+                          <TableCell className="text-right">{sale.totalAmount.toFixed(2)}</TableCell>
+                          <TableCell className="text-center">
+                            <Button variant="ghost" size="icon" onClick={() => handleViewReceipt(sale.id)} title="View Receipt">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
                         </TableRow>
                       ))
                     )}
@@ -377,11 +393,17 @@ export default function SalesPage() {
         </TabsContent>
 
         <TabsContent value="salesReports">
-           <SalesReports allSalesData={salesRecords} menuItems={menuItems} />
+           <SalesReports allSalesData={salesRecords} menuItems={menuItems} onViewReceipt={handleViewReceipt} />
         </TabsContent>
       </Tabs>
+      
+      {currentReceipt && (
+        <ReceiptModal
+          isOpen={isReceiptModalOpen}
+          onClose={() => setIsReceiptModalOpen(false)}
+          saleRecord={currentReceipt}
+        />
+      )}
     </>
   );
 }
-
-    

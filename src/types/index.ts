@@ -9,10 +9,12 @@ export interface SaleItem {
 
 export interface SaleRecord {
   id: string;
-  date: string;
+  date: string; // Date of sale in 'yyyy-MM-dd' format
+  dateTime: string; // Precise date and time of sale (ISO string)
   items: SaleItem[];
   totalAmount: number;
   paymentMethod: 'cash' | 'card' | 'online' | 'credit';
+  cashierName: string; // Name of the cashier/employee who processed the sale
 }
 
 export interface ExpenseRecord {
