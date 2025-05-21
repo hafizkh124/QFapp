@@ -11,13 +11,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Trash2, UtensilsCrossed, Eye } from 'lucide-react';
-import type { SaleRecord, SaleItem, MenuItem } from '@/types';
+import { PlusCircle, Trash2, UtensilsCrossed, Eye, UserCircle } from 'lucide-react';
+import type { SaleRecord, SaleItem, MenuItem, Cashier } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SalesReports from '@/components/sales/SalesReports';
-import ReceiptModal from '@/components/sales/ReceiptModal'; // New component for receipt
+import ReceiptModal from '@/components/sales/ReceiptModal';
 import { format } from 'date-fns';
 
 interface NewSaleItem extends Omit<SaleItem, 'id' | 'total'> {
@@ -32,6 +32,19 @@ interface MenuSelectionItem extends MenuItem {
 const MENU_LOCAL_STORAGE_KEY = 'quoriam-menu-items';
 const SALES_LOCAL_STORAGE_KEY = 'quoriam-sales-records';
 
+// List of cashiers for selection
+const availableCashiers: Cashier[] = [
+  { id: 'P003', employeeId: '101', name: 'Umar Hayat' },
+  { id: 'P004', employeeId: '102', name: 'Abdullah Qarafi' },
+  { id: 'P005', employeeId: '103', name: 'Shoaib Ashfaq' }, // Though delivery, might handle payments
+  { id: 'P006', employeeId: '104', name: 'Salman Karamat' },
+  { id: 'P007', employeeId: '105', name: 'Suraqa Zohaib' },
+  { id: 'P008', employeeId: '106', name: 'Bilal Karamat' },
+  { id: 'P009', employeeId: '107', name: 'Kaleemullah Qarafi' },
+  { id: 'P001', employeeId: '001', name: 'Alice Smith' }, // Generic staff
+  { id: 'P002', employeeId: '002', name: 'Bob Johnson' }, // Generic staff
+];
+
 
 export default function SalesPage() {
   const [salesRecords, setSalesRecords] = useState<SaleRecord[]>([]);
@@ -40,6 +53,8 @@ export default function SalesPage() {
   
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online' | 'credit'>('cash');
   const [currentOrderItems, setCurrentOrderItems] = useState<NewSaleItem[]>([]);
+  const [selectedCashier, setSelectedCashier] = useState<Cashier>(availableCashiers[0]);
+
 
   const [showCustomItemForm, setShowCustomItemForm] = useState(false);
   const [customItemName, setCustomItemName] = useState('');
@@ -51,7 +66,6 @@ export default function SalesPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load menu items
     const storedMenuItems = localStorage.getItem(MENU_LOCAL_STORAGE_KEY);
     let loadedMenuItems: MenuItem[] = [];
     if (storedMenuItems) {
@@ -67,7 +81,6 @@ export default function SalesPage() {
       loadedMenuItems.map(item => ({ ...item, selected: false, quantity: 1 }))
     );
 
-    // Load initial sales records
     const storedSales = localStorage.getItem(SALES_LOCAL_STORAGE_KEY);
     if (storedSales) {
       try {
@@ -79,8 +92,8 @@ export default function SalesPage() {
     } else {
         const placeholderDate = new Date();
         const initialRecords: SaleRecord[] = [
-          { id: 'S001', date: format(placeholderDate, 'yyyy-MM-dd'), dateTime: placeholderDate.toISOString(), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card', cashierName: 'App User' },
-          { id: 'S002', date: format(new Date(Date.now() - 86400000 * 1 ), 'yyyy-MM-dd'), dateTime: new Date(Date.now() - 86400000 * 1 ).toISOString(), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash', cashierName: 'App User' },
+          { id: 'S001', date: format(placeholderDate, 'yyyy-MM-dd'), dateTime: placeholderDate.toISOString(), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card', employeeName: availableCashiers[0].name, employeeId: availableCashiers[0].employeeId },
+          { id: 'S002', date: format(new Date(Date.now() - 86400000 * 1 ), 'yyyy-MM-dd'), dateTime: new Date(Date.now() - 86400000 * 1 ).toISOString(), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash', employeeName: availableCashiers[1].name, employeeId: availableCashiers[1].employeeId },
         ];
         setSalesRecords(initialRecords);
     }
@@ -187,6 +200,11 @@ export default function SalesPage() {
       toast({ title: "Error", description: "Please add items to the order before completing sale.", variant: "destructive"});
       return;
     }
+    if (!selectedCashier) {
+      toast({ title: "Error", description: "Please select a cashier.", variant: "destructive"});
+      return;
+    }
+
     const now = new Date();
     const newSale: SaleRecord = {
       id: `S${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2,4)}`,
@@ -195,15 +213,16 @@ export default function SalesPage() {
       items: currentOrderItems.map(item => ({ ...item, id: `I${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2, 3)}`, total: item.quantity * item.price })),
       totalAmount: currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0),
       paymentMethod,
-      cashierName: "App User", // Placeholder cashier name
+      employeeName: selectedCashier.name,
+      employeeId: selectedCashier.employeeId,
     };
     setSalesRecords(prevRecords => [newSale, ...prevRecords]);
-    setCurrentReceipt(newSale); // Set current receipt to display
-    setIsReceiptModalOpen(true);   // Open modal
+    setCurrentReceipt(newSale); 
+    setIsReceiptModalOpen(true);   
     
-    // Reset form after sale
     setCurrentOrderItems([]);
-    setPaymentMethod('cash'); 
+    // setPaymentMethod('cash'); // Optionally reset payment method
+    // setSelectedCashier(availableCashiers[0]); // Optionally reset cashier
     toast({ title: "Sale Recorded!", description: `Sale ID: ${newSale.id} completed successfully.`});
   };
   
@@ -237,12 +256,36 @@ export default function SalesPage() {
               <CardContent>
                 <form onSubmit={handleSubmitSale} className="space-y-4">
                   <div>
-                    <Label className="mb-2 block">Select Menu Items</Label>
-                    <ScrollArea className="h-[300px] w-full rounded-md border p-3">
+                    <Label htmlFor="cashierSelect" className="mb-1 block">Select Cashier</Label>
+                    <Select
+                      value={selectedCashier.employeeId}
+                      onValueChange={(employeeId) => {
+                        const cashier = availableCashiers.find(c => c.employeeId === employeeId);
+                        if (cashier) setSelectedCashier(cashier);
+                      }}
+                    >
+                      <SelectTrigger id="cashierSelect" className="w-full">
+                         <div className="flex items-center gap-2">
+                            <UserCircle className="h-4 w-4 text-muted-foreground" />
+                            <SelectValue placeholder="Select cashier" />
+                        </div>
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCashiers.map(cashier => (
+                          <SelectItem key={cashier.employeeId} value={cashier.employeeId}>
+                            {cashier.name} (ID: {cashier.employeeId})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="mb-1 block">Select Menu Items</Label>
+                    <ScrollArea className="h-[250px] w-full rounded-md border p-3">
                        {menuSelection.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No menu items available. Add items in Menu page.</p>}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {menuSelection.map(item => (
-                          <div key={item.id} className="border rounded-md p-3 flex flex-col space-y-2 shadow-sm hover:shadow-md transition-shadow">
+                          <div key={item.id} className="border rounded-md p-3 flex flex-col space-y-2 shadow-sm hover:shadow-md transition-shadow bg-card">
                             <div className="flex items-start justify-between mb-1">
                               <div className="flex-1 pr-2">
                                 <Label htmlFor={`item-select-${item.id}`} className="text-sm font-medium leading-tight cursor-pointer block">
