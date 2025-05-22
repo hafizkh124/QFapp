@@ -8,6 +8,8 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AppLogo } from '@/components/layout/app-logo';
 import { format } from 'date-fns';
+import { Share2, Printer } from 'lucide-react'; // Added Share2 icon
+import { useToast } from "@/hooks/use-toast";
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -16,6 +18,8 @@ interface ReceiptModalProps {
 }
 
 export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptModalProps) {
+  const { toast } = useToast();
+
   if (!saleRecord) return null;
 
   const handlePrint = () => {
@@ -32,6 +36,64 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
   };
 
   const formattedDateTime = saleRecord.dateTime ? format(new Date(saleRecord.dateTime), "PPP p") : 'N/A';
+
+  const generateShareableText = (): string => {
+    if (!saleRecord) return "No receipt data available.";
+
+    let text = `Quoriam Foods Receipt\n`;
+    text += `-------------------------\n`;
+    text += `Order ID: ${saleRecord.id}\n`;
+    text += `Date & Time: ${formattedDateTime}\n`;
+    text += `Order Type: ${saleRecord.orderType}\n`;
+    text += `Cashier ID: ${saleRecord.employeeId}\n`;
+    text += `-------------------------\n`;
+    text += `Items Purchased:\n`;
+    saleRecord.items.forEach(item => {
+      text += `- ${item.name} (x${item.quantity}) @ ${item.price.toFixed(2)} = ${(item.quantity * item.price).toFixed(2)}\n`;
+    });
+    text += `-------------------------\n`;
+    text += `Total Amount: PKR ${saleRecord.totalAmount.toFixed(2)}\n`;
+    text += `Payment Method: ${saleRecord.paymentMethod.charAt(0).toUpperCase() + saleRecord.paymentMethod.slice(1)}\n`;
+    text += `-------------------------\n`;
+    text += `Thank you for your purchase!`;
+    return text;
+  };
+
+  const handleShare = async () => {
+    if (!saleRecord) return;
+
+    const shareData = {
+      title: `Quoriam Foods Receipt - Order ${saleRecord.id}`,
+      text: generateShareableText(),
+      // url: window.location.href, // Optional: You can share a URL to view the receipt if you have one
+    };
+
+    if (navigator.share) {
+      try {
+        await navigator.share(shareData);
+        toast({ title: "Receipt Shared", description: "The receipt details have been shared." });
+      } catch (error) {
+        console.error('Error sharing:', error);
+        toast({
+          variant: "destructive",
+          title: "Share Failed",
+          description: "Could not share the receipt at this time.",
+        });
+      }
+    } else {
+      // Fallback for browsers that don't support Web Share API
+      console.log("Shareable Receipt Text:\n", shareData.text);
+      toast({
+        title: "Share Not Available",
+        description: "Web Share API is not supported on this browser. Receipt details copied to console.",
+      });
+      // As an alternative, you could try copying to clipboard here, but it has its own complexities.
+      // navigator.clipboard.writeText(shareData.text)
+      //   .then(() => toast({ title: "Copied to Clipboard", description: "Receipt details copied to clipboard." }))
+      //   .catch(err => toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy to clipboard." }));
+    }
+  };
+
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -89,11 +151,16 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
             Thank you for your purchase!
           </p>
         </div>
-        <DialogFooter className="p-6 pt-0 border-t mt-4 hide-on-print">
-          <DialogClose asChild>
+        <DialogFooter className="p-6 pt-0 border-t mt-4 hide-on-print space-x-2">
+          <Button variant="outline" onClick={handleShare}>
+            <Share2 className="mr-2 h-4 w-4" /> Share
+          </Button>
+          <Button onClick={handlePrint}>
+            <Printer className="mr-2 h-4 w-4" /> Print Receipt
+          </Button>
+           <DialogClose asChild>
             <Button variant="outline">Close</Button>
           </DialogClose>
-          <Button onClick={handlePrint}>Print Receipt</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
