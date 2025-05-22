@@ -24,23 +24,34 @@ const PERFORMANCE_KEY = 'quoriam-performanceRecords';
 const ATTENDANCE_KEY = 'quoriam-attendanceRecords';
 const SALARY_KEY = 'quoriam-salaryRecords';
 
-// Initial Mock Data (used if localStorage is empty)
+// Initial Mock Data (used if localStorage is empty or invalid)
 const initialMockPerformance: EmployeePerformance[] = [
   { id: 'P001', employeeId: '001', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', salesTarget: 500, salesAchieved: 480, tasksCompleted: 8, tasksAssigned: 10 },
   { id: 'P002', employeeId: '002', employeeName: 'Bob Johnson', role: 'Staff', date: '2024-07-28', salesTarget: 400, salesAchieved: 410, tasksCompleted: 10, tasksAssigned: 10 },
   { id: 'P003', employeeId: '101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', salesTarget: 1000, salesAchieved: 950, tasksCompleted: 15, tasksAssigned: 15 },
   { id: 'P004', employeeId: '102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', date: '2024-07-28', salesTarget: 450, salesAchieved: 430, tasksCompleted: 9, tasksAssigned: 10 },
+  { id: 'P005', employeeId: '103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy', date: '2024-07-28', salesTarget: 0, salesAchieved: 0, tasksCompleted: 12, tasksAssigned: 12 },
+  { id: 'P006', employeeId: '104', employeeName: 'Salman Karamat', role: 'Cashier', date: '2024-07-28', salesTarget: 300, salesAchieved: 320, tasksCompleted: 7, tasksAssigned: 8 },
+  { id: 'P007', employeeId: '105', employeeName: 'Suraqa Zohaib', role: 'Cashier', date: '2024-07-28', salesTarget: 300, salesAchieved: 280, tasksCompleted: 6, tasksAssigned: 8 },
+  { id: 'P008', employeeId: '106', employeeName: 'Bilal Karamat', role: 'Cashier', date: '2024-07-28', salesTarget: 300, salesAchieved: 310, tasksCompleted: 7, tasksAssigned: 7 },
+  { id: 'P009', employeeId: '107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier', date: '2024-07-28', salesTarget: 300, salesAchieved: 290, tasksCompleted: 6, tasksAssigned: 7 },
 ];
 const initialMockAttendance: EmployeeAttendance[] = [
   { id: 'A001', employeeId: '001', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', inTime: '09:00 AM', outTime: '05:00 PM', status: 'Present' },
   { id: 'A002', employeeId: '002', employeeName: 'Bob Johnson', role: 'Staff', date: '2024-07-28', inTime: '09:05 AM', outTime: '05:15 PM', status: 'Present' },
-  { id: 'A004', employeeId: '101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', inTime: '08:45 AM', outTime: '06:00 PM', status: 'Present' },
+  { id: 'A003', employeeId: '101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', inTime: '08:45 AM', outTime: '06:00 PM', status: 'Present' },
+  { id: 'A004', employeeId: '102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', date: '2024-07-28', inTime: '08:50 AM', outTime: '05:30 PM', status: 'Present' },
+  { id: 'A005', employeeId: '103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy', date: '2024-07-28', status: 'Leave' },
+  { id: 'A006', employeeId: '104', employeeName: 'Salman Karamat', role: 'Cashier', date: '2024-07-28', inTime: '09:00 AM', outTime: '05:00 PM', status: 'Present' },
 ];
 const initialMockSalaries: EmployeeSalary[] = [
-  { id: 'S001', employeeId: '001', employeeName: 'Alice Smith', role: 'Staff', month: 'July 2024', basicSalary: 3000, advances: 200, bonuses: 150, deductions: 50, netSalary: 2900 },
-  { id: 'S002', employeeId: '002', employeeName: 'Bob Johnson', role: 'Staff', month: 'July 2024', basicSalary: 2800, advances: 0, bonuses: 200, deductions: 20, netSalary: 2980 },
-  { id: 'S003', employeeId: '101', employeeName: 'Umar Hayat', role: 'Branch Manager', month: 'July 2024', basicSalary: 5000, advances: 500, bonuses: 300, deductions: 100, netSalary: 4700 },
+  { id: 'S001', employeeId: '001', employeeName: 'Alice Smith', role: 'Staff', month: '2024-07', basicSalary: 30000, advances: 2000, bonuses: 1500, deductions: 500, netSalary: 29000 },
+  { id: 'S002', employeeId: '002', employeeName: 'Bob Johnson', role: 'Staff', month: '2024-07', basicSalary: 28000, advances: 0, bonuses: 2000, deductions: 200, netSalary: 29800 },
+  { id: 'S003', employeeId: '101', employeeName: 'Umar Hayat', role: 'Branch Manager', month: '2024-07', basicSalary: 50000, advances: 5000, bonuses: 3000, deductions: 1000, netSalary: 47000 },
+  { id: 'S004', employeeId: '102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', month: '2024-07', basicSalary: 35000, advances: 1000, bonuses: 1000, deductions: 300, netSalary: 34700 },
+  { id: 'S005', employeeId: '104', employeeName: 'Salman Karamat', role: 'Cashier', month: '2024-07', basicSalary: 25000, advances: 0, bonuses: 500, deductions: 100, netSalary: 25400 },
 ];
+
 
 interface FormDataBase {
   employeeId?: string; // User-facing ID
@@ -87,27 +98,61 @@ export default function PerformancePage() {
 
   // Load data from localStorage on mount
   useEffect(() => {
-    const storedPerformance = localStorage.getItem(PERFORMANCE_KEY);
-    setPerformanceRecords(storedPerformance ? JSON.parse(storedPerformance) : initialMockPerformance);
+    const loadData = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T[]>>, defaultValue: T[]): void => {
+      try {
+        const storedValue = localStorage.getItem(key);
+        if (storedValue) {
+          const parsedValue = JSON.parse(storedValue);
+          // Ensure parsedValue is an array; otherwise, use defaultValue
+          setter(Array.isArray(parsedValue) ? parsedValue : defaultValue);
+        } else {
+          setter(defaultValue);
+        }
+      } catch (error) {
+        console.error(`Error loading ${key} from localStorage:`, error);
+        setter(defaultValue); // Fallback to default on parsing error
+      }
+    };
 
-    const storedAttendance = localStorage.getItem(ATTENDANCE_KEY);
-    setAttendanceRecords(storedAttendance ? JSON.parse(storedAttendance) : initialMockAttendance);
-
-    const storedSalaries = localStorage.getItem(SALARY_KEY);
-    setSalaryRecords(storedSalaries ? JSON.parse(storedSalaries) : initialMockSalaries);
+    loadData<EmployeePerformance>(PERFORMANCE_KEY, setPerformanceRecords, initialMockPerformance);
+    loadData<EmployeeAttendance>(ATTENDANCE_KEY, setAttendanceRecords, initialMockAttendance);
+    loadData<EmployeeSalary>(SALARY_KEY, setSalaryRecords, initialMockSalaries);
   }, []);
 
+
   // Save data to localStorage on change
-  useEffect(() => { localStorage.setItem(PERFORMANCE_KEY, JSON.stringify(performanceRecords)); }, [performanceRecords]);
-  useEffect(() => { localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(attendanceRecords)); }, [attendanceRecords]);
-  useEffect(() => { localStorage.setItem(SALARY_KEY, JSON.stringify(salaryRecords)); }, [salaryRecords]);
+  useEffect(() => { 
+    if (performanceRecords.length > 0 || localStorage.getItem(PERFORMANCE_KEY)) {
+        localStorage.setItem(PERFORMANCE_KEY, JSON.stringify(performanceRecords)); 
+    }
+  }, [performanceRecords]);
+  useEffect(() => { 
+    if (attendanceRecords.length > 0 || localStorage.getItem(ATTENDANCE_KEY)) {
+        localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(attendanceRecords)); 
+    }
+  }, [attendanceRecords]);
+  useEffect(() => { 
+    if (salaryRecords.length > 0 || localStorage.getItem(SALARY_KEY)) {
+        localStorage.setItem(SALARY_KEY, JSON.stringify(salaryRecords)); 
+    }
+  }, [salaryRecords]);
 
 
   const allKnownEmployees = useMemo(() => {
     const employeeMap = new Map<string, { employeeId: string, employeeName: string, role?: string }>();
-    [...performanceRecords, ...attendanceRecords, ...salaryRecords].forEach(record => {
-      if (record?.employeeId && !employeeMap.has(record.employeeId)) {
-        employeeMap.set(record.employeeId, { employeeId: record.employeeId, employeeName: record.employeeName, role: record.role });
+    
+    // Ensure records are arrays before spreading
+    const pRecords = Array.isArray(performanceRecords) ? performanceRecords : [];
+    const aRecords = Array.isArray(attendanceRecords) ? attendanceRecords : [];
+    const sRecords = Array.isArray(salaryRecords) ? salaryRecords : [];
+
+    [...pRecords, ...aRecords, ...sRecords].forEach(record => {
+      if (record?.employeeId && record?.employeeName && !employeeMap.has(record.employeeId)) {
+        employeeMap.set(record.employeeId, { 
+            employeeId: record.employeeId, 
+            employeeName: record.employeeName, 
+            role: record.role 
+        });
       }
     });
     return Array.from(employeeMap.values()).sort((a,b) => a.employeeName.localeCompare(b.employeeName));
@@ -131,7 +176,11 @@ export default function PerformancePage() {
      if (name === 'employeeId') {
         const emp = allKnownEmployees.find(e => e.employeeId === value);
         setSelectedEmployeeForDialog(emp || null);
-        setter(prev => ({ ...prev, employeeId: value, role: emp?.role }));
+        setter(prev => ({ 
+            ...prev, 
+            employeeId: emp?.employeeId, // Explicitly set employeeId in form data
+            role: emp?.role || prev.role // Use employee's role or existing form role
+        }));
      } else {
         setter(prev => ({ ...prev, [name]: value }));
      }
@@ -162,7 +211,7 @@ export default function PerformancePage() {
     };
     setPerformanceRecords(prev => [newRecord, ...prev]);
     setIsAddPerformanceDialogOpen(false);
-    setPerformanceFormData({});
+    setPerformanceFormData({date: new Date()}); // Reset with default date
     setSelectedEmployeeForDialog(null);
     toast({ title: "Success", description: "Performance record added." });
   };
@@ -193,7 +242,7 @@ export default function PerformancePage() {
     };
     setAttendanceRecords(prev => [newRecord, ...prev]);
     setIsAddAttendanceDialogOpen(false);
-    setAttendanceFormData({});
+    setAttendanceFormData({date: new Date()}); // Reset with default date
     setSelectedEmployeeForDialog(null);
     toast({ title: "Success", description: "Attendance record added." });
   };
@@ -232,7 +281,7 @@ export default function PerformancePage() {
     };
     setSalaryRecords(prev => [newRecord, ...prev]);
     setIsAddSalaryDialogOpen(false);
-    setSalaryFormData({});
+    setSalaryFormData({month: format(new Date(), 'yyyy-MM')}); // Reset with default month
     setSelectedEmployeeForDialog(null);
     toast({ title: "Success", description: "Salary record added." });
   };
@@ -245,7 +294,7 @@ export default function PerformancePage() {
   };
   
   const openDialog = (setter: React.Dispatch<React.SetStateAction<boolean>>, formSetter: any, initialData = {}) => {
-    formSetter(initialData);
+    formSetter(initialData); // Set initial data which might include default date/month
     setSelectedEmployeeForDialog(null); // Reset selected employee
     setter(true);
   };
@@ -289,7 +338,7 @@ export default function PerformancePage() {
                   </TableRow>
                 </TableHeaderComponent>
                 <TableBody>
-                  {performanceRecords.map((record) => (
+                  {(performanceRecords || []).map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>{record.employeeId}</TableCell>
                       <TableCell>{record.employeeName}</TableCell>
@@ -299,7 +348,7 @@ export default function PerformancePage() {
                       <TableCell>PKR {record.salesAchieved?.toLocaleString() || 'N/A'}</TableCell>
                       <TableCell>{record.tasksCompleted}/{record.tasksAssigned}</TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleDeletePerformanceRecord(record.id)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeletePerformanceRecord(record.id)} aria-label="Delete performance record">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
@@ -307,7 +356,7 @@ export default function PerformancePage() {
                   ))}
                 </TableBody>
               </Table>
-              {performanceRecords.length === 0 && <p className="text-center text-muted-foreground py-4">No performance records yet.</p>}
+              {(performanceRecords || []).length === 0 && <p className="text-center text-muted-foreground py-4">No performance records yet.</p>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -339,7 +388,7 @@ export default function PerformancePage() {
                   </TableRow>
                 </TableHeaderComponent>
                 <TableBody>
-                  {attendanceRecords.map((record) => (
+                  {(attendanceRecords || []).map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>{record.employeeId}</TableCell>
                       <TableCell>{record.employeeName}</TableCell>
@@ -349,7 +398,7 @@ export default function PerformancePage() {
                       <TableCell>{record.outTime || 'N/A'}</TableCell>
                       <TableCell>{record.status}</TableCell>
                        <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteAttendanceRecord(record.id)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteAttendanceRecord(record.id)} aria-label="Delete attendance record">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
@@ -357,7 +406,7 @@ export default function PerformancePage() {
                   ))}
                 </TableBody>
               </Table>
-              {attendanceRecords.length === 0 && <p className="text-center text-muted-foreground py-4">No attendance records yet.</p>}
+              {(attendanceRecords || []).length === 0 && <p className="text-center text-muted-foreground py-4">No attendance records yet.</p>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -391,19 +440,19 @@ export default function PerformancePage() {
                   </TableRow>
                 </TableHeaderComponent>
                 <TableBody>
-                  {salaryRecords.map((record) => (
+                  {(salaryRecords || []).map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>{record.employeeId}</TableCell>
                       <TableCell>{record.employeeName}</TableCell>
                       <TableCell>{record.role || 'N/A'}</TableCell>
-                      <TableCell>{record.month}</TableCell>
+                      <TableCell>{record.month ? format(parseISO(record.month + '-01'), 'MMMM yyyy') : 'N/A'}</TableCell> {/* Display month name */}
                       <TableCell>PKR {record.basicSalary.toLocaleString()}</TableCell>
                       <TableCell>PKR {record.advances.toLocaleString()}</TableCell>
                       <TableCell>PKR {record.bonuses.toLocaleString()}</TableCell>
                       <TableCell>PKR {record.deductions.toLocaleString()}</TableCell>
                       <TableCell className="font-semibold">PKR {record.netSalary.toLocaleString()}</TableCell>
                        <TableCell className="text-right">
-                        <Button variant="ghost" size="icon" onClick={() => handleDeleteSalaryRecord(record.id)}>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteSalaryRecord(record.id)} aria-label="Delete salary record">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
@@ -411,14 +460,14 @@ export default function PerformancePage() {
                   ))}
                 </TableBody>
               </Table>
-              {salaryRecords.length === 0 && <p className="text-center text-muted-foreground py-4">No salary records yet.</p>}
+              {(salaryRecords || []).length === 0 && <p className="text-center text-muted-foreground py-4">No salary records yet.</p>}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
 
       {/* Add Performance Record Dialog */}
-      <Dialog open={isAddPerformanceDialogOpen} onOpenChange={(isOpen) => { setIsAddPerformanceDialogOpen(isOpen); if (!isOpen) {setPerformanceFormData({}); setSelectedEmployeeForDialog(null);}}}>
+      <Dialog open={isAddPerformanceDialogOpen} onOpenChange={(isOpen) => { setIsAddPerformanceDialogOpen(isOpen); if (!isOpen) {setPerformanceFormData({date: new Date()}); setSelectedEmployeeForDialog(null);}}}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add Performance Record</DialogTitle></DialogHeader>
           <form onSubmit={handleAddPerformanceRecord} className="space-y-4 py-4">
@@ -444,10 +493,10 @@ export default function PerformancePage() {
                 <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={performanceFormData.date} onSelect={(d) => handleDateChange(d, 'date', 'performance')} initialFocus /></PopoverContent>
               </Popover>
             </div>
-            <div><Label htmlFor="salesTarget">Sales Target (PKR)</Label><Input id="salesTarget" name="salesTarget" type="number" value={performanceFormData.salesTarget || ''} onChange={(e) => handleFormInputChange(e, 'performance')} /></div>
-            <div><Label htmlFor="salesAchieved">Sales Achieved (PKR)</Label><Input id="salesAchieved" name="salesAchieved" type="number" value={performanceFormData.salesAchieved || ''} onChange={(e) => handleFormInputChange(e, 'performance')} /></div>
-            <div><Label htmlFor="tasksCompleted">Tasks Completed</Label><Input id="tasksCompleted" name="tasksCompleted" type="number" value={performanceFormData.tasksCompleted || ''} onChange={(e) => handleFormInputChange(e, 'performance')} /></div>
-            <div><Label htmlFor="tasksAssigned">Tasks Assigned</Label><Input id="tasksAssigned" name="tasksAssigned" type="number" value={performanceFormData.tasksAssigned || ''} onChange={(e) => handleFormInputChange(e, 'performance')} /></div>
+            <div><Label htmlFor="salesTarget">Sales Target (PKR)</Label><Input id="salesTarget" name="salesTarget" type="number" value={performanceFormData.salesTarget || ''} onChange={(e) => handleFormInputChange(e, 'performance')} min="0" /></div>
+            <div><Label htmlFor="salesAchieved">Sales Achieved (PKR)</Label><Input id="salesAchieved" name="salesAchieved" type="number" value={performanceFormData.salesAchieved || ''} onChange={(e) => handleFormInputChange(e, 'performance')} min="0"/></div>
+            <div><Label htmlFor="tasksCompleted">Tasks Completed</Label><Input id="tasksCompleted" name="tasksCompleted" type="number" value={performanceFormData.tasksCompleted || ''} onChange={(e) => handleFormInputChange(e, 'performance')} min="0"/></div>
+            <div><Label htmlFor="tasksAssigned">Tasks Assigned</Label><Input id="tasksAssigned" name="tasksAssigned" type="number" value={performanceFormData.tasksAssigned || ''} onChange={(e) => handleFormInputChange(e, 'performance')} min="0"/></div>
             <DialogFooter>
               <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
               <Button type="submit">Add Record</Button>
@@ -457,7 +506,7 @@ export default function PerformancePage() {
       </Dialog>
 
       {/* Add Attendance Record Dialog */}
-      <Dialog open={isAddAttendanceDialogOpen} onOpenChange={(isOpen) => { setIsAddAttendanceDialogOpen(isOpen); if (!isOpen) {setAttendanceFormData({}); setSelectedEmployeeForDialog(null);}}}>
+      <Dialog open={isAddAttendanceDialogOpen} onOpenChange={(isOpen) => { setIsAddAttendanceDialogOpen(isOpen); if (!isOpen) {setAttendanceFormData({date: new Date()}); setSelectedEmployeeForDialog(null);}}}>
         <DialogContent>
           <DialogHeader><DialogTitle>Mark Attendance</DialogTitle></DialogHeader>
           <form onSubmit={handleAddAttendanceRecord} className="space-y-4 py-4">
@@ -505,7 +554,7 @@ export default function PerformancePage() {
       </Dialog>
 
       {/* Add Salary Record Dialog */}
-      <Dialog open={isAddSalaryDialogOpen} onOpenChange={(isOpen) => { setIsAddSalaryDialogOpen(isOpen); if (!isOpen) {setSalaryFormData({}); setSelectedEmployeeForDialog(null);}}}>
+      <Dialog open={isAddSalaryDialogOpen} onOpenChange={(isOpen) => { setIsAddSalaryDialogOpen(isOpen); if (!isOpen) {setSalaryFormData({month: format(new Date(), 'yyyy-MM')}); setSelectedEmployeeForDialog(null);}}}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add Salary Entry</DialogTitle></DialogHeader>
           <form onSubmit={handleAddSalaryRecord} className="space-y-4 py-4">
@@ -520,10 +569,10 @@ export default function PerformancePage() {
             </div>
             <div><Label htmlFor="salaryRole">Role</Label><Input id="salaryRole" name="role" value={salaryFormData.role || selectedEmployeeForDialog?.role || ''} onChange={(e) => handleFormInputChange(e, 'salary')} placeholder="Employee Role"/></div>
             <div><Label htmlFor="month">Month (YYYY-MM)</Label><Input id="month" name="month" type="month" value={salaryFormData.month || ''} onChange={(e) => handleFormInputChange(e, 'salary')} /></div>
-            <div><Label htmlFor="basicSalary">Basic Salary (PKR)</Label><Input id="basicSalary" name="basicSalary" type="number" value={salaryFormData.basicSalary || ''} onChange={(e) => handleFormInputChange(e, 'salary')} /></div>
-            <div><Label htmlFor="advances">Advances (PKR)</Label><Input id="advances" name="advances" type="number" value={salaryFormData.advances || ''} onChange={(e) => handleFormInputChange(e, 'salary')} /></div>
-            <div><Label htmlFor="bonuses">Bonuses (PKR)</Label><Input id="bonuses" name="bonuses" type="number" value={salaryFormData.bonuses || ''} onChange={(e) => handleFormInputChange(e, 'salary')} /></div>
-            <div><Label htmlFor="deductions">Deductions (PKR)</Label><Input id="deductions" name="deductions" type="number" value={salaryFormData.deductions || ''} onChange={(e) => handleFormInputChange(e, 'salary')} /></div>
+            <div><Label htmlFor="basicSalary">Basic Salary (PKR)</Label><Input id="basicSalary" name="basicSalary" type="number" value={salaryFormData.basicSalary || ''} onChange={(e) => handleFormInputChange(e, 'salary')} min="0" /></div>
+            <div><Label htmlFor="advances">Advances (PKR)</Label><Input id="advances" name="advances" type="number" value={salaryFormData.advances || ''} onChange={(e) => handleFormInputChange(e, 'salary')} min="0"/></div>
+            <div><Label htmlFor="bonuses">Bonuses (PKR)</Label><Input id="bonuses" name="bonuses" type="number" value={salaryFormData.bonuses || ''} onChange={(e) => handleFormInputChange(e, 'salary')} min="0"/></div>
+            <div><Label htmlFor="deductions">Deductions (PKR)</Label><Input id="deductions" name="deductions" type="number" value={salaryFormData.deductions || ''} onChange={(e) => handleFormInputChange(e, 'salary')} min="0"/></div>
             <DialogFooter>
               <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
               <Button type="submit">Add Entry</Button>
@@ -534,3 +583,4 @@ export default function PerformancePage() {
     </>
   );
 }
+
