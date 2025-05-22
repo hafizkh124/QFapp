@@ -6,13 +6,13 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, usePathname } from 'next/navigation';
 
-// Minimal hardcoded user for initial admin login IF localStorage is empty
+// Fallback admin user for initial login IF localStorage is empty
 const FALLBACK_ADMIN_USER: ManagedEmployee = {
-  employeeId: 'QE000', // Special ID for fallback
-  employeeName: 'Fallback Admin',
+  employeeId: 'QE101', // Corresponds to Umar Hayat in initial data
+  employeeName: 'Umar Hayat', // Default admin name
   role: 'admin',
-  email: 'admin@quoriam.com',
-  password: 'admin123' // This is still plain text, for mock only
+  email: 'hafizkh124@gmail.com', // Updated email
+  password: '1quoriam1' // Updated password
 };
 
 interface AuthContextType {
@@ -25,7 +25,8 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const MANAGED_EMPLOYEES_KEY_AUTH = 'quoriam-managed-employees-v2'; // Must match performance page key
+const MANAGED_EMPLOYEES_KEY_AUTH = 'quoriam-managed-employees-v2';
+const AUTH_USER_KEY = 'quoriam-auth-user';
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -36,18 +37,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     try {
-      const storedUser = localStorage.getItem('quoriam-auth-user');
+      const storedUser = localStorage.getItem(AUTH_USER_KEY);
       if (storedUser) {
         const parsedUser: AuthUser = JSON.parse(storedUser);
         if (parsedUser && parsedUser.uid && parsedUser.role) {
           setUser(parsedUser);
         } else {
-          localStorage.removeItem('quoriam-auth-user');
+          localStorage.removeItem(AUTH_USER_KEY);
         }
       }
     } catch (error) {
       console.error("Error reading auth user from localStorage:", error);
-      localStorage.removeItem('quoriam-auth-user');
+      localStorage.removeItem(AUTH_USER_KEY);
     }
     setIsLoading(false);
   }, []);
@@ -64,7 +65,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (email: string, pass: string): Promise<boolean> => {
     setIsLoading(true);
     let authenticatedEmployee: ManagedEmployee | null = null;
-    let foundInLocalStorage = false;
 
     try {
       const storedEmployeesString = localStorage.getItem(MANAGED_EMPLOYEES_KEY_AUTH);
@@ -74,7 +74,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           const foundEmp = storedEmployees.find(emp => emp.email.toLowerCase() === email.toLowerCase() && emp.password === pass);
           if (foundEmp) {
             authenticatedEmployee = foundEmp;
-            foundInLocalStorage = true;
           }
         }
       }
@@ -90,14 +89,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     if (authenticatedEmployee) {
       const authUserPayload: AuthUser = {
-        uid: authenticatedEmployee.employeeId, // Use employeeId as uid for simplicity
+        uid: authenticatedEmployee.employeeId,
         email: authenticatedEmployee.email,
         role: authenticatedEmployee.role,
         employeeId: authenticatedEmployee.employeeId,
         employeeName: authenticatedEmployee.employeeName,
       };
       setUser(authUserPayload);
-      localStorage.setItem('quoriam-auth-user', JSON.stringify(authUserPayload));
+      localStorage.setItem(AUTH_USER_KEY, JSON.stringify(authUserPayload));
       setIsLoading(false);
       return true;
     } else {
@@ -109,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     setUser(null);
-    localStorage.removeItem('quoriam-auth-user');
+    localStorage.removeItem(AUTH_USER_KEY);
     router.push('/login');
     toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
   };

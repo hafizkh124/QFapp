@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { PlusCircle, Trash2, CalendarIcon, Edit, Users } from 'lucide-react';
+import { PlusCircle, Trash2, CalendarIcon, Edit, Users, ShieldAlert } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from "@/hooks/use-toast";
@@ -28,7 +28,7 @@ const ATTENDANCE_KEY = 'quoriam-attendanceRecords-v2';
 const SALARY_KEY = 'quoriam-salaryRecords-v2';
 
 const allInitialStaffWithRoles: ManagedEmployee[] = [
-  { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', email: 'admin@quoriam.com', password: 'admin123' },
+  { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', email: 'hafizkh124@gmail.com', password: '1quoriam1' },
   { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee', email: 'khubaib@quoriam.com', password: 'khubaib123' },
   { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'employee', email: 'shoaib@quoriam.com', password: 'shoaib123' },
   { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee', email: 'salman@quoriam.com', password: 'salman123' },
@@ -183,12 +183,12 @@ export default function PerformancePage() {
         return;
     }
     // Ensure email uniqueness for new employees
-    if (employeeFormMode === 'add' && managedEmployees.some(emp => emp.email.toLowerCase() === currentEditingEmployee.email?.toLowerCase())) {
+    if (employeeFormMode === 'add' && (managedEmployees || []).some(emp => emp.email.toLowerCase() === currentEditingEmployee.email?.toLowerCase())) {
         toast({ title: "Error", description: `Email "${currentEditingEmployee.email}" is already in use.`, variant: "destructive" });
         return;
     }
     // Ensure email uniqueness when editing (if email was changed)
-    if (employeeFormMode === 'edit' && managedEmployees.some(emp => emp.employeeId !== currentEditingEmployee.employeeId && emp.email.toLowerCase() === currentEditingEmployee.email?.toLowerCase())) {
+    if (employeeFormMode === 'edit' && (managedEmployees || []).some(emp => emp.employeeId !== currentEditingEmployee.employeeId && emp.email.toLowerCase() === currentEditingEmployee.email?.toLowerCase())) {
         toast({ title: "Error", description: `Email "${currentEditingEmployee.email}" is already in use by another employee.`, variant: "destructive" });
         return;
     }
@@ -199,31 +199,28 @@ export default function PerformancePage() {
         employeeName: currentEditingEmployee.employeeName!,
         role: currentEditingEmployee.role!,
         email: currentEditingEmployee.email!,
-        // Only include password if it's being set for a new user or explicitly changed
-        // For this iteration, password is only set on creation
-        password: employeeFormMode === 'add' ? currentEditingEmployee.password : undefined,
+        password: employeeFormMode === 'add' ? currentEditingEmployee.password : undefined, // Only set password on add
     };
 
 
     if (employeeFormMode === 'add') {
-      // ID uniqueness should be guaranteed by generateNewEmployeeId, but a check doesn't hurt
-      if (managedEmployees.some(emp => emp.employeeId === employeeToSave.employeeId)) {
+      if ((managedEmployees || []).some(emp => emp.employeeId === employeeToSave.employeeId)) {
         toast({ title: "Error", description: `Employee ID ${employeeToSave.employeeId} conflict. This should not happen.`, variant: "destructive" });
-        return; // Or regenerate ID
+        return;
       }
-      setManagedEmployees(prev => [...prev, { ...employeeToSave }].sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
+      setManagedEmployees(prev => [...(prev || []), { ...employeeToSave, password: currentEditingEmployee.password }].sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
       toast({ title: "Success", description: "New employee added." });
     } else { // 'edit' mode
-      setManagedEmployees(prev => prev.map(emp =>
+      setManagedEmployees(prev => (prev || []).map(emp =>
         emp.employeeId === employeeToSave.employeeId
           ? { ...emp, employeeName: employeeToSave.employeeName, role: employeeToSave.role, email: employeeToSave.email } // Keep existing password if not changed
           : emp
       ).sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
 
       const updateRecordEmployeeDetails = <T extends { employeeId: string; employeeName: string; role: string }>(records: T[]): T[] => {
-        return records.map(rec =>
+        return (records || []).map(rec =>
           rec.employeeId === employeeToSave.employeeId
-            ? { ...rec, employeeName: employeeToSave.employeeName, role: employeeToSave.role }
+            ? { ...rec, employeeName: employeeToSave.employeeName!, role: employeeToSave.role! }
             : rec
         );
       };
@@ -237,7 +234,6 @@ export default function PerformancePage() {
   };
 
   const handleDeleteEmployee = (employeeId: string) => {
-    // Prevent deleting the currently logged-in admin (e.g., the primary admin)
     if (user?.employeeId === employeeId && user.role === 'admin') {
       toast({ title: "Cannot Delete", description: "You cannot delete your own admin account.", variant: "destructive"});
       return;
@@ -251,7 +247,7 @@ export default function PerformancePage() {
       return;
     }
     if (window.confirm("Are you sure you want to delete this employee? This action cannot be undone.")) {
-      setManagedEmployees(prev => prev.filter(emp => emp.employeeId !== employeeId));
+      setManagedEmployees(prev => (prev || []).filter(emp => emp.employeeId !== employeeId));
       toast({ title: "Success", description: "Employee deleted." });
     }
   };
@@ -280,7 +276,7 @@ export default function PerformancePage() {
 
   const handleAddPerformanceRecord = (e: FormEvent) => {
     e.preventDefault();
-    const selectedEmp = managedEmployees.find(emp => emp.employeeId === performanceFormData.selectedEmployeeId);
+    const selectedEmp = (managedEmployees || []).find(emp => emp.employeeId === performanceFormData.selectedEmployeeId);
     if (!selectedEmp || !performanceFormData.date) {
       toast({ title: "Error", description: "Employee and Date are required.", variant: "destructive" });
       return;
@@ -296,7 +292,7 @@ export default function PerformancePage() {
       tasksCompleted: performanceFormData.tasksCompleted || 0,
       tasksAssigned: performanceFormData.tasksAssigned || 0,
     };
-    setPerformanceRecords(prev => [newRecord, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setPerformanceRecords(prev => [newRecord, ...(prev || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setIsAddPerformanceDialogOpen(false);
     setPerformanceFormData({ date: new Date() });
     toast({ title: "Success", description: "Performance record added." });
@@ -304,14 +300,14 @@ export default function PerformancePage() {
 
   const handleDeletePerformanceRecord = (id: string) => {
     if (window.confirm("Are you sure you want to delete this performance record?")) {
-      setPerformanceRecords(prev => prev.filter(record => record.id !== id));
+      setPerformanceRecords(prev => (prev || []).filter(record => record.id !== id));
       toast({ title: "Success", description: "Performance record deleted." });
     }
   };
 
   const handleAddAttendanceRecord = (e: FormEvent) => {
     e.preventDefault();
-    const selectedEmp = managedEmployees.find(emp => emp.employeeId === attendanceFormData.selectedEmployeeId);
+    const selectedEmp = (managedEmployees || []).find(emp => emp.employeeId === attendanceFormData.selectedEmployeeId);
     if (!selectedEmp || !attendanceFormData.date || !attendanceFormData.status) {
       toast({ title: "Error", description: "Employee, Date, and Status are required.", variant: "destructive" });
       return;
@@ -326,7 +322,7 @@ export default function PerformancePage() {
       outTime: attendanceFormData.outTime,
       status: attendanceFormData.status,
     };
-    setAttendanceRecords(prev => [newRecord, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setAttendanceRecords(prev => [newRecord, ...(prev || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setIsAddAttendanceDialogOpen(false);
     setAttendanceFormData({ date: new Date() });
     toast({ title: "Success", description: "Attendance record added." });
@@ -334,14 +330,14 @@ export default function PerformancePage() {
 
   const handleDeleteAttendanceRecord = (id: string) => {
     if (window.confirm("Are you sure you want to delete this attendance record?")) {
-      setAttendanceRecords(prev => prev.filter(record => record.id !== id));
+      setAttendanceRecords(prev => (prev || []).filter(record => record.id !== id));
       toast({ title: "Success", description: "Attendance record deleted." });
     }
   };
 
   const handleAddSalaryRecord = (e: FormEvent) => {
     e.preventDefault();
-    const selectedEmp = managedEmployees.find(emp => emp.employeeId === salaryFormData.selectedEmployeeId);
+    const selectedEmp = (managedEmployees || []).find(emp => emp.employeeId === salaryFormData.selectedEmployeeId);
     if (!selectedEmp || !salaryFormData.month || salaryFormData.basicSalary === undefined) {
       toast({ title: "Error", description: "Employee, Month, and Basic Salary are required.", variant: "destructive" });
       return;
@@ -364,7 +360,7 @@ export default function PerformancePage() {
       deductions,
       netSalary,
     };
-    setSalaryRecords(prev => [newRecord, ...prev].sort((a, b) => new Date(b.month + '-01').getTime() - new Date(a.month + '-01').getTime()));
+    setSalaryRecords(prev => [newRecord, ...(prev || [])].sort((a, b) => new Date(b.month + '-01').getTime() - new Date(a.month + '-01').getTime()));
     setIsAddSalaryDialogOpen(false);
     setSalaryFormData({ month: format(new Date(), 'yyyy-MM') });
     toast({ title: "Success", description: "Salary record added." });
@@ -372,7 +368,7 @@ export default function PerformancePage() {
 
   const handleDeleteSalaryRecord = (id: string) => {
     if (window.confirm("Are you sure you want to delete this salary record?")) {
-      setSalaryRecords(prev => prev.filter(record => record.id !== id));
+      setSalaryRecords(prev => (prev || []).filter(record => record.id !== id));
       toast({ title: "Success", description: "Salary record deleted." });
     }
   };
@@ -421,9 +417,9 @@ export default function PerformancePage() {
   const employeeDropdownList = useMemo(() => {
     if (!managedEmployees) return [];
     if (user?.role === 'employee' && user.employeeId) {
-      return managedEmployees.filter(emp => emp.employeeId === user.employeeId);
+      return (managedEmployees || []).filter(emp => emp.employeeId === user.employeeId);
     }
-    return managedEmployees;
+    return managedEmployees || [];
   }, [managedEmployees, user]);
 
 
@@ -431,6 +427,7 @@ export default function PerformancePage() {
     return (
       <div className="flex items-center justify-center h-full">
         <Alert>
+         <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Access Denied</AlertTitle>
           <AlertDescription>You need to be logged in to view this page.</AlertDescription>
         </Alert>
@@ -662,7 +659,7 @@ export default function PerformancePage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {(managedEmployees || []).length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">No employees managed yet.</TableCell></TableRow>}
+                {(managedEmployees || []).length === 0 && (<TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">No employees managed yet.</TableCell></TableRow>)}
               </TableBody>
             </Table>
             <DialogFooter>
