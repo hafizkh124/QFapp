@@ -25,35 +25,60 @@ const PERFORMANCE_KEY = 'quoriam-performanceRecords';
 const ATTENDANCE_KEY = 'quoriam-attendanceRecords';
 const SALARY_KEY = 'quoriam-salaryRecords';
 
-// Initial Mock Data (used if localStorage is empty or invalid)
-const initialMockPerformance: EmployeePerformance[] = [
-  { id: 'P001', employeeId: 'E001', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', salesTarget: 500, salesAchieved: 480, tasksCompleted: 8, tasksAssigned: 10 },
-  { id: 'P003', employeeId: 'E101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', salesTarget: 1000, salesAchieved: 950, tasksCompleted: 15, tasksAssigned: 15 },
-  { id: 'P004', employeeId: 'E102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', date: '2024-07-28', salesTarget: 450, salesAchieved: 430, tasksCompleted: 9, tasksAssigned: 10 },
-];
-const initialMockAttendance: EmployeeAttendance[] = [
-  { id: 'A001', employeeId: 'E001', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', inTime: '09:00 AM', outTime: '05:00 PM', status: 'Present' },
-  { id: 'A003', employeeId: 'E101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', inTime: '08:45 AM', outTime: '06:00 PM', status: 'Present' },
-  { id: 'A005', employeeId: 'E103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy', date: '2024-07-28', status: 'Leave' },
-];
-const initialMockSalaries: EmployeeSalary[] = [
-  { id: 'S001', employeeId: 'E001', employeeName: 'Alice Smith', role: 'Staff', month: '2024-07', basicSalary: 30000, advances: 2000, bonuses: 1500, deductions: 500, netSalary: 29000 },
-  { id: 'S003', employeeId: 'E101', employeeName: 'Umar Hayat', role: 'Branch Manager', month: '2024-07', basicSalary: 50000, advances: 5000, bonuses: 3000, deductions: 1000, netSalary: 47000 },
+// Define all initial staff members with QE-prefixed IDs
+const allInitialStaffWithRoles: ManagedEmployee[] = [
+  { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager' },
+  { employeeId: 'QE102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper' },
+  { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy' },
+  { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier' },
+  { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier' },
+  { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'Cashier' },
+  { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier' },
+  { employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff' },
 ];
 
-// Derive initial managed employees from mock data if local storage is empty
+// Initial Mock Data (using QE-prefixed IDs)
+const initialMockPerformance: EmployeePerformance[] = [
+  { id: 'P001', employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', salesTarget: 500, salesAchieved: 480, tasksCompleted: 8, tasksAssigned: 10 },
+  { id: 'P003', employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', salesTarget: 1000, salesAchieved: 950, tasksCompleted: 15, tasksAssigned: 15 },
+  { id: 'P004', employeeId: 'QE102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', date: '2024-07-28', salesTarget: 450, salesAchieved: 430, tasksCompleted: 9, tasksAssigned: 10 },
+];
+const initialMockAttendance: EmployeeAttendance[] = [
+  { id: 'A001', employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', inTime: '09:00 AM', outTime: '05:00 PM', status: 'Present' },
+  { id: 'A003', employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', inTime: '08:45 AM', outTime: '06:00 PM', status: 'Present' },
+  { id: 'A005', employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy', date: '2024-07-28', status: 'Leave' },
+];
+const initialMockSalaries: EmployeeSalary[] = [
+  { id: 'S001', employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff', month: '2024-07', basicSalary: 30000, advances: 2000, bonuses: 1500, deductions: 500, netSalary: 29000 },
+  { id: 'S003', employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager', month: '2024-07', basicSalary: 50000, advances: 5000, bonuses: 3000, deductions: 1000, netSalary: 47000 },
+];
+
+// Function to derive initial managed employees from the master list
 const deriveInitialManagedEmployees = (): ManagedEmployee[] => {
-  const employeeMap = new Map<string, ManagedEmployee>();
-  [...initialMockPerformance, ...initialMockAttendance, ...initialMockSalaries].forEach(record => {
-    if (record.employeeId && !employeeMap.has(record.employeeId)) {
-      employeeMap.set(record.employeeId, {
-        employeeId: record.employeeId,
-        employeeName: record.employeeName,
-        role: record.role || 'N/A',
-      });
+  return [...allInitialStaffWithRoles].sort((a,b) => a.employeeName.localeCompare(b.employeeName));
+};
+
+// Function to generate new Employee ID
+const generateNewEmployeeId = (employees: ManagedEmployee[]): string => {
+  const prefix = "QE";
+  let maxNum = 100; // Start before 101, so the first generated ID is QE101 if no QE prefix IDs exist
+  
+  employees.forEach(emp => {
+    if (emp.employeeId.startsWith(prefix)) {
+      const numPartString = emp.employeeId.substring(prefix.length);
+      if (numPartString.length > 0) { // Ensure there is a numeric part
+        const numPart = parseInt(numPartString, 10);
+        if (!isNaN(numPart) && numPart > maxNum) {
+          maxNum = numPart;
+        }
+      }
     }
   });
-  return Array.from(employeeMap.values()).sort((a,b) => a.employeeName.localeCompare(b.employeeName));
+  // If maxNum is still 100, it means no QE prefixed IDs were found, or they were <= QE100
+  // So, the next ID will be QE101 in that case too.
+  // If employees list is empty, maxNum remains 100, next is QE101.
+  // If highest was QE101, maxNum becomes 101, next is QE102.
+  return `${prefix}${maxNum + 1}`;
 };
 
 
@@ -80,11 +105,8 @@ interface SalaryFormData extends Omit<RecordFormDataBase, 'date'> {
   deductions?: number;
 }
 
-interface EmployeeFormState {
-  employeeId: string;
-  employeeName: string;
-  role: string;
-}
+// Removed EmployeeFormState, as currentEditingEmployee will be ManagedEmployee | null
+
 
 export default function PerformancePage() {
   const { toast } = useToast();
@@ -97,7 +119,7 @@ export default function PerformancePage() {
   // Dialog states for employee management
   const [isManageEmployeesDialogOpen, setIsManageEmployeesDialogOpen] = useState(false);
   const [isEmployeeFormDialogOpen, setIsEmployeeFormDialogOpen] = useState(false);
-  const [currentEditingEmployee, setCurrentEditingEmployee] = useState<EmployeeFormState | null>(null);
+  const [currentEditingEmployee, setCurrentEditingEmployee] = useState<ManagedEmployee | null>(null);
   const [employeeFormMode, setEmployeeFormMode] = useState<'add' | 'edit'>('add');
 
 
@@ -118,14 +140,13 @@ export default function PerformancePage() {
         const storedValue = localStorage.getItem(key);
         if (storedValue) {
           const parsedValue = JSON.parse(storedValue);
-          setter(Array.isArray(parsedValue) ? parsedValue : defaultValue);
-        } else {
-          if (isEmployeeList) {
-             const derivedEmployees = deriveInitialManagedEmployees();
-             setter(derivedEmployees as T[]); // Type assertion might be needed
-          } else {
+           if (Array.isArray(parsedValue) && parsedValue.length > 0) { // Ensure it's a non-empty array
+            setter(parsedValue);
+          } else { // If empty array, null, or not an array, use default
             setter(defaultValue);
           }
+        } else { // If key not found, use default
+          setter(defaultValue);
         }
       } catch (error) {
         console.error(`Error loading ${key} from localStorage:`, error);
@@ -149,34 +170,31 @@ export default function PerformancePage() {
   // Handlers for Employee Management Dialog
   const handleOpenAddEmployeeDialog = () => {
     setEmployeeFormMode('add');
-    setCurrentEditingEmployee({ employeeId: '', employeeName: '', role: '' });
+    const newId = generateNewEmployeeId(managedEmployees);
+    setCurrentEditingEmployee({ employeeId: newId, employeeName: '', role: '' });
     setIsEmployeeFormDialogOpen(true);
   };
 
   const handleOpenEditEmployeeDialog = (employee: ManagedEmployee) => {
     setEmployeeFormMode('edit');
-    setCurrentEditingEmployee(employee);
+    setCurrentEditingEmployee({...employee}); // Clone to avoid direct state mutation before save
     setIsEmployeeFormDialogOpen(true);
   };
 
   const handleSaveEmployee = (e: FormEvent) => {
     e.preventDefault();
     if (!currentEditingEmployee || !currentEditingEmployee.employeeId || !currentEditingEmployee.employeeName || !currentEditingEmployee.role) {
-      toast({ title: "Error", description: "Employee ID, Name, and Role are required.", variant: "destructive" });
+      toast({ title: "Error", description: "Employee Name, and Role are required.", variant: "destructive" });
       return;
     }
 
     if (employeeFormMode === 'add') {
-      if (managedEmployees.some(emp => emp.employeeId === currentEditingEmployee.employeeId)) {
-        toast({ title: "Error", description: "Employee ID already exists.", variant: "destructive" });
-        return;
-      }
-      setManagedEmployees(prev => [...prev, { ...currentEditingEmployee }]);
+      // ID uniqueness is handled by generation, but name/role validation can be here
+      setManagedEmployees(prev => [...prev, { ...currentEditingEmployee }].sort((a,b) => a.employeeName.localeCompare(b.employeeName)));
       toast({ title: "Success", description: "New employee added." });
     } else { // 'edit'
-      setManagedEmployees(prev => prev.map(emp => emp.employeeId === currentEditingEmployee.employeeId ? { ...currentEditingEmployee } : emp));
+      setManagedEmployees(prev => prev.map(emp => emp.employeeId === currentEditingEmployee.employeeId ? { ...currentEditingEmployee } : emp).sort((a,b) => a.employeeName.localeCompare(b.employeeName)));
       
-      // Propagate changes to records
       const updatedPerformanceRecords = performanceRecords.map(rec => 
         rec.employeeId === currentEditingEmployee.employeeId 
           ? { ...rec, employeeName: currentEditingEmployee.employeeName, role: currentEditingEmployee.role } 
@@ -208,7 +226,7 @@ export default function PerformancePage() {
                        attendanceRecords.some(r => r.employeeId === employeeId) ||
                        salaryRecords.some(r => r.employeeId === employeeId);
     if (hasRecords) {
-      toast({ title: "Cannot Delete", description: "Employee has existing records. Please delete their records first.", variant: "destructive" });
+      toast({ title: "Cannot Delete", description: "Employee has existing records. Please delete their records first or reassign them.", variant: "destructive" });
       return;
     }
     if (window.confirm("Are you sure you want to delete this employee? This action cannot be undone.")) {
@@ -567,9 +585,8 @@ export default function PerformancePage() {
                 <Input 
                   id="empFormId" 
                   value={currentEditingEmployee.employeeId} 
-                  onChange={(e) => setCurrentEditingEmployee(prev => prev ? {...prev, employeeId: e.target.value} : null)}
-                  disabled={employeeFormMode === 'edit'}
-                  required
+                  disabled // Always disabled as it's auto-generated or non-editable
+                  className="bg-muted/50"
                 />
               </div>
               <div>
@@ -614,7 +631,6 @@ export default function PerformancePage() {
                 </SelectContent>
               </Select>
             </div>
-            {/* Role is derived from managedEmployees, not set here */}
             <div>
               <Label htmlFor="perfDate">Date</Label>
                <Popover>

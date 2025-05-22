@@ -32,17 +32,16 @@ interface MenuSelectionItem extends MenuItem {
 const MENU_LOCAL_STORAGE_KEY = 'quoriam-menu-items';
 const SALES_LOCAL_STORAGE_KEY = 'quoriam-sales-records';
 
-// List of cashiers for selection
+// List of cashiers for selection - IDs updated to QE prefix
 const availableCashiers: Cashier[] = [
-  { id: 'P003', employeeId: '101', name: 'Umar Hayat' },
-  { id: 'P004', employeeId: '102', name: 'Abdullah Qarafi' },
-  { id: 'P005', employeeId: '103', name: 'Shoaib Ashfaq' }, // Though delivery, might handle payments
-  { id: 'P006', employeeId: '104', name: 'Salman Karamat' },
-  { id: 'P007', employeeId: '105', name: 'Suraqa Zohaib' },
-  { id: 'P008', employeeId: '106', name: 'Bilal Karamat' },
-  { id: 'P009', employeeId: '107', name: 'Kaleemullah Qarafi' },
-  { id: 'P001', employeeId: '001', name: 'Alice Smith' }, // Generic staff
-  { id: 'P002', employeeId: '002', name: 'Bob Johnson' }, // Generic staff
+  { employeeId: 'QE101', name: 'Umar Hayat' },
+  { employeeId: 'QE102', name: 'Abdullah Qarafi' },
+  { employeeId: 'QE103', name: 'Shoaib Ashfaq' },
+  { employeeId: 'QE104', name: 'Salman Karamat' },
+  { employeeId: 'QE105', name: 'Suraqa Zohaib' },
+  { employeeId: 'QE106', name: 'Bilal Karamat' },
+  { employeeId: 'QE107', name: 'Kaleemullah Qarafi' },
+  { employeeId: 'QE108', name: 'Alice Smith' },
 ];
 
 
@@ -53,7 +52,7 @@ export default function SalesPage() {
   
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online' | 'credit'>('cash');
   const [currentOrderItems, setCurrentOrderItems] = useState<NewSaleItem[]>([]);
-  const [selectedCashier, setSelectedCashier] = useState<Cashier | undefined>(undefined); // Initialize as undefined
+  const [selectedCashier, setSelectedCashier] = useState<Cashier | undefined>(undefined); 
 
 
   const [showCustomItemForm, setShowCustomItemForm] = useState(false);
@@ -65,13 +64,11 @@ export default function SalesPage() {
 
   const { toast } = useToast();
   
-  // Define defaultCategories for custom item, must match those in menu/page.tsx
   const defaultCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
   const [customItemCategory, setCustomItemCategory] = useState(defaultCategories[0]);
 
 
   useEffect(() => {
-    // Set selected cashier on client mount
     if (availableCashiers.length > 0 && !selectedCashier) {
         setSelectedCashier(availableCashiers[0]);
     }
@@ -83,8 +80,11 @@ export default function SalesPage() {
     let loadedMenuItems: MenuItem[] = [];
     if (storedMenuItems) {
       try {
-        loadedMenuItems = JSON.parse(storedMenuItems);
-        setMenuItems(loadedMenuItems);
+        const parsedItems = JSON.parse(storedMenuItems);
+        if (Array.isArray(parsedItems)) {
+          loadedMenuItems = parsedItems;
+          setMenuItems(loadedMenuItems);
+        }
       } catch (error) {
         console.error("Error parsing menu items from localStorage:", error);
         localStorage.removeItem(MENU_LOCAL_STORAGE_KEY);
@@ -97,7 +97,10 @@ export default function SalesPage() {
     const storedSales = localStorage.getItem(SALES_LOCAL_STORAGE_KEY);
     if (storedSales) {
       try {
-        setSalesRecords(JSON.parse(storedSales));
+        const parsedSales = JSON.parse(storedSales);
+        if (Array.isArray(parsedSales)) {
+          setSalesRecords(parsedSales);
+        }
       } catch (error) {
         console.error("Error parsing sales records from localStorage:", error);
         localStorage.removeItem(SALES_LOCAL_STORAGE_KEY);
@@ -199,7 +202,7 @@ export default function SalesPage() {
     setCurrentOrderItems(prevOrderItems => [...prevOrderItems, newItemForOrder]);
     
     const updatedMenuItems = [...menuItems, newMenuItem];
-    setMenuItems(updatedMenuItems); // This will also update menuSelection via its useEffect
+    setMenuItems(updatedMenuItems); 
     localStorage.setItem(MENU_LOCAL_STORAGE_KEY, JSON.stringify(updatedMenuItems));
 
     toast({ title: "Success", description: `${newMenuItem.name} added to order and menu.` });
@@ -238,8 +241,6 @@ export default function SalesPage() {
     setIsReceiptModalOpen(true);   
     
     setCurrentOrderItems([]);
-    // setPaymentMethod('cash'); // Optionally reset payment method
-    // setSelectedCashier(availableCashiers[0]); // Optionally reset cashier
     toast({ title: "Sale Recorded!", description: `Sale ID: ${newSale.id} completed successfully.`});
   };
   
@@ -300,7 +301,7 @@ export default function SalesPage() {
                     <Label className="mb-1 block">Select Menu Items</Label>
                     <ScrollArea className="h-[300px] w-full rounded-md border p-3">
                        {menuSelection.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No menu items available. Add items in Menu page.</p>}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {menuSelection.map(item => (
                           <div key={item.id} className="border rounded-md p-3 flex flex-col space-y-2 shadow-sm hover:shadow-md transition-shadow bg-card">
                             <div className="flex items-start justify-between mb-1">
