@@ -72,10 +72,10 @@ export default function SalesPage() {
 
   useEffect(() => {
     // Set selected cashier on client mount
-    if (availableCashiers.length > 0) {
+    if (availableCashiers.length > 0 && !selectedCashier) {
         setSelectedCashier(availableCashiers[0]);
     }
-    if (defaultCategories.length > 0) {
+    if (defaultCategories.length > 0 && !customItemCategory) {
         setCustomItemCategory(defaultCategories[0]);
     }
 
@@ -467,7 +467,12 @@ export default function SalesPage() {
         </TabsContent>
 
         <TabsContent value="salesReports">
-           <SalesReports allSalesData={salesRecords} menuItems={menuItems} onViewReceipt={handleViewReceipt} />
+           <SalesReports 
+             allSalesData={salesRecords} 
+             menuItems={menuItems} 
+             onViewReceipt={handleViewReceipt}
+             availableCashiers={availableCashiers}
+           />
         </TabsContent>
       </Tabs>
       

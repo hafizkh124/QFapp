@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { SaleRecord, MenuItem } from '@/types';
+import type { SaleRecord, MenuItem, Cashier } from '@/types';
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -9,23 +9,20 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
+// import { Input } from '@/components/ui/input'; // No longer used for search
 import { Label } from '@/components/ui/label';
-import { CalendarIcon, SearchIcon, BarChartIcon, Eye } from 'lucide-react';
+import { CalendarIcon, UserCircle, LayersIcon, Eye } from 'lucide-react'; // Replaced SearchIcon, BarChartIcon
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   format,
   parse,
   isSameDay,
-  // isSameWeek, // Not used directly, using start/endOfWeek
-  // isSameMonth, // Not used directly, using start/endOfMonth
   startOfWeek,
   endOfWeek,
   startOfMonth,
   endOfMonth,
   isWithinInterval,
   isValid,
-  // subDays, // Not used
   getYear,
   getMonth,
   setYear,
@@ -35,35 +32,47 @@ import {
 interface SalesReportsProps {
   allSalesData: SaleRecord[];
   menuItems: MenuItem[];
-  onViewReceipt: (saleId: string) => void; // Callback to open receipt modal
+  onViewReceipt: (saleId: string) => void;
+  availableCashiers: Cashier[];
 }
 
 type ReportPeriodType = 'daily' | 'weekly' | 'monthly' | 'custom' | 'all';
-// type TopSellingItem = { name: string; quantity: number; revenue: number; }; // Defined inline below
-// type PaymentMethodSummary = { method: string; count: number; totalAmount: number; percentage: number; }; // Defined inline below
 
-export default function SalesReports({ allSalesData, menuItems, onViewReceipt }: SalesReportsProps) {
+export default function SalesReports({ allSalesData, menuItems, onViewReceipt, availableCashiers }: SalesReportsProps) {
   const [reportPeriodType, setReportPeriodType] = useState<ReportPeriodType>('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCustomStart, setSelectedCustomStart] = useState<Date | undefined>();
   const [selectedCustomEnd, setSelectedCustomEnd] = useState<Date | undefined>();
   const [selectedReportMenuItemId, setSelectedReportMenuItemId] = useState<string | undefined>(undefined);
+  const [selectedCashierId, setSelectedCashierId] = useState<string | undefined>(undefined);
+  const [selectedReportCategory, setSelectedReportCategory] = useState<string | undefined>(undefined);
+
 
   const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
   const [selectedYear, setSelectedYear] = useState<number | undefined>();
   const [yearsForDropdown, setYearsForDropdown] = useState<number[]>([]);
 
+  const itemCategories = useMemo(() => {
+    const categories = new Set<string>();
+    menuItems.forEach(item => {
+      if (item.category) categories.add(item.category);
+    });
+    return Array.from(categories).sort();
+  }, [menuItems]);
+
   useEffect(() => {
     const now = new Date();
-    if (!selectedDate) setSelectedDate(now); // Initialize only if not already set by user
+    if (!selectedDate) setSelectedDate(now); 
     if (selectedMonth === undefined) setSelectedMonth(getMonth(now));
     if (selectedYear === undefined) {
         const currentActualYear = getYear(now);
         setSelectedYear(currentActualYear);
-        setYearsForDropdown(Array.from({ length: 10 }, (_, i) => currentActualYear - 5 + i));
+        // Generate years for dropdown: 5 years before and 5 years after current year
+        const startYear = currentActualYear - 5;
+        setYearsForDropdown(Array.from({ length: 10 }, (_, i) => startYear + i));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Run once on mount
+  }, []); 
 
 
   const salesDataWithParsedDates = useMemo(() => {
@@ -78,10 +87,11 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
 
     let filtered = salesDataWithParsedDates;
 
+    // 1. Time-based filtering
     if (reportPeriodType === 'daily' && selectedDate) {
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isSameDay(sale.parsedDate, selectedDate));
     } else if (reportPeriodType === 'weekly' && selectedDate) {
-      const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Monday
+      const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); 
       const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: weekStart, end: weekEnd }));
     } else if (reportPeriodType === 'monthly' && selectedMonth !== undefined && selectedYear !== undefined) {
@@ -93,14 +103,39 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: selectedCustomStart, end: selectedCustomEnd }));
     }
     
-    if (selectedReportMenuItemId) {
+    // 2. Cashier filtering
+    if (selectedCashierId) {
+      filtered = filtered.filter(sale => sale.employeeId === selectedCashierId);
+    }
+
+    // 3. Item-specific or Category filtering
+    if (selectedReportMenuItemId) { // Item-specific filter takes precedence
       const selectedItem = menuItems.find(item => item.id === selectedReportMenuItemId);
       if (selectedItem) {
          filtered = filtered.filter(sale => sale.items.some(item => item.name === selectedItem.name));
       }
+    } else if (selectedReportCategory) { // Category filter (if no specific item is chosen)
+      filtered = filtered.filter(sale => {
+        return sale.items.some(saleItem => {
+          const menuItemDetails = menuItems.find(mi => mi.name === saleItem.name);
+          return menuItemDetails?.category === selectedReportCategory;
+        });
+      });
     }
     return filtered;
-  }, [salesDataWithParsedDates, reportPeriodType, selectedDate, selectedCustomStart, selectedCustomEnd, selectedMonth, selectedYear, selectedReportMenuItemId, menuItems]);
+  }, [
+    salesDataWithParsedDates, 
+    reportPeriodType, 
+    selectedDate, 
+    selectedCustomStart, 
+    selectedCustomEnd, 
+    selectedMonth, 
+    selectedYear, 
+    selectedCashierId,
+    selectedReportMenuItemId, 
+    selectedReportCategory,
+    menuItems
+  ]);
 
 
   const salesSummary = useMemo(() => {
@@ -114,6 +149,12 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
     const itemMap = new Map<string, { quantity: number; revenue: number }>();
     filteredSales.forEach(sale => {
       sale.items.forEach(item => {
+        const menuItemDetail = menuItems.find(mi => mi.name === item.name);
+        // If category filter is active, only consider items from that category
+        if (selectedReportCategory && menuItemDetail?.category !== selectedReportCategory) {
+          return; 
+        }
+
         const current = itemMap.get(item.name) || { quantity: 0, revenue: 0 };
         itemMap.set(item.name, {
           quantity: current.quantity + item.quantity,
@@ -125,7 +166,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
       .map(([name, data]) => ({ name, ...data }))
       .sort((a, b) => b.revenue - a.revenue)
       .slice(0, 5);
-  }, [filteredSales]);
+  }, [filteredSales, menuItems, selectedReportCategory]);
 
   const paymentMethodBreakdown = useMemo(() => {
     const breakdown: Record<string, { count: number; totalAmount: number }> = {
@@ -157,7 +198,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
     let totalQuantitySold = 0;
     let totalRevenueFromItem = 0;
 
-    filteredSales.forEach(sale => {
+    filteredSales.forEach(sale => { // filteredSales already respects date & cashier filters
       sale.items.forEach(item => {
         if (item.name === selectedItem.name) {
           totalQuantitySold += item.quantity;
@@ -180,7 +221,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
         return (
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full md:w-[280px] justify-start text-left font-normal">
+              <Button variant="outline" className="w-full md:w-auto justify-start text-left font-normal">
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {selectedDate ? format(selectedDate, 'PPP') : <span>Pick a date</span>}
               </Button>
@@ -194,7 +235,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
          return (
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline" className="w-full md:w-[280px] justify-start text-left font-normal">
+              <Button variant="outline" className="w-full md:w-auto justify-start text-left font-normal">
                 <CalendarIcon className="mr-2 h-4 w-4" />
                 {selectedDate ? `Week of ${format(startOfWeek(selectedDate, {weekStartsOn:1}), 'PPP')}` : <span>Pick a date in week</span>}
               </Button>
@@ -236,7 +277,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
           <div className="flex flex-col sm:flex-row gap-2">
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-[240px] justify-start text-left font-normal">
+                <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {selectedCustomStart ? format(selectedCustomStart, 'PPP') : <span>Pick start date</span>}
                 </Button>
@@ -247,7 +288,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
             </Popover>
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" className="w-full sm:w-[240px] justify-start text-left font-normal">
+                <Button variant="outline" className="w-full sm:w-auto justify-start text-left font-normal">
                   <CalendarIcon className="mr-2 h-4 w-4" />
                   {selectedCustomEnd ? format(selectedCustomEnd, 'PPP') : <span>Pick end date</span>}
                 </Button>
@@ -268,10 +309,10 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
       <Card>
         <CardHeader>
           <CardTitle>Report Filters</CardTitle>
-          <CardDescription>Select period and item to generate reports.</CardDescription>
+          <CardDescription>Select criteria to generate sales reports.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4 md:grid-cols-2 items-end">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 items-end">
             <div>
               <Label htmlFor="reportPeriodType">Report Period</Label>
               <Select value={reportPeriodType} onValueChange={(value) => setReportPeriodType(value as ReportPeriodType)}>
@@ -287,21 +328,57 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
                 </SelectContent>
               </Select>
             </div>
-            <div>{renderDatePickers()}</div>
+            <div className="lg:col-span-2">{renderDatePickers()}</div>
           </div>
-           <div>
-            <Label htmlFor="reportMenuItem">Menu Item (for specific report)</Label>
-            <Select value={selectedReportMenuItemId} onValueChange={setSelectedReportMenuItemId}>
-              <SelectTrigger id="reportMenuItem">
-                <SelectValue placeholder="All Items (General Report)" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value={undefined}>All Items (General Report)</SelectItem> {/* Explicit undefined value */}
-                {menuItems.map(item => (
-                  <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+          <div className="grid gap-4 md:grid-cols-3 items-end">
+            <div>
+              <Label htmlFor="reportMenuItem">Filter by Menu Item</Label>
+              <Select value={selectedReportMenuItemId} onValueChange={(value) => setSelectedReportMenuItemId(value === 'all-items' ? undefined : value)}>
+                <SelectTrigger id="reportMenuItem">
+                  <SelectValue placeholder="All Items (General Report)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all-items">All Items (General Report)</SelectItem> 
+                  {menuItems.map(item => (
+                    <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+             <div>
+              <Label htmlFor="reportCashier">Filter by Cashier</Label>
+              <Select value={selectedCashierId} onValueChange={(value) => setSelectedCashierId(value === 'all-cashiers' ? undefined : value)}>
+                <SelectTrigger id="reportCashier">
+                  <div className="flex items-center gap-2">
+                    <UserCircle className="h-4 w-4 text-muted-foreground" />
+                    <SelectValue placeholder="All Cashiers" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all-cashiers">All Cashiers</SelectItem>
+                  {availableCashiers.map(cashier => (
+                    <SelectItem key={cashier.employeeId} value={cashier.employeeId}>{cashier.name} (ID: {cashier.employeeId})</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="reportCategory">Filter by Menu Category</Label>
+              <Select value={selectedReportCategory} onValueChange={(value) => setSelectedReportCategory(value === 'all-categories' ? undefined : value)}>
+                <SelectTrigger id="reportCategory">
+                  <div className="flex items-center gap-2">
+                    <LayersIcon className="h-4 w-4 text-muted-foreground" />
+                    <SelectValue placeholder="All Categories" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all-categories">All Categories</SelectItem>
+                  {itemCategories.map(category => (
+                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -311,7 +388,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
           <CardHeader>
             <CardTitle>Item Specific Report: {itemSpecificReport.itemName}</CardTitle>
             <CardDescription>
-              Sales data for {itemSpecificReport.itemName} for the selected period.
+              Sales data for {itemSpecificReport.itemName} for the selected period, cashier, and category (if applied).
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -365,7 +442,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
                   </Table>
                 </ScrollArea>
               ) : (
-                <p className="text-muted-foreground">No orders found for this item in the selected period.</p>
+                <p className="text-muted-foreground">No orders found for this item with the current filters.</p>
               )}
           </CardContent>
         </Card>
@@ -376,7 +453,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
           <Card>
             <CardHeader>
               <CardTitle>Sales Summary</CardTitle>
-              <CardDescription>Overview of sales for the selected period.</CardDescription>
+              <CardDescription>Overview of sales for the selected filters.</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-3">
@@ -406,7 +483,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
             <Card>
               <CardHeader>
                 <CardTitle>Top Selling Items</CardTitle>
-                <CardDescription>Top 5 items by revenue in the selected period.</CardDescription>
+                <CardDescription>Top 5 items by revenue for the selected filters.</CardDescription>
               </CardHeader>
               <CardContent>
                 {topSellingItems.length > 0 ? (
@@ -429,7 +506,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
                     </TableBody>
                   </Table>
                 ) : (
-                   <p className="text-muted-foreground">No sales data for top items in this period.</p>
+                   <p className="text-muted-foreground">No sales data for top items with current filters.</p>
                 )}
               </CardContent>
             </Card>
@@ -437,7 +514,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
             <Card>
               <CardHeader>
                 <CardTitle>Payment Method Breakdown</CardTitle>
-                <CardDescription>Distribution of sales by payment method.</CardDescription>
+                <CardDescription>Distribution of sales by payment method for the selected filters.</CardDescription>
               </CardHeader>
               <CardContent>
                  {paymentMethodBreakdown.some(p => p.count > 0) ? (
@@ -462,7 +539,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
                       </TableBody>
                     </Table>
                  ) : (
-                    <p className="text-muted-foreground">No sales data for payment methods in this period.</p>
+                    <p className="text-muted-foreground">No sales data for payment methods with current filters.</p>
                  )}
               </CardContent>
             </Card>
@@ -471,7 +548,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt }:
           <Card>
             <CardHeader>
               <CardTitle>Detailed Sales List</CardTitle>
-              <CardDescription>All sales orders within the selected period.</CardDescription>
+              <CardDescription>All sales orders matching the selected filters.</CardDescription>
             </CardHeader>
             <CardContent>
               {filteredSales.length > 0 ? (
