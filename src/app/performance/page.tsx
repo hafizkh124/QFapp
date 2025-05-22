@@ -28,41 +28,41 @@ const SALARY_KEY = 'quoriam-salaryRecords-v2';
 // Define all initial staff members with QE-prefixed IDs
 const allInitialStaffWithRoles: ManagedEmployee[] = [
   { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager' },
-  { employeeId: 'QE102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper' },
+  { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'Shop Keeper' }, // Updated Name
   { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy' },
   { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier' },
   { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier' },
   { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'Cashier' },
   { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier' },
-  { employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff' }, // Added Alice Smith for variety
+  { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'Staff' }, // Updated Name
 ];
 
 // Updated Initial Mock Data using QE-prefixed IDs and more variety
 const initialMockPerformance: EmployeePerformance[] = [
-  { id: 'P001', employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', salesTarget: 500, salesAchieved: 480, tasksCompleted: 8, tasksAssigned: 10 },
+  { id: 'P001', employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'Staff', date: '2024-07-28', salesTarget: 500, salesAchieved: 480, tasksCompleted: 8, tasksAssigned: 10 },
   { id: 'P002', employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier', date: '2024-07-28', salesTarget: 400, salesAchieved: 380, tasksCompleted: 7, tasksAssigned: 8 },
   { id: 'P003', employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', salesTarget: 1000, salesAchieved: 950, tasksCompleted: 15, tasksAssigned: 15 },
-  { id: 'P004', employeeId: 'QE102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', date: '2024-07-27', salesTarget: 450, salesAchieved: 430, tasksCompleted: 9, tasksAssigned: 10 },
+  { id: 'P004', employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'Shop Keeper', date: '2024-07-27', salesTarget: 450, salesAchieved: 430, tasksCompleted: 9, tasksAssigned: 10 },
   { id: 'P005', employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier', date: '2024-07-27', salesTarget: 350, salesAchieved: 360, tasksCompleted: 10, tasksAssigned: 10 },
   { id: 'P006', employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy', date: '2024-07-28', salesTarget: 0, salesAchieved: 0, tasksCompleted: 12, tasksAssigned: 12 },
   { id: 'P007', employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'Cashier', date: '2024-07-28', salesTarget: 300, salesAchieved: 290, tasksCompleted: 6, tasksAssigned: 7 },
   { id: 'P008', employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier', date: '2024-07-27', salesTarget: 320, salesAchieved: 330, tasksCompleted: 8, tasksAssigned: 8 },
 ];
 const initialMockAttendance: EmployeeAttendance[] = [
-  { id: 'A001', employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', inTime: '09:00 AM', outTime: '05:00 PM', status: 'Present' },
+  { id: 'A001', employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'Staff', date: '2024-07-28', inTime: '09:00 AM', outTime: '05:00 PM', status: 'Present' },
   { id: 'A002', employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier', date: '2024-07-28', inTime: '09:05 AM', outTime: '05:15 PM', status: 'Present' },
   { id: 'A003', employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', inTime: '08:45 AM', outTime: '06:00 PM', status: 'Present' },
-  { id: 'A004', employeeId: 'QE102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', date: '2024-07-27', status: 'Leave' },
+  { id: 'A004', employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'Shop Keeper', date: '2024-07-27', status: 'Leave' },
   { id: 'A005', employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy', date: '2024-07-27', inTime: '10:00 AM', outTime: '07:00 PM', status: 'Present' },
   { id: 'A006', employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier', date: '2024-07-28', inTime: '08:55 AM', outTime: '05:05 PM', status: 'Present' },
   { id: 'A007', employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'Cashier', date: '2024-07-27', status: 'Absent' },
   { id: 'A008', employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier', date: '2024-07-28', inTime: '09:10 AM', outTime: '05:10 PM', status: 'Present' },
 ];
 const initialMockSalaries: EmployeeSalary[] = [
-  { id: 'S001', employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff', month: '2024-07', basicSalary: 30000, advances: 2000, bonuses: 1500, deductions: 500, netSalary: 29000 },
+  { id: 'S001', employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'Staff', month: '2024-07', basicSalary: 30000, advances: 2000, bonuses: 1500, deductions: 500, netSalary: 29000 },
   { id: 'S002', employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier', month: '2024-07', basicSalary: 28000, advances: 1000, bonuses: 1000, deductions: 200, netSalary: 27800 },
   { id: 'S003', employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager', month: '2024-07', basicSalary: 50000, advances: 5000, bonuses: 3000, deductions: 1000, netSalary: 47000 },
-  { id: 'S004', employeeId: 'QE102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', month: '2024-06', basicSalary: 32000, advances: 0, bonuses: 1200, deductions: 300, netSalary: 32900 },
+  { id: 'S004', employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'Shop Keeper', month: '2024-06', basicSalary: 32000, advances: 0, bonuses: 1200, deductions: 300, netSalary: 32900 },
   { id: 'S005', employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy', month: '2024-07', basicSalary: 25000, advances: 500, bonuses: 800, deductions: 100, netSalary: 25200 },
   { id: 'S006', employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier', month: '2024-07', basicSalary: 27000, advances: 1500, bonuses: 0, deductions: 250, netSalary: 25250 },
 ];

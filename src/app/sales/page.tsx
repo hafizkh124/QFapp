@@ -37,13 +37,13 @@ const MANAGED_EMPLOYEES_KEY = 'quoriam-managed-employees-v2'; // Key from perfor
 // This is used as a fallback if localStorage is empty.
 const defaultSalesCashiers: ManagedEmployee[] = [
   { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager' },
-  { employeeId: 'QE102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper' },
+  { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'Shop Keeper' }, // Updated Name
   { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy' },
   { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier' },
   { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier' },
   { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'Cashier' },
   { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier' },
-  { employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff' },
+  { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'Staff' }, // Updated Name
 ];
 
 
