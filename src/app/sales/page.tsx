@@ -2,7 +2,7 @@
 // src/app/sales/page.tsx
 'use client';
 
-import { useState, type FormEvent, useEffect, ChangeEvent, useMemo } from 'react';
+import React, { useState, type FormEvent, useEffect, ChangeEvent, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -84,23 +84,23 @@ export default function SalesPage() {
 
   useEffect(() => {
     // Load Managed Employees (Cashier List)
+    let loadedCashiers: ManagedEmployee[] = [];
     try {
       const storedManagedEmployees = localStorage.getItem(MANAGED_EMPLOYEES_KEY);
       if (storedManagedEmployees) {
         const parsedEmployees: ManagedEmployee[] = JSON.parse(storedManagedEmployees);
-        const activeCashiers = parsedEmployees.filter(emp => emp.status === 'active');
-        if (Array.isArray(activeCashiers) && activeCashiers.length > 0) {
-          setCashierList(activeCashiers);
-        } else {
-          setCashierList(defaultSalesCashiersFallback.filter(emp => emp.status === 'active'));
+         if (Array.isArray(parsedEmployees) && parsedEmployees.length > 0) {
+          loadedCashiers = parsedEmployees.filter(emp => emp.status === 'active');
         }
-      } else {
-        setCashierList(defaultSalesCashiersFallback.filter(emp => emp.status === 'active'));
       }
     } catch (error) {
       console.error("Error loading managed employees from localStorage:", error);
-      setCashierList(defaultSalesCashiersFallback.filter(emp => emp.status === 'active'));
     }
+    if(loadedCashiers.length === 0) {
+        loadedCashiers = defaultSalesCashiersFallback.filter(emp => emp.status === 'active');
+    }
+    setCashierList(loadedCashiers);
+
 
     // Load Categories
     const storedCategories = localStorage.getItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY);
@@ -134,9 +134,18 @@ export default function SalesPage() {
         console.error("Error parsing menu items from localStorage:", error);
       }
     }
-    setMenuSelection(
-      loadedMenuItems.map(item => ({ ...item, selected: false, quantity: 1 }))
-    );
+    // Initialize menuSelection based on loadedMenuItems, preserving existing selection if any
+    setMenuSelection(prevSelection => {
+        return loadedMenuItems.map(item => {
+            const existing = prevSelection.find(ps => ps.id === item.id);
+            return {
+                ...item,
+                selected: existing?.selected || false,
+                quantity: existing?.quantity || 1
+            };
+        });
+    });
+
 
     // Load Sales Records
     const storedSales = localStorage.getItem(SALES_RECORDS_LOCAL_STORAGE_KEY);
@@ -144,7 +153,7 @@ export default function SalesPage() {
       try {
         const parsedSales = JSON.parse(storedSales);
         if (Array.isArray(parsedSales)) {
-          setSalesRecords(parsedSales);
+          setSalesRecords(parsedSales.sort((a,b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()));
         }
       } catch (error) {
         console.error("Error parsing sales records from localStorage:", error);
@@ -165,6 +174,8 @@ export default function SalesPage() {
 
 
   useEffect(() => {
+    // This effect ensures menuSelection is updated if menuItems list changes dynamically elsewhere
+    // (e.g., if another component modified localStorage for menuItems)
     setMenuSelection(
       menuItems.map(item => {
         const existingSelection = menuSelection.find(ms => ms.id === item.id);
@@ -176,7 +187,7 @@ export default function SalesPage() {
       })
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuItems]);
+  }, [menuItems]); // Rerun if menuItems itself changes
 
   useEffect(() => {
     if (salesRecords.length > 0 || localStorage.getItem(SALES_RECORDS_LOCAL_STORAGE_KEY)) {
@@ -251,8 +262,8 @@ export default function SalesPage() {
     setCurrentOrderItems(prevOrderItems => [...prevOrderItems, newItemForOrder]);
 
     const updatedMenuItems = [...menuItems, newMenuItem];
-    setMenuItems(updatedMenuItems);
-    localStorage.setItem(MENU_ITEMS_LOCAL_STORAGE_KEY, JSON.stringify(updatedMenuItems));
+    setMenuItems(updatedMenuItems); // Update state
+    localStorage.setItem(MENU_ITEMS_LOCAL_STORAGE_KEY, JSON.stringify(updatedMenuItems)); // Update localStorage
 
     toast({ title: "Success", description: `${newMenuItem.name} added to order and menu.` });
 
@@ -275,6 +286,7 @@ export default function SalesPage() {
     }
 
     let currentCashierInfo: { employeeId: string; employeeName: string; } | undefined;
+
     if (user?.role === 'employee' && user.employeeId && user.employeeName) {
         currentCashierInfo = { employeeId: user.employeeId, employeeName: user.employeeName };
     } else if ((user?.role === 'admin' || user?.role === 'manager') && selectedCashierId) {
@@ -301,7 +313,8 @@ export default function SalesPage() {
       employeeName: currentCashierInfo.employeeName,
       employeeId: currentCashierInfo.employeeId,
     };
-    setSalesRecords(prevRecords => [newSale, ...prevRecords].sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()));
+    const updatedSalesRecords = [newSale, ...salesRecords].sort((a,b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
+    setSalesRecords(updatedSalesRecords);
     setCurrentReceipt(newSale);
     setIsReceiptModalOpen(true);
 
@@ -341,6 +354,7 @@ export default function SalesPage() {
   }
 
   const canManageCashierSelection = user.role === 'admin' || user.role === 'manager';
+  // Employees can now add custom items as per new requirements
   const canAddCustomItem = user.role === 'admin' || user.role === 'manager' || user.role === 'employee';
 
 
@@ -362,7 +376,7 @@ export default function SalesPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmitSale} className="space-y-4">
-                  {canManageCashierSelection ? (
+                  {canManageCashierSelection && user?.role !== 'employee' ? (
                     <div>
                       <Label htmlFor="cashierSelect" className="mb-1 block">Select Cashier</Label>
                       <Select
@@ -418,9 +432,9 @@ export default function SalesPage() {
 
                   <div>
                     <Label className="mb-1 block">Select Menu Items</Label>
-                    <ScrollArea className="h-[350px] md:h-[400px] w-full rounded-md border p-3">
+                    <ScrollArea className="h-[250px] md:h-[300px] w-full rounded-md border p-3">
                        {menuSelection.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No menu items available. Add items in Menu page.</p>}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {menuSelection.map(item => (
                           <div key={item.id} className="border rounded-md p-3 flex flex-col space-y-2 shadow-sm hover:shadow-md transition-shadow bg-card">
                             <div className="flex items-start justify-between mb-1">
@@ -619,3 +633,4 @@ export default function SalesPage() {
     </>
   );
 }
+
