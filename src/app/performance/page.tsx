@@ -15,7 +15,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { PlusCircle, Trash2, CalendarIcon, Edit, Users, ShieldAlert } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, getMonth, getYear, setYear, setMonth } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/context/AuthContext';
@@ -38,18 +38,17 @@ const allInitialStaffWithRoles: ManagedEmployee[] = [
   { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', email: 'arslan@quoriam.com', password: 'arslan123' },
 ];
 
-// Expanded mock data to include more employees by default
-const initialMockPerformance: EmployeePerformance[] = allInitialStaffWithRoles.slice(0, 5).map((emp, index) => ({
-  id: `P00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: format(new Date(Date.now() - (index * 86400000)), 'yyyy-MM-dd'), salesTarget: 500 - (index * 50), salesAchieved: 480 - (index * 50), tasksCompleted: 8 - index, tasksAssigned: 10 - index
+const initialMockPerformance: EmployeePerformance[] = allInitialStaffWithRoles.slice(0, 6).map((emp, index) => ({
+  id: `P00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: format(new Date(Date.now() - (index * 86400000)), 'yyyy-MM-dd'), salesTarget: 5000 - (index * 500), salesAchieved: 4800 - (index * 500), tasksCompleted: 8 - index, tasksAssigned: 10 - index
 }));
 
-const initialMockAttendance: EmployeeAttendance[] = allInitialStaffWithRoles.slice(0, 5).map((emp, index) => ({
+const initialMockAttendance: EmployeeAttendance[] = allInitialStaffWithRoles.slice(0, 7).map((emp, index) => ({
   id: `A00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: format(new Date(Date.now() - (index * 86400000)), 'yyyy-MM-dd'), inTime: `09:0${index} AM`, outTime: `05:0${index} PM`, status: 'Present'
 }));
-initialMockAttendance.push({ id: 'A00X', employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee', date: format(new Date(Date.now() - (6 * 86400000)), 'yyyy-MM-dd'), status: 'Leave' });
+initialMockAttendance.push({ id: 'A00X', employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee', date: format(new Date(Date.now() - (8 * 86400000)), 'yyyy-MM-dd'), status: 'Leave' });
 
 
-const initialMockSalaries: EmployeeSalary[] = allInitialStaffWithRoles.slice(0, 4).map((emp, index) => ({
+const initialMockSalaries: EmployeeSalary[] = allInitialStaffWithRoles.slice(0, 5).map((emp, index) => ({
   id: `S00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, month: format(new Date(new Date().getFullYear(), new Date().getMonth() - index, 1), 'yyyy-MM'), basicSalary: emp.role === 'admin' ? 50000 : 30000 - (index * 1000), advances: emp.role === 'admin' ? 5000 : 2000, bonuses: emp.role === 'admin' ? 3000 : 1500, deductions: 500, netSalary: (emp.role === 'admin' ? 50000 : 30000 - (index * 1000)) + (emp.role === 'admin' ? 3000 : 1500) - (emp.role === 'admin' ? 5000 : 2000) - 500
 }));
 
@@ -60,11 +59,11 @@ const deriveInitialManagedEmployees = (): ManagedEmployee[] => {
 
 const generateNewEmployeeId = (employees: ManagedEmployee[] | null): string => {
   const prefix = "QE";
-  let maxNum = 100; // Start checking from QE100
+  let maxNum = 100;
   (employees || []).forEach(emp => {
     if (emp && emp.employeeId && emp.employeeId.startsWith(prefix)) {
       const numPartString = emp.employeeId.substring(prefix.length);
-      if (numPartString.length > 0) { // Ensure there's a numeric part
+      if (numPartString.length > 0) {
         const numPart = parseInt(numPartString, 10);
         if (!isNaN(numPart) && numPart > maxNum) {
           maxNum = numPart;
@@ -92,11 +91,15 @@ interface AttendanceFormData extends RecordFormDataBase {
   status?: 'Present' | 'Absent' | 'Leave';
 }
 interface SalaryFormData extends Omit<RecordFormDataBase, 'date'> {
-  month?: string; // e.g., "YYYY-MM"
+  month?: string;
   basicSalary?: number;
   advances?: number;
   bonuses?: number;
   deductions?: number;
+}
+
+interface EmployeeFormData extends Partial<ManagedEmployee> {
+  formPassword?: string; // For new password input
 }
 
 
@@ -111,7 +114,7 @@ export default function PerformancePage() {
 
   const [isManageEmployeesDialogOpen, setIsManageEmployeesDialogOpen] = useState(false);
   const [isEmployeeFormDialogOpen, setIsEmployeeFormDialogOpen] = useState(false);
-  const [currentEditingEmployee, setCurrentEditingEmployee] = useState<Partial<ManagedEmployee> | null>(null); // Partial for new employee
+  const [currentEditingEmployee, setCurrentEditingEmployee] = useState<EmployeeFormData | null>(null);
   const [employeeFormMode, setEmployeeFormMode] = useState<'add' | 'edit'>('add');
 
   const [isAddPerformanceDialogOpen, setIsAddPerformanceDialogOpen] = useState(false);
@@ -125,18 +128,19 @@ export default function PerformancePage() {
   useEffect(() => {
     const loadData = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T[]>>, defaultValue: T[], keyNameForLog?: string): void => {
       let loadedFromStorage = false;
-      let finalData = defaultValue;
+      let finalData: T[] = defaultValue; // Ensure finalData is always an array
       try {
         const storedValue = localStorage.getItem(key);
         if (storedValue) {
           const parsedValue = JSON.parse(storedValue);
-          // For managed employees, if localStorage has an empty array, still use defaults to ensure dropdowns are populated.
-          if (key === MANAGED_EMPLOYEES_KEY && Array.isArray(parsedValue) && parsedValue.length === 0) {
-            finalData = defaultValue; // Keep default if stored is empty for managed employees
-            loadedFromStorage = false; // Treat as loaded from defaults
-          } else if (Array.isArray(parsedValue)) {
-            finalData = parsedValue;
-            loadedFromStorage = true;
+          if (Array.isArray(parsedValue)) {
+            if (key === MANAGED_EMPLOYEES_KEY && parsedValue.length === 0) {
+              // For managed employees, if localStorage has an empty array, use defaults.
+              finalData = defaultValue;
+            } else {
+              finalData = parsedValue;
+              loadedFromStorage = true;
+            }
           }
         }
       } catch (error) {
@@ -162,13 +166,13 @@ export default function PerformancePage() {
   const handleOpenAddEmployeeDialog = () => {
     setEmployeeFormMode('add');
     const newId = generateNewEmployeeId(managedEmployees);
-    setCurrentEditingEmployee({ employeeId: newId, employeeName: '', role: 'employee', email: '', password: '' });
+    setCurrentEditingEmployee({ employeeId: newId, employeeName: '', role: 'employee', email: '', formPassword: '' });
     setIsEmployeeFormDialogOpen(true);
   };
 
   const handleOpenEditEmployeeDialog = (employee: ManagedEmployee) => {
     setEmployeeFormMode('edit');
-    setCurrentEditingEmployee({ ...employee }); // Don't include password for editing form display
+    setCurrentEditingEmployee({ ...employee, formPassword: '' }); // formPassword for potential reset
     setIsEmployeeFormDialogOpen(true);
   };
 
@@ -178,44 +182,47 @@ export default function PerformancePage() {
       toast({ title: "Error", description: "Employee Name, Role, and Email are required.", variant: "destructive" });
       return;
     }
-    if (employeeFormMode === 'add' && !currentEditingEmployee.password) {
+    if (employeeFormMode === 'add' && !currentEditingEmployee.formPassword) {
         toast({ title: "Error", description: "Initial Password is required for new employees.", variant: "destructive" });
         return;
     }
-    // Ensure email uniqueness for new employees
+
     if (employeeFormMode === 'add' && (managedEmployees || []).some(emp => emp.email.toLowerCase() === currentEditingEmployee.email?.toLowerCase())) {
         toast({ title: "Error", description: `Email "${currentEditingEmployee.email}" is already in use.`, variant: "destructive" });
         return;
     }
-    // Ensure email uniqueness when editing (if email was changed)
     if (employeeFormMode === 'edit' && (managedEmployees || []).some(emp => emp.employeeId !== currentEditingEmployee.employeeId && emp.email.toLowerCase() === currentEditingEmployee.email?.toLowerCase())) {
         toast({ title: "Error", description: `Email "${currentEditingEmployee.email}" is already in use by another employee.`, variant: "destructive" });
         return;
     }
-
 
     const employeeToSave: ManagedEmployee = {
         employeeId: currentEditingEmployee.employeeId!,
         employeeName: currentEditingEmployee.employeeName!,
         role: currentEditingEmployee.role!,
         email: currentEditingEmployee.email!,
-        password: employeeFormMode === 'add' ? currentEditingEmployee.password : undefined, // Only set password on add
+        // Password handling depends on mode
     };
-
 
     if (employeeFormMode === 'add') {
       if ((managedEmployees || []).some(emp => emp.employeeId === employeeToSave.employeeId)) {
         toast({ title: "Error", description: `Employee ID ${employeeToSave.employeeId} conflict. This should not happen.`, variant: "destructive" });
         return;
       }
-      setManagedEmployees(prev => [...(prev || []), { ...employeeToSave, password: currentEditingEmployee.password }].sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
+      employeeToSave.password = currentEditingEmployee.formPassword;
+      setManagedEmployees(prev => [...(prev || []), employeeToSave].sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
       toast({ title: "Success", description: "New employee added." });
     } else { // 'edit' mode
-      setManagedEmployees(prev => (prev || []).map(emp =>
-        emp.employeeId === employeeToSave.employeeId
-          ? { ...emp, employeeName: employeeToSave.employeeName, role: employeeToSave.role, email: employeeToSave.email } // Keep existing password if not changed
-          : emp
-      ).sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
+      setManagedEmployees(prev => (prev || []).map(emp => {
+        if (emp.employeeId === employeeToSave.employeeId) {
+          const updatedEmp = { ...emp, employeeName: employeeToSave.employeeName, role: employeeToSave.role, email: employeeToSave.email };
+          if (currentEditingEmployee.formPassword && currentEditingEmployee.formPassword.trim() !== '') {
+            updatedEmp.password = currentEditingEmployee.formPassword;
+          }
+          return updatedEmp;
+        }
+        return emp;
+      }).sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
 
       const updateRecordEmployeeDetails = <T extends { employeeId: string; employeeName: string; role: string }>(records: T[]): T[] => {
         return (records || []).map(rec =>
@@ -481,7 +488,7 @@ export default function PerformancePage() {
                   </TableRow>
                 </TableHeaderComponent>
                 <TableBody>
-                  {(userPerformanceRecords).map((record) => (
+                  {(userPerformanceRecords || []).map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>{record.employeeId}</TableCell>
                       <TableCell>{record.employeeName}</TableCell>
@@ -499,7 +506,7 @@ export default function PerformancePage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {(userPerformanceRecords).length === 0 && (
+                  {(userPerformanceRecords || []).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center text-muted-foreground py-4">No performance records yet.</TableCell>
                     </TableRow>
@@ -538,7 +545,7 @@ export default function PerformancePage() {
                   </TableRow>
                 </TableHeaderComponent>
                 <TableBody>
-                  {(userAttendanceRecords).map((record) => (
+                  {(userAttendanceRecords || []).map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>{record.employeeId}</TableCell>
                       <TableCell>{record.employeeName}</TableCell>
@@ -556,7 +563,7 @@ export default function PerformancePage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {(userAttendanceRecords).length === 0 && (
+                  {(userAttendanceRecords || []).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={8} className="text-center text-muted-foreground py-4">No attendance records yet.</TableCell>
                     </TableRow>
@@ -597,7 +604,7 @@ export default function PerformancePage() {
                   </TableRow>
                 </TableHeaderComponent>
                 <TableBody>
-                  {(userSalaryRecords).map((record) => (
+                  {(userSalaryRecords || []).map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>{record.employeeId}</TableCell>
                       <TableCell>{record.employeeName}</TableCell>
@@ -617,7 +624,7 @@ export default function PerformancePage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {(userSalaryRecords).length === 0 && (
+                  {(userSalaryRecords || []).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={10} className="text-center text-muted-foreground py-4">No salary records yet.</TableCell>
                     </TableRow>
@@ -702,24 +709,24 @@ export default function PerformancePage() {
                   required
                 />
               </div>
-              {employeeFormMode === 'add' && (
-                <div>
-                  <Label htmlFor="empFormPassword">Initial Password</Label>
-                  <Input
-                    id="empFormPassword"
-                    type="password"
-                    value={currentEditingEmployee.password || ''}
-                    onChange={(e) => setCurrentEditingEmployee(prev => prev ? { ...prev, password: e.target.value } : null)}
-                    required
-                  />
-                </div>
-              )}
+              <div>
+                <Label htmlFor="empFormPassword">
+                  {employeeFormMode === 'add' ? 'Initial Password' : 'New Password (leave blank to keep current)'}
+                </Label>
+                <Input
+                  id="empFormPassword"
+                  type="password"
+                  value={currentEditingEmployee.formPassword || ''}
+                  onChange={(e) => setCurrentEditingEmployee(prev => prev ? { ...prev, formPassword: e.target.value } : null)}
+                  required={employeeFormMode === 'add'}
+                  placeholder={employeeFormMode === 'edit' ? 'Enter new password or leave blank' : ''}
+                />
+              </div>
               <div>
                 <Label htmlFor="empFormRole">Role</Label>
                 <Select
                   value={currentEditingEmployee.role || 'employee'}
                   onValueChange={(value: 'admin' | 'employee') => setCurrentEditingEmployee(prev => prev ? { ...prev, role: value } : null)}
-                  required
                 >
                   <SelectTrigger id="empFormRole">
                     <SelectValue placeholder="Select role" />
@@ -880,3 +887,4 @@ export default function PerformancePage() {
     </>
   );
 }
+
