@@ -8,7 +8,7 @@ import { Separator } from '@/components/ui/separator';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { AppLogo } from '@/components/layout/app-logo';
 import { format } from 'date-fns';
-import { Share2, Printer } from 'lucide-react'; // Added Share2 icon
+import { Share2, Printer } from 'lucide-react';
 import { useToast } from "@/hooks/use-toast";
 
 interface ReceiptModalProps {
@@ -45,11 +45,11 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
     text += `Order ID: ${saleRecord.id}\n`;
     text += `Date & Time: ${formattedDateTime}\n`;
     text += `Order Type: ${saleRecord.orderType}\n`;
-    text += `Cashier ID: ${saleRecord.employeeId}\n`;
+    text += `Cashier ID: ${saleRecord.employeeId}\n`; // Displaying Employee ID
     text += `-------------------------\n`;
     text += `Items Purchased:\n`;
     saleRecord.items.forEach(item => {
-      text += `- ${item.name} (x${item.quantity}) @ ${item.price.toFixed(2)} = ${(item.quantity * item.price).toFixed(2)}\n`;
+      text += `- ${item.name} (x${item.quantity}) @ PKR ${item.price.toFixed(2)} = PKR ${(item.quantity * item.price).toFixed(2)}\n`;
     });
     text += `-------------------------\n`;
     text += `Total Amount: PKR ${saleRecord.totalAmount.toFixed(2)}\n`;
@@ -74,23 +74,27 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
         toast({ title: "Receipt Shared", description: "The receipt details have been shared." });
       } catch (error) {
         console.error('Error sharing:', error);
-        toast({
-          variant: "destructive",
-          title: "Share Failed",
-          description: "Could not share the receipt at this time.",
-        });
+        // Check if it's an AbortError (user cancelled the share dialog)
+        if (error instanceof DOMException && error.name === 'AbortError') {
+            toast({
+                variant: "default", // Or "info" if you create one
+                title: "Share Cancelled",
+                description: "You cancelled the share operation.",
+            });
+        } else {
+            toast({
+              variant: "destructive",
+              title: "Share Failed",
+              description: "Could not share the receipt at this time.",
+            });
+        }
       }
     } else {
-      // Fallback for browsers that don't support Web Share API
       console.log("Shareable Receipt Text:\n", shareData.text);
       toast({
         title: "Share Not Available",
-        description: "Web Share API is not supported on this browser. Receipt details copied to console.",
+        description: "Web Share API is not supported on this browser. Receipt details logged to console.",
       });
-      // As an alternative, you could try copying to clipboard here, but it has its own complexities.
-      // navigator.clipboard.writeText(shareData.text)
-      //   .then(() => toast({ title: "Copied to Clipboard", description: "Receipt details copied to clipboard." }))
-      //   .catch(err => toast({ variant: "destructive", title: "Copy Failed", description: "Could not copy to clipboard." }));
     }
   };
 
@@ -131,8 +135,8 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
                 <div key={item.id} className="grid grid-cols-[1fr_auto_auto_auto] gap-x-2 mb-1 items-center item-row">
                   <span className="truncate col-span-1 item-name">{item.name}</span>
                   <span className="text-right text-muted-foreground text-xs whitespace-nowrap item-qty">x{item.quantity}</span>
-                  <span className="text-right text-muted-foreground text-xs whitespace-nowrap item-price">@ {item.price.toFixed(2)}</span>
-                  <span className="text-right font-medium whitespace-nowrap item-total">{(item.quantity * item.price).toFixed(2)}</span>
+                  <span className="text-right text-muted-foreground text-xs whitespace-nowrap item-price">@ PKR {item.price.toFixed(2)}</span>
+                  <span className="text-right font-medium whitespace-nowrap item-total">PKR {(item.quantity * item.price).toFixed(2)}</span>
                 </div>
               ))}
             </ScrollArea>
@@ -151,15 +155,15 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
             Thank you for your purchase!
           </p>
         </div>
-        <DialogFooter className="p-6 pt-0 border-t mt-4 hide-on-print space-x-2">
-          <Button variant="outline" onClick={handleShare}>
+        <DialogFooter className="p-6 pt-0 border-t mt-4 hide-on-print flex-wrap sm:flex-nowrap justify-center sm:justify-end space-y-2 sm:space-y-0 sm:space-x-2">
+          <Button variant="outline" onClick={handleShare} className="w-full sm:w-auto">
             <Share2 className="mr-2 h-4 w-4" /> Share
           </Button>
-          <Button onClick={handlePrint}>
+          <Button onClick={handlePrint} className="w-full sm:w-auto">
             <Printer className="mr-2 h-4 w-4" /> Print Receipt
           </Button>
            <DialogClose asChild>
-            <Button variant="outline">Close</Button>
+            <Button variant="outline" className="w-full sm:w-auto">Close</Button>
           </DialogClose>
         </DialogFooter>
       </DialogContent>
