@@ -17,17 +17,17 @@ import { useToast } from "@/hooks/use-toast";
 
 const LOCAL_STORAGE_KEY = 'quoriam-menu-items';
 
-const itemCategories = ["Pulao", "Chicken Items", "Beef Items", "Kabab", "Extras", "Beverages"];
+const itemCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
 
 const defaultMenuItems: MenuItem[] = [
-  { id: 'default-1', name: 'Quoriam Single', price: 310, category: 'Pulao' },
-  { id: 'default-2', name: 'Quoriam Half', price: 210, category: 'Pulao' },
-  { id: 'default-3', name: 'Quoriam Single Choice', price: 320, category: 'Pulao' },
-  { id: 'default-4', name: 'Quoriam Special', price: 450, category: 'Pulao' },
-  { id: 'default-5', name: 'Quoriam Single Without Kabab', price: 270, category: 'Pulao' },
-  { id: 'default-6', name: 'Quoriam Shami Kabab', price: 40, category: 'Kabab' },
+  { id: 'default-1', name: 'Quoriam Single', price: 310, category: 'Chicken Items' }, // Was Pulao
+  { id: 'default-2', name: 'Quoriam Half', price: 210, category: 'Chicken Items' }, // Was Pulao
+  { id: 'default-3', name: 'Quoriam Single Choice', price: 320, category: 'Chicken Items' }, // Was Pulao
+  { id: 'default-4', name: 'Quoriam Special', price: 450, category: 'Chicken Items' }, // Was Pulao
+  { id: 'default-5', name: 'Quoriam Single Without Kabab', price: 270, category: 'Chicken Items' }, // Was Pulao
+  { id: 'default-6', name: 'Quoriam Shami Kabab', price: 40, category: 'Extras' }, // Was Kabab
   { id: 'default-7', name: 'Quoriam Chicken Piece', price: 90, category: 'Chicken Items' },
-  { id: 'default-8', name: 'Pulao Kabab without Chicken', price: 210, category: 'Pulao' }, // Or Kabab, depends on emphasis
+  { id: 'default-8', name: 'Pulao Kabab without Chicken', price: 210, category: 'Beef Items' }, // Was Pulao, assuming Beef Kabab
   { id: 'default-9', name: 'Quoriam Beef Pulao - Single', price: 350, category: 'Beef Items' },
   { id: 'default-10', name: 'Quoriam Beef Pulao - Half', price: 230, category: 'Beef Items' },
   { id: 'default-11', name: 'Quoriam Beef Pulao - 1 KG Deal', price: 690, category: 'Beef Items' },
@@ -243,4 +243,3 @@ export default function MenuPage() {
     </>
   );
 }
-

@@ -59,15 +59,15 @@ export default function SalesPage() {
   const [showCustomItemForm, setShowCustomItemForm] = useState(false);
   const [customItemName, setCustomItemName] = useState('');
   const [customItemPrice, setCustomItemPrice] = useState('');
-  const [customItemCategory, setCustomItemCategory] = useState(''); // Assuming defaultCategories exists or use a placeholder
   
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [currentReceipt, setCurrentReceipt] = useState<SaleRecord | null>(null);
 
   const { toast } = useToast();
   
-  // Define defaultCategories for custom item, could be imported or defined here
-  const defaultCategories = ["Pulao", "Chicken Items", "Beef Items", "Kabab", "Extras", "Beverages"];
+  // Define defaultCategories for custom item, must match those in menu/page.tsx
+  const defaultCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
+  const [customItemCategory, setCustomItemCategory] = useState(defaultCategories[0]);
 
 
   useEffect(() => {
@@ -481,4 +481,3 @@ export default function SalesPage() {
     </>
   );
 }
-
