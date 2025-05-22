@@ -14,8 +14,8 @@ export interface SaleRecord {
   items: SaleItem[];
   totalAmount: number;
   paymentMethod: 'cash' | 'card' | 'online' | 'credit';
-  employeeName: string; // Name of the employee who processed the sale
-  employeeId: string; // Unique ID of the employee
+  employeeName: string; 
+  employeeId: string; 
 }
 
 export interface ExpenseRecord {
@@ -33,11 +33,18 @@ export interface ProfitEntry {
   profit: number;
 }
 
-export interface EmployeePerformance {
-  id: string;
+// Master Employee Type
+export interface ManagedEmployee {
   employeeId: string; // Unique Employee ID
   employeeName: string;
-  role?: string;
+  role: string;
+}
+
+export interface EmployeePerformance {
+  id: string; // Record ID
+  employeeId: string; 
+  employeeName: string;
+  role: string; // Denormalized role at the time of record creation
   date: string;
   salesTarget?: number;
   salesAchieved?: number;
@@ -46,10 +53,10 @@ export interface EmployeePerformance {
 }
 
 export interface EmployeeAttendance {
-  id: string;
-  employeeId: string; // Unique Employee ID
+  id: string; // Record ID
+  employeeId: string; 
   employeeName: string;
-  role?: string;
+  role: string; // Denormalized role
   date: string;
   inTime?: string;
   outTime?: string;
@@ -57,10 +64,10 @@ export interface EmployeeAttendance {
 }
 
 export interface EmployeeSalary {
-  id: string;
-  employeeId: string; // Unique Employee ID
+  id: string; // Record ID
+  employeeId: string; 
   employeeName: string;
-  role?: string;
+  role: string; // Denormalized role
   month: string; // e.g., 'Mar 2024'
   basicSalary: number;
   advances: number;
@@ -76,10 +83,8 @@ export interface MenuItem {
   category?: string;
 }
 
-// Simplified type for cashier selection
+// Simplified type for cashier selection in sales page
 export interface Cashier {
-  id: string; // This can be the performance record ID or a specific user ID
-  employeeId: string; // The user-facing Employee ID
+  employeeId: string; 
   name: string;
 }
-

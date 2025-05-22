@@ -6,7 +6,7 @@ import { PageHeader } from '@/components/page-header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader as TableHeaderComponent, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import type { EmployeePerformance, EmployeeAttendance, EmployeeSalary } from '@/types';
+import type { EmployeePerformance, EmployeeAttendance, EmployeeSalary, ManagedEmployee } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,62 +14,65 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { PlusCircle, Trash2, CalendarIcon } from 'lucide-react';
+import { PlusCircle, Trash2, CalendarIcon, Edit, Users } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { useToast } from "@/hooks/use-toast";
 
 // LocalStorage Keys
+const MANAGED_EMPLOYEES_KEY = 'quoriam-managed-employees';
 const PERFORMANCE_KEY = 'quoriam-performanceRecords';
 const ATTENDANCE_KEY = 'quoriam-attendanceRecords';
 const SALARY_KEY = 'quoriam-salaryRecords';
 
 // Initial Mock Data (used if localStorage is empty or invalid)
 const initialMockPerformance: EmployeePerformance[] = [
-  { id: 'P001', employeeId: '001', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', salesTarget: 500, salesAchieved: 480, tasksCompleted: 8, tasksAssigned: 10 },
-  { id: 'P002', employeeId: '002', employeeName: 'Bob Johnson', role: 'Staff', date: '2024-07-28', salesTarget: 400, salesAchieved: 410, tasksCompleted: 10, tasksAssigned: 10 },
-  { id: 'P003', employeeId: '101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', salesTarget: 1000, salesAchieved: 950, tasksCompleted: 15, tasksAssigned: 15 },
-  { id: 'P004', employeeId: '102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', date: '2024-07-28', salesTarget: 450, salesAchieved: 430, tasksCompleted: 9, tasksAssigned: 10 },
-  { id: 'P005', employeeId: '103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy', date: '2024-07-28', salesTarget: 0, salesAchieved: 0, tasksCompleted: 12, tasksAssigned: 12 },
-  { id: 'P006', employeeId: '104', employeeName: 'Salman Karamat', role: 'Cashier', date: '2024-07-28', salesTarget: 300, salesAchieved: 320, tasksCompleted: 7, tasksAssigned: 8 },
-  { id: 'P007', employeeId: '105', employeeName: 'Suraqa Zohaib', role: 'Cashier', date: '2024-07-28', salesTarget: 300, salesAchieved: 280, tasksCompleted: 6, tasksAssigned: 8 },
-  { id: 'P008', employeeId: '106', employeeName: 'Bilal Karamat', role: 'Cashier', date: '2024-07-28', salesTarget: 300, salesAchieved: 310, tasksCompleted: 7, tasksAssigned: 7 },
-  { id: 'P009', employeeId: '107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier', date: '2024-07-28', salesTarget: 300, salesAchieved: 290, tasksCompleted: 6, tasksAssigned: 7 },
+  { id: 'P001', employeeId: 'E001', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', salesTarget: 500, salesAchieved: 480, tasksCompleted: 8, tasksAssigned: 10 },
+  { id: 'P003', employeeId: 'E101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', salesTarget: 1000, salesAchieved: 950, tasksCompleted: 15, tasksAssigned: 15 },
+  { id: 'P004', employeeId: 'E102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', date: '2024-07-28', salesTarget: 450, salesAchieved: 430, tasksCompleted: 9, tasksAssigned: 10 },
 ];
 const initialMockAttendance: EmployeeAttendance[] = [
-  { id: 'A001', employeeId: '001', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', inTime: '09:00 AM', outTime: '05:00 PM', status: 'Present' },
-  { id: 'A002', employeeId: '002', employeeName: 'Bob Johnson', role: 'Staff', date: '2024-07-28', inTime: '09:05 AM', outTime: '05:15 PM', status: 'Present' },
-  { id: 'A003', employeeId: '101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', inTime: '08:45 AM', outTime: '06:00 PM', status: 'Present' },
-  { id: 'A004', employeeId: '102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', date: '2024-07-28', inTime: '08:50 AM', outTime: '05:30 PM', status: 'Present' },
-  { id: 'A005', employeeId: '103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy', date: '2024-07-28', status: 'Leave' },
-  { id: 'A006', employeeId: '104', employeeName: 'Salman Karamat', role: 'Cashier', date: '2024-07-28', inTime: '09:00 AM', outTime: '05:00 PM', status: 'Present' },
+  { id: 'A001', employeeId: 'E001', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', inTime: '09:00 AM', outTime: '05:00 PM', status: 'Present' },
+  { id: 'A003', employeeId: 'E101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', inTime: '08:45 AM', outTime: '06:00 PM', status: 'Present' },
+  { id: 'A005', employeeId: 'E103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy', date: '2024-07-28', status: 'Leave' },
 ];
 const initialMockSalaries: EmployeeSalary[] = [
-  { id: 'S001', employeeId: '001', employeeName: 'Alice Smith', role: 'Staff', month: '2024-07', basicSalary: 30000, advances: 2000, bonuses: 1500, deductions: 500, netSalary: 29000 },
-  { id: 'S002', employeeId: '002', employeeName: 'Bob Johnson', role: 'Staff', month: '2024-07', basicSalary: 28000, advances: 0, bonuses: 2000, deductions: 200, netSalary: 29800 },
-  { id: 'S003', employeeId: '101', employeeName: 'Umar Hayat', role: 'Branch Manager', month: '2024-07', basicSalary: 50000, advances: 5000, bonuses: 3000, deductions: 1000, netSalary: 47000 },
-  { id: 'S004', employeeId: '102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', month: '2024-07', basicSalary: 35000, advances: 1000, bonuses: 1000, deductions: 300, netSalary: 34700 },
-  { id: 'S005', employeeId: '104', employeeName: 'Salman Karamat', role: 'Cashier', month: '2024-07', basicSalary: 25000, advances: 0, bonuses: 500, deductions: 100, netSalary: 25400 },
+  { id: 'S001', employeeId: 'E001', employeeName: 'Alice Smith', role: 'Staff', month: '2024-07', basicSalary: 30000, advances: 2000, bonuses: 1500, deductions: 500, netSalary: 29000 },
+  { id: 'S003', employeeId: 'E101', employeeName: 'Umar Hayat', role: 'Branch Manager', month: '2024-07', basicSalary: 50000, advances: 5000, bonuses: 3000, deductions: 1000, netSalary: 47000 },
 ];
 
+// Derive initial managed employees from mock data if local storage is empty
+const deriveInitialManagedEmployees = (): ManagedEmployee[] => {
+  const employeeMap = new Map<string, ManagedEmployee>();
+  [...initialMockPerformance, ...initialMockAttendance, ...initialMockSalaries].forEach(record => {
+    if (record.employeeId && !employeeMap.has(record.employeeId)) {
+      employeeMap.set(record.employeeId, {
+        employeeId: record.employeeId,
+        employeeName: record.employeeName,
+        role: record.role || 'N/A',
+      });
+    }
+  });
+  return Array.from(employeeMap.values()).sort((a,b) => a.employeeName.localeCompare(b.employeeName));
+};
 
-interface FormDataBase {
-  employeeId?: string; // User-facing ID
+
+interface RecordFormDataBase {
+  selectedEmployeeId?: string;
   date?: Date;
-  role?: string;
 }
-interface PerformanceFormData extends FormDataBase {
+interface PerformanceFormData extends RecordFormDataBase {
   salesTarget?: number;
   salesAchieved?: number;
   tasksCompleted?: number;
   tasksAssigned?: number;
 }
-interface AttendanceFormData extends FormDataBase {
+interface AttendanceFormData extends RecordFormDataBase {
   inTime?: string;
   outTime?: string;
   status?: 'Present' | 'Absent' | 'Leave';
 }
-interface SalaryFormData extends Omit<FormDataBase, 'date'> {
+interface SalaryFormData extends Omit<RecordFormDataBase, 'date'> {
   month?: string; // e.g., "YYYY-MM"
   basicSalary?: number;
   advances?: number;
@@ -77,43 +80,59 @@ interface SalaryFormData extends Omit<FormDataBase, 'date'> {
   deductions?: number;
 }
 
+interface EmployeeFormState {
+  employeeId: string;
+  employeeName: string;
+  role: string;
+}
+
 export default function PerformancePage() {
   const { toast } = useToast();
+  
+  const [managedEmployees, setManagedEmployees] = useState<ManagedEmployee[]>([]);
   const [performanceRecords, setPerformanceRecords] = useState<EmployeePerformance[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<EmployeeAttendance[]>([]);
   const [salaryRecords, setSalaryRecords] = useState<EmployeeSalary[]>([]);
 
-  // Dialog states
+  // Dialog states for employee management
+  const [isManageEmployeesDialogOpen, setIsManageEmployeesDialogOpen] = useState(false);
+  const [isEmployeeFormDialogOpen, setIsEmployeeFormDialogOpen] = useState(false);
+  const [currentEditingEmployee, setCurrentEditingEmployee] = useState<EmployeeFormState | null>(null);
+  const [employeeFormMode, setEmployeeFormMode] = useState<'add' | 'edit'>('add');
+
+
+  // Dialog states for record management
   const [isAddPerformanceDialogOpen, setIsAddPerformanceDialogOpen] = useState(false);
   const [isAddAttendanceDialogOpen, setIsAddAttendanceDialogOpen] = useState(false);
   const [isAddSalaryDialogOpen, setIsAddSalaryDialogOpen] = useState(false);
 
-  // Form data states
+  // Form data states for records
   const [performanceFormData, setPerformanceFormData] = useState<PerformanceFormData>({});
   const [attendanceFormData, setAttendanceFormData] = useState<AttendanceFormData>({});
   const [salaryFormData, setSalaryFormData] = useState<SalaryFormData>({});
-  
-  const [selectedEmployeeForDialog, setSelectedEmployeeForDialog] = useState<{ employeeId: string, employeeName: string, role?: string} | null>(null);
-
-
+    
   // Load data from localStorage on mount
   useEffect(() => {
-    const loadData = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T[]>>, defaultValue: T[]): void => {
+    const loadData = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T[]>>, defaultValue: T[], isEmployeeList = false): void => {
       try {
         const storedValue = localStorage.getItem(key);
         if (storedValue) {
           const parsedValue = JSON.parse(storedValue);
-          // Ensure parsedValue is an array; otherwise, use defaultValue
           setter(Array.isArray(parsedValue) ? parsedValue : defaultValue);
         } else {
-          setter(defaultValue);
+          if (isEmployeeList) {
+             const derivedEmployees = deriveInitialManagedEmployees();
+             setter(derivedEmployees as T[]); // Type assertion might be needed
+          } else {
+            setter(defaultValue);
+          }
         }
       } catch (error) {
         console.error(`Error loading ${key} from localStorage:`, error);
-        setter(defaultValue); // Fallback to default on parsing error
+        setter(defaultValue); 
       }
     };
-
+    loadData<ManagedEmployee>(MANAGED_EMPLOYEES_KEY, setManagedEmployees, deriveInitialManagedEmployees(), true);
     loadData<EmployeePerformance>(PERFORMANCE_KEY, setPerformanceRecords, initialMockPerformance);
     loadData<EmployeeAttendance>(ATTENDANCE_KEY, setAttendanceRecords, initialMockAttendance);
     loadData<EmployeeSalary>(SALARY_KEY, setSalaryRecords, initialMockSalaries);
@@ -121,45 +140,85 @@ export default function PerformancePage() {
 
 
   // Save data to localStorage on change
-  useEffect(() => { 
-    if (performanceRecords.length > 0 || localStorage.getItem(PERFORMANCE_KEY)) {
-        localStorage.setItem(PERFORMANCE_KEY, JSON.stringify(performanceRecords)); 
-    }
-  }, [performanceRecords]);
-  useEffect(() => { 
-    if (attendanceRecords.length > 0 || localStorage.getItem(ATTENDANCE_KEY)) {
-        localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(attendanceRecords)); 
-    }
-  }, [attendanceRecords]);
-  useEffect(() => { 
-    if (salaryRecords.length > 0 || localStorage.getItem(SALARY_KEY)) {
-        localStorage.setItem(SALARY_KEY, JSON.stringify(salaryRecords)); 
-    }
-  }, [salaryRecords]);
+  useEffect(() => { if (managedEmployees.length > 0 || localStorage.getItem(MANAGED_EMPLOYEES_KEY)) localStorage.setItem(MANAGED_EMPLOYEES_KEY, JSON.stringify(managedEmployees)); }, [managedEmployees]);
+  useEffect(() => { if (performanceRecords.length > 0 || localStorage.getItem(PERFORMANCE_KEY)) localStorage.setItem(PERFORMANCE_KEY, JSON.stringify(performanceRecords)); }, [performanceRecords]);
+  useEffect(() => { if (attendanceRecords.length > 0 || localStorage.getItem(ATTENDANCE_KEY)) localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(attendanceRecords)); }, [attendanceRecords]);
+  useEffect(() => { if (salaryRecords.length > 0 || localStorage.getItem(SALARY_KEY)) localStorage.setItem(SALARY_KEY, JSON.stringify(salaryRecords)); }, [salaryRecords]);
 
 
-  const allKnownEmployees = useMemo(() => {
-    const employeeMap = new Map<string, { employeeId: string, employeeName: string, role?: string }>();
-    
-    // Ensure records are arrays before spreading
-    const pRecords = Array.isArray(performanceRecords) ? performanceRecords : [];
-    const aRecords = Array.isArray(attendanceRecords) ? attendanceRecords : [];
-    const sRecords = Array.isArray(salaryRecords) ? salaryRecords : [];
+  // Handlers for Employee Management Dialog
+  const handleOpenAddEmployeeDialog = () => {
+    setEmployeeFormMode('add');
+    setCurrentEditingEmployee({ employeeId: '', employeeName: '', role: '' });
+    setIsEmployeeFormDialogOpen(true);
+  };
 
-    [...pRecords, ...aRecords, ...sRecords].forEach(record => {
-      if (record?.employeeId && record?.employeeName && !employeeMap.has(record.employeeId)) {
-        employeeMap.set(record.employeeId, { 
-            employeeId: record.employeeId, 
-            employeeName: record.employeeName, 
-            role: record.role 
-        });
+  const handleOpenEditEmployeeDialog = (employee: ManagedEmployee) => {
+    setEmployeeFormMode('edit');
+    setCurrentEditingEmployee(employee);
+    setIsEmployeeFormDialogOpen(true);
+  };
+
+  const handleSaveEmployee = (e: FormEvent) => {
+    e.preventDefault();
+    if (!currentEditingEmployee || !currentEditingEmployee.employeeId || !currentEditingEmployee.employeeName || !currentEditingEmployee.role) {
+      toast({ title: "Error", description: "Employee ID, Name, and Role are required.", variant: "destructive" });
+      return;
+    }
+
+    if (employeeFormMode === 'add') {
+      if (managedEmployees.some(emp => emp.employeeId === currentEditingEmployee.employeeId)) {
+        toast({ title: "Error", description: "Employee ID already exists.", variant: "destructive" });
+        return;
       }
-    });
-    return Array.from(employeeMap.values()).sort((a,b) => a.employeeName.localeCompare(b.employeeName));
-  }, [performanceRecords, attendanceRecords, salaryRecords]);
+      setManagedEmployees(prev => [...prev, { ...currentEditingEmployee }]);
+      toast({ title: "Success", description: "New employee added." });
+    } else { // 'edit'
+      setManagedEmployees(prev => prev.map(emp => emp.employeeId === currentEditingEmployee.employeeId ? { ...currentEditingEmployee } : emp));
+      
+      // Propagate changes to records
+      const updatedPerformanceRecords = performanceRecords.map(rec => 
+        rec.employeeId === currentEditingEmployee.employeeId 
+          ? { ...rec, employeeName: currentEditingEmployee.employeeName, role: currentEditingEmployee.role } 
+          : rec
+      );
+      setPerformanceRecords(updatedPerformanceRecords);
+
+      const updatedAttendanceRecords = attendanceRecords.map(rec => 
+        rec.employeeId === currentEditingEmployee.employeeId 
+          ? { ...rec, employeeName: currentEditingEmployee.employeeName, role: currentEditingEmployee.role } 
+          : rec
+      );
+      setAttendanceRecords(updatedAttendanceRecords);
+
+      const updatedSalaryRecords = salaryRecords.map(rec => 
+        rec.employeeId === currentEditingEmployee.employeeId 
+          ? { ...rec, employeeName: currentEditingEmployee.employeeName, role: currentEditingEmployee.role } 
+          : rec
+      );
+      setSalaryRecords(updatedSalaryRecords);
+      toast({ title: "Success", description: "Employee details updated." });
+    }
+    setIsEmployeeFormDialogOpen(false);
+    setCurrentEditingEmployee(null);
+  };
+  
+  const handleDeleteEmployee = (employeeId: string) => {
+    const hasRecords = performanceRecords.some(r => r.employeeId === employeeId) ||
+                       attendanceRecords.some(r => r.employeeId === employeeId) ||
+                       salaryRecords.some(r => r.employeeId === employeeId);
+    if (hasRecords) {
+      toast({ title: "Cannot Delete", description: "Employee has existing records. Please delete their records first.", variant: "destructive" });
+      return;
+    }
+    if (window.confirm("Are you sure you want to delete this employee? This action cannot be undone.")) {
+      setManagedEmployees(prev => prev.filter(emp => emp.employeeId !== employeeId));
+      toast({ title: "Success", description: "Employee deleted." });
+    }
+  };
 
 
-  const handleFormInputChange = (
+  const handleRecordFormInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
     formType: 'performance' | 'attendance' | 'salary'
   ) => {
@@ -168,25 +227,15 @@ export default function PerformancePage() {
     setter(prev => ({ ...prev, [name]: name.includes('Target') || name.includes('Achieved') || name.includes('Completed') || name.includes('Assigned') || name.includes('Salary') || name.includes('advances') || name.includes('bonuses') || name.includes('deductions') ? parseFloat(value) || 0 : value }));
   };
   
-  const handleFormSelectChange = (
+  const handleRecordFormSelectChange = (
     value: string, name: string,
     formType: 'performance' | 'attendance' | 'salary'
   ) => {
      const setter = formType === 'performance' ? setPerformanceFormData : formType === 'attendance' ? setAttendanceFormData : setSalaryFormData;
-     if (name === 'employeeId') {
-        const emp = allKnownEmployees.find(e => e.employeeId === value);
-        setSelectedEmployeeForDialog(emp || null);
-        setter(prev => ({ 
-            ...prev, 
-            employeeId: emp?.employeeId, // Explicitly set employeeId in form data
-            role: emp?.role || prev.role // Use employee's role or existing form role
-        }));
-     } else {
-        setter(prev => ({ ...prev, [name]: value }));
-     }
+     setter(prev => ({ ...prev, [name]: value }));
   };
 
-  const handleDateChange = (date: Date | undefined, name: string, formType: 'performance' | 'attendance') => {
+  const handleRecordDateChange = (date: Date | undefined, name: string, formType: 'performance' | 'attendance') => {
     const setter = formType === 'performance' ? setPerformanceFormData : setAttendanceFormData;
     setter(prev => ({ ...prev, [name]: date }));
   };
@@ -194,25 +243,25 @@ export default function PerformancePage() {
   // --- Performance Record Handlers ---
   const handleAddPerformanceRecord = (e: FormEvent) => {
     e.preventDefault();
-    if (!selectedEmployeeForDialog || !performanceFormData.date) {
+    const selectedEmp = managedEmployees.find(emp => emp.employeeId === performanceFormData.selectedEmployeeId);
+    if (!selectedEmp || !performanceFormData.date) {
       toast({ title: "Error", description: "Employee and Date are required.", variant: "destructive" });
       return;
     }
     const newRecord: EmployeePerformance = {
       id: `P${Date.now()}`,
-      employeeId: selectedEmployeeForDialog.employeeId,
-      employeeName: selectedEmployeeForDialog.employeeName,
-      role: performanceFormData.role || selectedEmployeeForDialog.role || 'N/A',
+      employeeId: selectedEmp.employeeId,
+      employeeName: selectedEmp.employeeName,
+      role: selectedEmp.role,
       date: format(performanceFormData.date, 'yyyy-MM-dd'),
       salesTarget: performanceFormData.salesTarget || 0,
       salesAchieved: performanceFormData.salesAchieved || 0,
       tasksCompleted: performanceFormData.tasksCompleted || 0,
       tasksAssigned: performanceFormData.tasksAssigned || 0,
     };
-    setPerformanceRecords(prev => [newRecord, ...prev]);
+    setPerformanceRecords(prev => [newRecord, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setIsAddPerformanceDialogOpen(false);
-    setPerformanceFormData({date: new Date()}); // Reset with default date
-    setSelectedEmployeeForDialog(null);
+    setPerformanceFormData({date: new Date()}); 
     toast({ title: "Success", description: "Performance record added." });
   };
 
@@ -226,24 +275,24 @@ export default function PerformancePage() {
   // --- Attendance Record Handlers ---
   const handleAddAttendanceRecord = (e: FormEvent) => {
     e.preventDefault();
-    if (!selectedEmployeeForDialog || !attendanceFormData.date || !attendanceFormData.status) {
+    const selectedEmp = managedEmployees.find(emp => emp.employeeId === attendanceFormData.selectedEmployeeId);
+    if (!selectedEmp || !attendanceFormData.date || !attendanceFormData.status) {
       toast({ title: "Error", description: "Employee, Date, and Status are required.", variant: "destructive" });
       return;
     }
     const newRecord: EmployeeAttendance = {
       id: `A${Date.now()}`,
-      employeeId: selectedEmployeeForDialog.employeeId,
-      employeeName: selectedEmployeeForDialog.employeeName,
-      role: attendanceFormData.role || selectedEmployeeForDialog.role || 'N/A',
+      employeeId: selectedEmp.employeeId,
+      employeeName: selectedEmp.employeeName,
+      role: selectedEmp.role,
       date: format(attendanceFormData.date, 'yyyy-MM-dd'),
       inTime: attendanceFormData.inTime,
       outTime: attendanceFormData.outTime,
       status: attendanceFormData.status,
     };
-    setAttendanceRecords(prev => [newRecord, ...prev]);
+    setAttendanceRecords(prev => [newRecord, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setIsAddAttendanceDialogOpen(false);
-    setAttendanceFormData({date: new Date()}); // Reset with default date
-    setSelectedEmployeeForDialog(null);
+    setAttendanceFormData({date: new Date()}); 
     toast({ title: "Success", description: "Attendance record added." });
   };
 
@@ -257,7 +306,9 @@ export default function PerformancePage() {
   // --- Salary Record Handlers ---
   const handleAddSalaryRecord = (e: FormEvent) => {
     e.preventDefault();
-    if (!selectedEmployeeForDialog || !salaryFormData.month || salaryFormData.basicSalary === undefined) {
+    const selectedEmp = managedEmployees.find(emp => emp.employeeId === salaryFormData.selectedEmployeeId);
+
+    if (!selectedEmp || !salaryFormData.month || salaryFormData.basicSalary === undefined) {
       toast({ title: "Error", description: "Employee, Month, and Basic Salary are required.", variant: "destructive" });
       return;
     }
@@ -269,20 +320,19 @@ export default function PerformancePage() {
 
     const newRecord: EmployeeSalary = {
       id: `S${Date.now()}`,
-      employeeId: selectedEmployeeForDialog.employeeId,
-      employeeName: selectedEmployeeForDialog.employeeName,
-      role: salaryFormData.role || selectedEmployeeForDialog.role || 'N/A',
-      month: salaryFormData.month, // expecting YYYY-MM
+      employeeId: selectedEmp.employeeId,
+      employeeName: selectedEmp.employeeName,
+      role: selectedEmp.role,
+      month: salaryFormData.month, 
       basicSalary,
       advances,
       bonuses,
       deductions,
       netSalary,
     };
-    setSalaryRecords(prev => [newRecord, ...prev]);
+    setSalaryRecords(prev => [newRecord, ...prev].sort((a,b) => new Date(b.month + '-01').getTime() - new Date(a.month + '-01').getTime()));
     setIsAddSalaryDialogOpen(false);
-    setSalaryFormData({month: format(new Date(), 'yyyy-MM')}); // Reset with default month
-    setSelectedEmployeeForDialog(null);
+    setSalaryFormData({month: format(new Date(), 'yyyy-MM')}); 
     toast({ title: "Success", description: "Salary record added." });
   };
 
@@ -293,16 +343,19 @@ export default function PerformancePage() {
     }
   };
   
-  const openDialog = (setter: React.Dispatch<React.SetStateAction<boolean>>, formSetter: any, initialData = {}) => {
-    formSetter(initialData); // Set initial data which might include default date/month
-    setSelectedEmployeeForDialog(null); // Reset selected employee
+  const openRecordDialog = (setter: React.Dispatch<React.SetStateAction<boolean>>, formSetter: any, initialData = {}) => {
+    formSetter(initialData); 
     setter(true);
   };
 
 
   return (
     <>
-      <PageHeader title="Performance Monitor" description="Track employee performance, attendance, and salary details." />
+      <PageHeader title="Performance Monitor" description="Track employee performance, attendance, and salary details.">
+        <Button onClick={() => setIsManageEmployeesDialogOpen(true)}>
+          <Users className="mr-2 h-4 w-4" /> Manage Employees
+        </Button>
+      </PageHeader>
 
       <Tabs defaultValue="performance" className="w-full">
         <TabsList className="grid w-full grid-cols-3 mb-4">
@@ -319,7 +372,7 @@ export default function PerformancePage() {
                 <CardTitle>Daily Performance Records</CardTitle>
                 <CardDescription>Monitor sales targets and task completion.</CardDescription>
               </div>
-              <Button size="sm" onClick={() => openDialog(setIsAddPerformanceDialogOpen, setPerformanceFormData, { date: new Date() })}>
+              <Button size="sm" onClick={() => openRecordDialog(setIsAddPerformanceDialogOpen, setPerformanceFormData, { date: new Date() })}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Record
               </Button>
             </CardHeader>
@@ -369,7 +422,7 @@ export default function PerformancePage() {
                 <CardTitle>Employee Attendance</CardTitle>
                 <CardDescription>Track daily in-time and out-time.</CardDescription>
               </div>
-              <Button size="sm" onClick={() => openDialog(setIsAddAttendanceDialogOpen, setAttendanceFormData, { date: new Date() })}>
+              <Button size="sm" onClick={() => openRecordDialog(setIsAddAttendanceDialogOpen, setAttendanceFormData, { date: new Date() })}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Mark Attendance
               </Button>
             </CardHeader>
@@ -419,7 +472,7 @@ export default function PerformancePage() {
                 <CardTitle>Salary Details</CardTitle>
                 <CardDescription>Manage monthly salaries, advances, bonuses, and deductions.</CardDescription>
               </div>
-               <Button size="sm" onClick={() => openDialog(setIsAddSalaryDialogOpen, setSalaryFormData, { month: format(new Date(), 'yyyy-MM') })}>
+               <Button size="sm" onClick={() => openRecordDialog(setIsAddSalaryDialogOpen, setSalaryFormData, { month: format(new Date(), 'yyyy-MM') })}>
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Salary Entry
               </Button>
             </CardHeader>
@@ -466,21 +519,102 @@ export default function PerformancePage() {
         </TabsContent>
       </Tabs>
 
+      {/* Manage Employees Dialog */}
+      <Dialog open={isManageEmployeesDialogOpen} onOpenChange={setIsManageEmployeesDialogOpen}>
+        <DialogContent className="sm:max-w-2xl">
+            <DialogHeader><DialogTitle>Manage Employees</DialogTitle></DialogHeader>
+            <div className="my-4">
+              <Button onClick={handleOpenAddEmployeeDialog}><PlusCircle className="mr-2 h-4 w-4" /> Add New Employee</Button>
+            </div>
+            <Table>
+              <TableHeaderComponent>
+                <TableRow>
+                  <TableHead>Employee ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeaderComponent>
+              <TableBody>
+                {managedEmployees.map(emp => (
+                  <TableRow key={emp.employeeId}>
+                    <TableCell>{emp.employeeId}</TableCell>
+                    <TableCell>{emp.employeeName}</TableCell>
+                    <TableCell>{emp.role}</TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button variant="outline" size="icon" onClick={() => handleOpenEditEmployeeDialog(emp)}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="icon" onClick={() => handleDeleteEmployee(emp.employeeId)}><Trash2 className="h-4 w-4" /></Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {managedEmployees.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No employees managed yet.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+            <DialogFooter>
+              <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
+            </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Employee Add/Edit Form Dialog */}
+      {isEmployeeFormDialogOpen && currentEditingEmployee && (
+        <Dialog open={isEmployeeFormDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setCurrentEditingEmployee(null); setIsEmployeeFormDialogOpen(isOpen);}}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>{employeeFormMode === 'add' ? 'Add New Employee' : 'Edit Employee'}</DialogTitle></DialogHeader>
+            <form onSubmit={handleSaveEmployee} className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="empFormId">Employee ID</Label>
+                <Input 
+                  id="empFormId" 
+                  value={currentEditingEmployee.employeeId} 
+                  onChange={(e) => setCurrentEditingEmployee(prev => prev ? {...prev, employeeId: e.target.value} : null)}
+                  disabled={employeeFormMode === 'edit'}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="empFormName">Employee Name</Label>
+                <Input 
+                  id="empFormName" 
+                  value={currentEditingEmployee.employeeName}
+                  onChange={(e) => setCurrentEditingEmployee(prev => prev ? {...prev, employeeName: e.target.value} : null)}
+                  required
+                />
+              </div>
+              <div>
+                <Label htmlFor="empFormRole">Role</Label>
+                <Input 
+                  id="empFormRole" 
+                  value={currentEditingEmployee.role}
+                  onChange={(e) => setCurrentEditingEmployee(prev => prev ? {...prev, role: e.target.value} : null)}
+                  required
+                />
+              </div>
+              <DialogFooter>
+                <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
+                <Button type="submit">Save Employee</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+
       {/* Add Performance Record Dialog */}
-      <Dialog open={isAddPerformanceDialogOpen} onOpenChange={(isOpen) => { setIsAddPerformanceDialogOpen(isOpen); if (!isOpen) {setPerformanceFormData({date: new Date()}); setSelectedEmployeeForDialog(null);}}}>
+      <Dialog open={isAddPerformanceDialogOpen} onOpenChange={(isOpen) => { setIsAddPerformanceDialogOpen(isOpen); if (!isOpen) {setPerformanceFormData({date: new Date()});}}}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add Performance Record</DialogTitle></DialogHeader>
           <form onSubmit={handleAddPerformanceRecord} className="space-y-4 py-4">
             <div>
               <Label htmlFor="perfEmployeeId">Employee</Label>
-              <Select name="employeeId" value={selectedEmployeeForDialog?.employeeId || ""} onValueChange={(value) => handleFormSelectChange(value, 'employeeId', 'performance')}>
+              <Select name="selectedEmployeeId" value={performanceFormData.selectedEmployeeId || ""} onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'performance')}>
                 <SelectTrigger id="perfEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
-                  {allKnownEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
+                  {managedEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div><Label htmlFor="perfRole">Role</Label><Input id="perfRole" name="role" value={performanceFormData.role || selectedEmployeeForDialog?.role || ''} onChange={(e) => handleFormInputChange(e, 'performance')} placeholder="Employee Role"/></div>
+            {/* Role is derived from managedEmployees, not set here */}
             <div>
               <Label htmlFor="perfDate">Date</Label>
                <Popover>
@@ -490,15 +624,15 @@ export default function PerformancePage() {
                     {performanceFormData.date ? format(performanceFormData.date, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={performanceFormData.date} onSelect={(d) => handleDateChange(d, 'date', 'performance')} initialFocus /></PopoverContent>
+                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={performanceFormData.date} onSelect={(d) => handleRecordDateChange(d, 'date', 'performance')} initialFocus /></PopoverContent>
               </Popover>
             </div>
-            <div><Label htmlFor="salesTarget">Sales Target (PKR)</Label><Input id="salesTarget" name="salesTarget" type="number" value={performanceFormData.salesTarget || ''} onChange={(e) => handleFormInputChange(e, 'performance')} min="0" /></div>
-            <div><Label htmlFor="salesAchieved">Sales Achieved (PKR)</Label><Input id="salesAchieved" name="salesAchieved" type="number" value={performanceFormData.salesAchieved || ''} onChange={(e) => handleFormInputChange(e, 'performance')} min="0"/></div>
-            <div><Label htmlFor="tasksCompleted">Tasks Completed</Label><Input id="tasksCompleted" name="tasksCompleted" type="number" value={performanceFormData.tasksCompleted || ''} onChange={(e) => handleFormInputChange(e, 'performance')} min="0"/></div>
-            <div><Label htmlFor="tasksAssigned">Tasks Assigned</Label><Input id="tasksAssigned" name="tasksAssigned" type="number" value={performanceFormData.tasksAssigned || ''} onChange={(e) => handleFormInputChange(e, 'performance')} min="0"/></div>
+            <div><Label htmlFor="salesTarget">Sales Target (PKR)</Label><Input id="salesTarget" name="salesTarget" type="number" value={performanceFormData.salesTarget || ''} onChange={(e) => handleRecordFormInputChange(e, 'performance')} min="0" /></div>
+            <div><Label htmlFor="salesAchieved">Sales Achieved (PKR)</Label><Input id="salesAchieved" name="salesAchieved" type="number" value={performanceFormData.salesAchieved || ''} onChange={(e) => handleRecordFormInputChange(e, 'performance')} min="0"/></div>
+            <div><Label htmlFor="tasksCompleted">Tasks Completed</Label><Input id="tasksCompleted" name="tasksCompleted" type="number" value={performanceFormData.tasksCompleted || ''} onChange={(e) => handleRecordFormInputChange(e, 'performance')} min="0"/></div>
+            <div><Label htmlFor="tasksAssigned">Tasks Assigned</Label><Input id="tasksAssigned" name="tasksAssigned" type="number" value={performanceFormData.tasksAssigned || ''} onChange={(e) => handleRecordFormInputChange(e, 'performance')} min="0"/></div>
             <DialogFooter>
-              <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
               <Button type="submit">Add Record</Button>
             </DialogFooter>
           </form>
@@ -506,20 +640,19 @@ export default function PerformancePage() {
       </Dialog>
 
       {/* Add Attendance Record Dialog */}
-      <Dialog open={isAddAttendanceDialogOpen} onOpenChange={(isOpen) => { setIsAddAttendanceDialogOpen(isOpen); if (!isOpen) {setAttendanceFormData({date: new Date()}); setSelectedEmployeeForDialog(null);}}}>
+      <Dialog open={isAddAttendanceDialogOpen} onOpenChange={(isOpen) => { setIsAddAttendanceDialogOpen(isOpen); if (!isOpen) {setAttendanceFormData({date: new Date()});}}}>
         <DialogContent>
           <DialogHeader><DialogTitle>Mark Attendance</DialogTitle></DialogHeader>
           <form onSubmit={handleAddAttendanceRecord} className="space-y-4 py-4">
             <div>
               <Label htmlFor="attEmployeeId">Employee</Label>
-              <Select name="employeeId" value={selectedEmployeeForDialog?.employeeId || ""} onValueChange={(value) => handleFormSelectChange(value, 'employeeId', 'attendance')}>
+              <Select name="selectedEmployeeId" value={attendanceFormData.selectedEmployeeId || ""} onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'attendance')}>
                 <SelectTrigger id="attEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
-                  {allKnownEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
+                  {managedEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-             <div><Label htmlFor="attRole">Role</Label><Input id="attRole" name="role" value={attendanceFormData.role || selectedEmployeeForDialog?.role || ''} onChange={(e) => handleFormInputChange(e, 'attendance')} placeholder="Employee Role"/></div>
             <div>
               <Label htmlFor="attDate">Date</Label>
               <Popover>
@@ -529,14 +662,14 @@ export default function PerformancePage() {
                     {attendanceFormData.date ? format(attendanceFormData.date, "PPP") : <span>Pick a date</span>}
                   </Button>
                 </PopoverTrigger>
-                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={attendanceFormData.date} onSelect={(d) => handleDateChange(d, 'date', 'attendance')} initialFocus /></PopoverContent>
+                <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={attendanceFormData.date} onSelect={(d) => handleRecordDateChange(d, 'date', 'attendance')} initialFocus /></PopoverContent>
               </Popover>
             </div>
-            <div><Label htmlFor="inTime">In-Time</Label><Input id="inTime" name="inTime" type="time" value={attendanceFormData.inTime || ''} onChange={(e) => handleFormInputChange(e, 'attendance')} /></div>
-            <div><Label htmlFor="outTime">Out-Time</Label><Input id="outTime" name="outTime" type="time" value={attendanceFormData.outTime || ''} onChange={(e) => handleFormInputChange(e, 'attendance')} /></div>
+            <div><Label htmlFor="inTime">In-Time</Label><Input id="inTime" name="inTime" type="time" value={attendanceFormData.inTime || ''} onChange={(e) => handleRecordFormInputChange(e, 'attendance')} /></div>
+            <div><Label htmlFor="outTime">Out-Time</Label><Input id="outTime" name="outTime" type="time" value={attendanceFormData.outTime || ''} onChange={(e) => handleRecordFormInputChange(e, 'attendance')} /></div>
             <div>
               <Label htmlFor="status">Status</Label>
-              <Select name="status" value={attendanceFormData.status || ""} onValueChange={(value) => handleFormSelectChange(value as 'Present' | 'Absent' | 'Leave', 'status', 'attendance')}>
+              <Select name="status" value={attendanceFormData.status || ""} onValueChange={(value) => handleRecordFormSelectChange(value as 'Present' | 'Absent' | 'Leave', 'status', 'attendance')}>
                 <SelectTrigger id="status"><SelectValue placeholder="Select Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="Present">Present</SelectItem>
@@ -546,7 +679,7 @@ export default function PerformancePage() {
               </Select>
             </div>
             <DialogFooter>
-              <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
               <Button type="submit">Mark Attendance</Button>
             </DialogFooter>
           </form>
@@ -554,27 +687,26 @@ export default function PerformancePage() {
       </Dialog>
 
       {/* Add Salary Record Dialog */}
-      <Dialog open={isAddSalaryDialogOpen} onOpenChange={(isOpen) => { setIsAddSalaryDialogOpen(isOpen); if (!isOpen) {setSalaryFormData({month: format(new Date(), 'yyyy-MM')}); setSelectedEmployeeForDialog(null);}}}>
+      <Dialog open={isAddSalaryDialogOpen} onOpenChange={(isOpen) => { setIsAddSalaryDialogOpen(isOpen); if (!isOpen) {setSalaryFormData({month: format(new Date(), 'yyyy-MM')}); }}}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add Salary Entry</DialogTitle></DialogHeader>
           <form onSubmit={handleAddSalaryRecord} className="space-y-4 py-4">
              <div>
               <Label htmlFor="salaryEmployeeId">Employee</Label>
-              <Select name="employeeId" value={selectedEmployeeForDialog?.employeeId || ""} onValueChange={(value) => handleFormSelectChange(value, 'employeeId', 'salary')}>
+              <Select name="selectedEmployeeId" value={salaryFormData.selectedEmployeeId || ""} onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'salary')}>
                 <SelectTrigger id="salaryEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
-                  {allKnownEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
+                  {managedEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
-            <div><Label htmlFor="salaryRole">Role</Label><Input id="salaryRole" name="role" value={salaryFormData.role || selectedEmployeeForDialog?.role || ''} onChange={(e) => handleFormInputChange(e, 'salary')} placeholder="Employee Role"/></div>
-            <div><Label htmlFor="month">Month (YYYY-MM)</Label><Input id="month" name="month" type="month" value={salaryFormData.month || ''} onChange={(e) => handleFormInputChange(e, 'salary')} /></div>
-            <div><Label htmlFor="basicSalary">Basic Salary (PKR)</Label><Input id="basicSalary" name="basicSalary" type="number" value={salaryFormData.basicSalary || ''} onChange={(e) => handleFormInputChange(e, 'salary')} min="0" /></div>
-            <div><Label htmlFor="advances">Advances (PKR)</Label><Input id="advances" name="advances" type="number" value={salaryFormData.advances || ''} onChange={(e) => handleFormInputChange(e, 'salary')} min="0"/></div>
-            <div><Label htmlFor="bonuses">Bonuses (PKR)</Label><Input id="bonuses" name="bonuses" type="number" value={salaryFormData.bonuses || ''} onChange={(e) => handleFormInputChange(e, 'salary')} min="0"/></div>
-            <div><Label htmlFor="deductions">Deductions (PKR)</Label><Input id="deductions" name="deductions" type="number" value={salaryFormData.deductions || ''} onChange={(e) => handleFormInputChange(e, 'salary')} min="0"/></div>
+            <div><Label htmlFor="month">Month (YYYY-MM)</Label><Input id="month" name="month" type="month" value={salaryFormData.month || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} /></div>
+            <div><Label htmlFor="basicSalary">Basic Salary (PKR)</Label><Input id="basicSalary" name="basicSalary" type="number" value={salaryFormData.basicSalary || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
+            <div><Label htmlFor="advances">Advances (PKR)</Label><Input id="advances" name="advances" type="number" value={salaryFormData.advances || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0"/></div>
+            <div><Label htmlFor="bonuses">Bonuses (PKR)</Label><Input id="bonuses" name="bonuses" type="number" value={salaryFormData.bonuses || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0"/></div>
+            <div><Label htmlFor="deductions">Deductions (PKR)</Label><Input id="deductions" name="deductions" type="number" value={salaryFormData.deductions || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0"/></div>
             <DialogFooter>
-              <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
+              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
               <Button type="submit">Add Entry</Button>
             </DialogFooter>
           </form>
@@ -583,4 +715,3 @@ export default function PerformancePage() {
     </>
   );
 }
-
