@@ -8,6 +8,8 @@ export interface SaleItem {
   category?: string; // Added from menu categorization
 }
 
+export type OrderType = 'Dine-in' | 'Takeaway' | 'Delivery';
+
 export interface SaleRecord {
   id: string;
   date: string; // Date of sale in 'yyyy-MM-dd' format
@@ -17,6 +19,7 @@ export interface SaleRecord {
   paymentMethod: 'cash' | 'card' | 'online' | 'credit';
   employeeName: string;
   employeeId: string;
+  orderType: OrderType; // New field for order type
 }
 
 export interface ExpenseRecord {
@@ -25,8 +28,8 @@ export interface ExpenseRecord {
   category: string;
   description: string;
   amount: number;
-  employeeId?: string; 
-  employeeName?: string; 
+  employeeId?: string;
+  employeeName?: string;
 }
 
 export interface ProfitEntry {
@@ -97,4 +100,5 @@ export interface AuthUser {
   role: 'admin' | 'manager' | 'employee';
   employeeId?: string; // Link to ManagedEmployee ID
   employeeName?: string;
+  status?: 'active' | 'inactive';
 }

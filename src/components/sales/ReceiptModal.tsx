@@ -21,7 +21,7 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
   const handlePrint = () => {
     const elementsToHide = document.querySelectorAll('.hide-on-print');
     elementsToHide.forEach(el => el.classList.add('!hidden'));
-    
+
     const printOnlyElements = document.querySelectorAll('.print-only');
     printOnlyElements.forEach(el => el.classList.remove('hidden'));
 
@@ -30,7 +30,7 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
     elementsToHide.forEach(el => el.classList.remove('!hidden'));
     printOnlyElements.forEach(el => el.classList.add('hidden'));
   };
-  
+
   const formattedDateTime = saleRecord.dateTime ? format(new Date(saleRecord.dateTime), "PPP p") : 'N/A';
 
   return (
@@ -44,7 +44,7 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
             <DialogTitle className="text-2xl">Quoriam Foods</DialogTitle>
             <p className="text-sm text-muted-foreground">Your Trusted Taste</p>
           </DialogHeader>
-          
+
           <div className="space-y-3 text-sm">
             <div className="flex justify-between">
               <span>Order ID:</span>
@@ -53,6 +53,10 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
             <div className="flex justify-between">
               <span>Date & Time:</span>
               <span>{formattedDateTime}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Order Type:</span>
+              <span>{saleRecord.orderType}</span>
             </div>
              <div className="flex justify-between">
               <span>Cashier ID:</span>

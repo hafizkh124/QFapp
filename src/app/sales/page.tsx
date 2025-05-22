@@ -11,8 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Trash2, UtensilsCrossed, Eye, UserCircle, ShieldAlert } from 'lucide-react';
-import type { SaleRecord, SaleItem, MenuItem, ManagedEmployee } from '@/types';
+import { PlusCircle, Trash2, UtensilsCrossed, Eye, UserCircle, ShieldAlert, ShoppingBag, Car, Utensils } from 'lucide-react';
+import type { SaleRecord, SaleItem, MenuItem, ManagedEmployee, OrderType } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,8 +40,6 @@ const NO_CATEGORY_VALUE = "__no_category__";
 
 const defaultFallbackCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
 
-// Fallback list of employees if localStorage is empty or invalid.
-// This list should ideally mirror the structure of `allInitialStaffWithRoles` from performance page for consistency.
 const defaultSalesCashiersFallback: ManagedEmployee[] = [
     { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', email: 'hafizkh124@gmail.com', password: '1quoriam1', status: 'active' },
     { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'manager', email: 'khubaib@quoriam.com', password: 'khubaib123', status: 'active' },
@@ -51,6 +49,12 @@ const defaultSalesCashiersFallback: ManagedEmployee[] = [
     { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'employee', email: 'bilal@quoriam.com', password: 'bilal123', status: 'active' },
     { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee', email: 'kaleem@quoriam.com', password: 'kaleem123', status: 'active' },
     { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', email: 'arslan@quoriam.com', password: 'arslan123', status: 'active' },
+];
+
+const orderTypeOptions: { value: OrderType; label: string; icon?: React.ElementType }[] = [
+  { value: 'Dine-in', label: 'Dine-in (ریسٹورنٹ میں بیٹھ کر)', icon: Utensils },
+  { value: 'Takeaway', label: 'Takeaway / Parcel (پارسل)', icon: ShoppingBag },
+  { value: 'Delivery', label: 'Delivery (ڈلیوری)', icon: Car },
 ];
 
 
@@ -63,6 +67,7 @@ export default function SalesPage() {
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [menuSelection, setMenuSelection] = useState<MenuSelectionItem[]>([]);
 
+  const [orderType, setOrderType] = useState<OrderType>('Dine-in');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online' | 'credit'>('cash');
   const [currentOrderItems, setCurrentOrderItems] = useState<NewSaleItem[]>([]);
 
@@ -83,7 +88,6 @@ export default function SalesPage() {
       const storedManagedEmployees = localStorage.getItem(MANAGED_EMPLOYEES_KEY);
       if (storedManagedEmployees) {
         const parsedEmployees: ManagedEmployee[] = JSON.parse(storedManagedEmployees);
-        // Filter for active employees only for cashier selection
         const activeCashiers = parsedEmployees.filter(emp => emp.status === 'active');
         if (Array.isArray(activeCashiers) && activeCashiers.length > 0) {
           setCashierList(activeCashiers);
@@ -149,13 +153,12 @@ export default function SalesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Effect to set default cashier based on role
+
  useEffect(() => {
     if (user?.role === 'employee' && user.employeeId) {
       setSelectedCashierId(user.employeeId);
     } else if ((user?.role === 'admin' || user?.role === 'manager') && cashierList.length > 0 && !selectedCashierId) {
-      // Admin/Manager can default to themselves if in list, or first active cashier
-      const selfInList = cashierList.find(c => c.employeeId === user.employeeId);
+      const selfInList = cashierList.find(c => c.employeeId === user?.employeeId);
       setSelectedCashierId(selfInList ? selfInList.employeeId : cashierList[0]?.employeeId);
     }
   }, [user, cashierList, selectedCashierId]);
@@ -266,6 +269,10 @@ export default function SalesPage() {
       toast({ title: "Error", description: "Please add items to the order before completing sale.", variant: "destructive"});
       return;
     }
+    if (!orderType) {
+        toast({ title: "Error", description: "Please select an Order Type.", variant: "destructive"});
+        return;
+    }
 
     let currentCashierInfo: { employeeId: string; employeeName: string; } | undefined;
     if (user?.role === 'employee' && user.employeeId && user.employeeName) {
@@ -290,6 +297,7 @@ export default function SalesPage() {
       items: currentOrderItems.map(item => ({ ...item, id: `I${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2, 3)}`, total: item.quantity * item.price })),
       totalAmount: currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0),
       paymentMethod,
+      orderType,
       employeeName: currentCashierInfo.employeeName,
       employeeId: currentCashierInfo.employeeId,
     };
@@ -298,6 +306,7 @@ export default function SalesPage() {
     setIsReceiptModalOpen(true);
 
     setCurrentOrderItems([]);
+    setOrderType('Dine-in'); // Reset order type to default
     toast({ title: "Sale Recorded!", description: `Sale ID: ${newSale.id} completed successfully.`});
   };
 
@@ -315,11 +324,11 @@ export default function SalesPage() {
     if (user?.role === 'employee') {
       return salesRecords.filter(sale => sale.employeeId === user.employeeId);
     }
-    return salesRecords; // Admins and Managers see all sales for now
+    return salesRecords;
   }, [salesRecords, user]);
 
 
-  if (!user) { 
+  if (!user) {
     return (
       <div className="flex items-center justify-center h-full">
         <Alert variant="destructive">
@@ -330,7 +339,7 @@ export default function SalesPage() {
       </div>
     );
   }
-  
+
   const canManageCashierSelection = user.role === 'admin' || user.role === 'manager';
   const canAddCustomItem = user.role === 'admin' || user.role === 'manager' || user.role === 'employee';
 
@@ -382,6 +391,31 @@ export default function SalesPage() {
                     </div>
                    ) : null}
 
+                    <div>
+                        <Label htmlFor="orderTypeSelect" className="mb-1 block">Order Type</Label>
+                        <Select value={orderType} onValueChange={(value: OrderType) => setOrderType(value)}>
+                            <SelectTrigger id="orderTypeSelect" className="w-full">
+                                <div className="flex items-center gap-2">
+                                    {orderTypeOptions.find(opt => opt.value === orderType)?.icon ?
+                                        React.createElement(orderTypeOptions.find(opt => opt.value === orderType)!.icon!, {className: "h-4 w-4 text-muted-foreground"}) : null
+                                    }
+                                    <SelectValue placeholder="Select order type" />
+                                </div>
+                            </SelectTrigger>
+                            <SelectContent>
+                                {orderTypeOptions.map(opt => (
+                                    <SelectItem key={opt.value} value={opt.value}>
+                                        <div className="flex items-center gap-2">
+                                            {opt.icon && React.createElement(opt.icon, {className: "h-4 w-4 text-muted-foreground"})}
+                                            {opt.label}
+                                        </div>
+                                    </SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+
                   <div>
                     <Label className="mb-1 block">Select Menu Items</Label>
                     <ScrollArea className="h-[350px] md:h-[400px] w-full rounded-md border p-3">
@@ -425,13 +459,13 @@ export default function SalesPage() {
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Selected Items to Order
                   </Button>
 
-                  {canAddCustomItem && !showCustomItemForm && ( 
+                  {canAddCustomItem && !showCustomItemForm && (
                     <Button type="button" variant="secondary" onClick={() => setShowCustomItemForm(true)} className="w-full">
                       <UtensilsCrossed className="mr-2 h-4 w-4" /> Add New Custom Item
                     </Button>
                   )}
 
-                  {showCustomItemForm && canAddCustomItem && ( 
+                  {showCustomItemForm && canAddCustomItem && (
                     <div className="space-y-3 border p-3 rounded-md bg-muted/50">
                       <h4 className="font-medium text-sm text-center">Add Custom Item</h4>
                       <div>
@@ -565,11 +599,12 @@ export default function SalesPage() {
 
         <TabsContent value="salesReports">
            <SalesReports
-             allSalesData={salesDataForReport} 
+             allSalesData={salesDataForReport}
              menuItems={menuItems}
              onViewReceipt={handleViewReceipt}
              managedEmployeesList={cashierList}
              allCategories={allCategories}
+             orderTypeOptions={orderTypeOptions}
            />
         </TabsContent>
       </Tabs>

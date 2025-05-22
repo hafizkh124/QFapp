@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { SaleRecord, MenuItem, ManagedEmployee } from '@/types';
+import type { SaleRecord, MenuItem, ManagedEmployee, OrderType } from '@/types';
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Label } from '@/components/ui/label';
-import { CalendarIcon, UserCircle, LayersIcon, Eye, CreditCardIcon } from 'lucide-react';
+import { CalendarIcon, UserCircle, LayersIcon, Eye, CreditCardIcon, ShoppingBag } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import {
   format,
@@ -28,6 +28,7 @@ import {
   setMonth
 } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
+import React from 'react';
 
 interface SalesReportsProps {
   allSalesData: SaleRecord[];
@@ -35,12 +36,20 @@ interface SalesReportsProps {
   onViewReceipt: (saleId: string) => void;
   managedEmployeesList: ManagedEmployee[];
   allCategories: string[];
+  orderTypeOptions: { value: OrderType; label: string; icon?: React.ElementType }[];
 }
 
 type ReportPeriodType = 'daily' | 'weekly' | 'monthly' | 'custom' | 'all';
 const paymentMethods: Array<SaleRecord['paymentMethod']> = ['cash', 'card', 'online', 'credit'];
 
-export default function SalesReports({ allSalesData, menuItems, onViewReceipt, managedEmployeesList, allCategories }: SalesReportsProps) {
+export default function SalesReports({
+    allSalesData,
+    menuItems,
+    onViewReceipt,
+    managedEmployeesList,
+    allCategories,
+    orderTypeOptions
+}: SalesReportsProps) {
   const { user } = useAuth();
   const [reportPeriodType, setReportPeriodType] = useState<ReportPeriodType>('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
@@ -50,6 +59,8 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
   const [selectedCashierId, setSelectedCashierId] = useState<string | undefined>(undefined);
   const [selectedReportCategory, setSelectedReportCategory] = useState<string | undefined>(undefined);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<SaleRecord['paymentMethod'] | undefined>(undefined);
+  const [selectedOrderType, setSelectedOrderType] = useState<OrderType | undefined>(undefined);
+
 
   const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
   const [selectedYear, setSelectedYear] = useState<number | undefined>();
@@ -100,11 +111,8 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
       if (selectedCashierId) {
         filtered = filtered.filter(sale => sale.employeeId === selectedCashierId);
       }
-    } else if (user?.role === 'employee') {
-      // Employees only see their own sales, data already pre-filtered in parent component.
-      // No additional cashier filtering needed here for employees.
     }
-    
+
 
     if (selectedReportMenuItemId) {
       const selectedItem = menuItems.find(item => item.id === selectedReportMenuItemId);
@@ -124,6 +132,10 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
       filtered = filtered.filter(sale => sale.paymentMethod === selectedPaymentMethod);
     }
 
+    if (selectedOrderType) {
+        filtered = filtered.filter(sale => sale.orderType === selectedOrderType);
+    }
+
     return filtered.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
   }, [
     salesDataWithParsedDates,
@@ -138,6 +150,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
     selectedReportMenuItemId,
     selectedReportCategory,
     selectedPaymentMethod,
+    selectedOrderType,
     menuItems
   ]);
 
@@ -146,7 +159,18 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
     const totalRevenue = filteredSales.reduce((sum, sale) => sum + sale.totalAmount, 0);
     const totalOrders = filteredSales.length;
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-    return { totalRevenue, totalOrders, averageOrderValue };
+
+    const revenueByOrderType: Record<OrderType, number> = { 'Dine-in': 0, 'Takeaway': 0, 'Delivery': 0 };
+    const ordersByOrderType: Record<OrderType, number> = { 'Dine-in': 0, 'Takeaway': 0, 'Delivery': 0 };
+
+    filteredSales.forEach(sale => {
+        if (sale.orderType) {
+            revenueByOrderType[sale.orderType] = (revenueByOrderType[sale.orderType] || 0) + sale.totalAmount;
+            ordersByOrderType[sale.orderType] = (ordersByOrderType[sale.orderType] || 0) + 1;
+        }
+    });
+
+    return { totalRevenue, totalOrders, averageOrderValue, revenueByOrderType, ordersByOrderType };
   }, [filteredSales]);
 
   const topSellingItems = useMemo(() => {
@@ -340,7 +364,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
             </div>
             <div className="lg:col-span-2">{renderDatePickers()}</div>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 items-end">
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 items-end"> {/* Updated grid for 5 filters */}
             <div>
               <Label htmlFor="reportMenuItem">By Item</Label>
               <Select value={selectedReportMenuItemId} onValueChange={(value) => setSelectedReportMenuItemId(value === 'all-items' ? undefined : value)}>
@@ -409,6 +433,28 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label htmlFor="reportOrderType">By Order Type</Label>
+              <Select value={selectedOrderType} onValueChange={(value) => setSelectedOrderType(value === 'all-order-types' ? undefined : value as OrderType)}>
+                <SelectTrigger id="reportOrderType">
+                  <div className="flex items-center gap-2">
+                    <ShoppingBag className="h-4 w-4 text-muted-foreground" />
+                    <SelectValue placeholder="All Order Types" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all-order-types">All Order Types</SelectItem>
+                  {orderTypeOptions.map(opt => (
+                    <SelectItem key={opt.value} value={opt.value}>
+                      <div className="flex items-center gap-2">
+                        {opt.icon && React.createElement(opt.icon, {className: "h-4 w-4 text-muted-foreground"})}
+                        {opt.label.split(' (')[0]} {/* Show only English part in report filter */}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -444,6 +490,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
                       <TableRow>
                         <TableHead>Order ID</TableHead>
                         <TableHead>Date</TableHead>
+                        <TableHead>Order Type</TableHead>
                         <TableHead>Cashier</TableHead>
                         <TableHead>Quantity of Item</TableHead>
                         <TableHead>Total Order Amount</TableHead>
@@ -459,6 +506,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
                             <TableRow key={sale.id}>
                               <TableCell>{sale.id}</TableCell>
                               <TableCell>{sale.date}</TableCell>
+                              <TableCell>{sale.orderType}</TableCell>
                               <TableCell>{getEmployeeNameById(sale.employeeId)}</TableCell>
                               <TableCell>{itemInSale?.quantity || 0}</TableCell>
                               <TableCell>PKR {sale.totalAmount.toFixed(2)}</TableCell>
@@ -507,6 +555,22 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
                     <CardTitle className="text-3xl">PKR {salesSummary.averageOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</CardTitle>
                   </CardHeader>
                 </Card>
+              </div>
+              <div className="mt-6">
+                <h4 className="text-md font-semibold mb-2">Sales by Order Type:</h4>
+                <div className="grid gap-4 md:grid-cols-3">
+                    {orderTypeOptions.map(opt => (
+                        <Card key={opt.value}>
+                            <CardHeader className="pb-2">
+                                <CardDescription>{opt.label.split(' (')[0]}</CardDescription> {/* English part */}
+                                <CardTitle className="text-xl">
+                                    PKR {salesSummary.revenueByOrderType[opt.value]?.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) || '0.00'}
+                                </CardTitle>
+                                <p className="text-xs text-muted-foreground">{salesSummary.ordersByOrderType[opt.value]?.toLocaleString() || 0} orders</p>
+                            </CardHeader>
+                        </Card>
+                    ))}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -590,6 +654,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
                       <TableRow>
                         <TableHead>Order ID</TableHead>
                         <TableHead>Date</TableHead>
+                        <TableHead>Order Type</TableHead>
                         <TableHead>Cashier</TableHead>
                         <TableHead>Items (Qty)</TableHead>
                         <TableHead>Payment</TableHead>
@@ -602,6 +667,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
                         <TableRow key={sale.id}>
                           <TableCell>{sale.id}</TableCell>
                           <TableCell>{sale.date}</TableCell>
+                          <TableCell>{sale.orderType}</TableCell>
                           <TableCell>{getEmployeeNameById(sale.employeeId)}</TableCell>
                            <TableCell className="max-w-[200px] truncate" title={sale.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}>
                             {sale.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}
