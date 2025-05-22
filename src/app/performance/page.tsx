@@ -766,5 +766,3 @@ export default function PerformancePage() {
     </>
   );
 }
-
-      

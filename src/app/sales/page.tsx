@@ -80,27 +80,16 @@ export default function SalesPage() {
         const parsedEmployees: ManagedEmployee[] = JSON.parse(storedManagedEmployees);
         if (Array.isArray(parsedEmployees) && parsedEmployees.length > 0) {
           setCashierList(parsedEmployees);
-          if (!selectedCashier && parsedEmployees.length > 0) {
-            setSelectedCashier(parsedEmployees[0]);
-          }
+          // setSelectedCashier is handled by the subsequent useEffect
         } else {
           setCashierList(defaultSalesCashiers);
-           if (!selectedCashier && defaultSalesCashiers.length > 0) {
-            setSelectedCashier(defaultSalesCashiers[0]);
-          }
         }
       } else {
         setCashierList(defaultSalesCashiers);
-        if (!selectedCashier && defaultSalesCashiers.length > 0) {
-          setSelectedCashier(defaultSalesCashiers[0]);
-        }
       }
     } catch (error) {
       console.error("Error loading managed employees from localStorage:", error);
       setCashierList(defaultSalesCashiers); // Fallback to default
-      if (!selectedCashier && defaultSalesCashiers.length > 0) {
-        setSelectedCashier(defaultSalesCashiers[0]);
-      }
     }
     
     if (defaultCategories.length > 0 && !customItemCategory) {
@@ -153,17 +142,18 @@ export default function SalesPage() {
         setSalesRecords(initialRecords);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // selectedCashier removed from dependency array to prevent re-triggering on its own change
+  }, []); 
 
   useEffect(() => {
-    // Ensure selectedCashier is updated if cashierList changes and current selected is not in new list
+    // Ensure selectedCashier is updated if cashierList changes and current selected is not in new list,
+    // or if selectedCashier is not set yet.
     if (cashierList.length > 0) {
         const currentSelectedStillExists = cashierList.some(c => c.employeeId === selectedCashier?.employeeId);
         if (!selectedCashier || !currentSelectedStillExists) {
             setSelectedCashier(cashierList[0]);
         }
     } else {
-        setSelectedCashier(undefined);
+        setSelectedCashier(undefined); // No cashiers available
     }
   }, [cashierList, selectedCashier]);
 
@@ -218,7 +208,7 @@ export default function SalesPage() {
       name: item.name,
       quantity: item.quantity,
       price: item.price,
-      // category: item.category // Category is part of MenuItem, but not directly in SaleItem. Can be added if needed.
+      category: item.category 
     }));
 
     setCurrentOrderItems(prevOrderItems => [...prevOrderItems, ...newOrderItems]);
@@ -250,6 +240,7 @@ export default function SalesPage() {
       name: newMenuItem.name,
       quantity: 1, 
       price: newMenuItem.price,
+      category: newMenuItem.category,
     };
     setCurrentOrderItems(prevOrderItems => [...prevOrderItems, newItemForOrder]);
     
