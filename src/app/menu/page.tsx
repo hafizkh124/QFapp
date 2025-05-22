@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogC
 import { PlusCircle, Pencil, Trash2, ShieldAlert } from 'lucide-react';
 import type { MenuItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { useAuth } from '@/context/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const MENU_ITEMS_LOCAL_STORAGE_KEY = 'quoriam-menu-items';
@@ -30,19 +30,19 @@ const defaultMenuItems: MenuItem[] = [
   { id: 'default-3', name: 'Quoriam Single Choice', price: 320, category: 'Chicken Items' },
   { id: 'default-4', name: 'Quoriam Special', price: 450, category: 'Chicken Items' },
   { id: 'default-5', name: 'Quoriam Single Without Kabab', price: 270, category: 'Chicken Items' },
-  { id: 'default-6', name: 'Quoriam Shami Kabab', price: 40, category: 'Extras' },
+  { id: 'default-6', name: 'Quoriam Shami Kabab', price: 40, category: 'Extras' }, // Was 'Kabab'
   { id: 'default-7', name: 'Quoriam Chicken Piece', price: 90, category: 'Chicken Items' },
-  { id: 'default-8', name: 'Pulao Kabab without Chicken', price: 210, category: 'Beef Items' },
-  { id: 'default-9', name: 'Quoriam Beef Pulao - Single', price: 350, category: 'Beef Items' },
-  { id: 'default-10', name: 'Quoriam Beef Pulao - Half', price: 230, category: 'Beef Items' },
-  { id: 'default-11', name: 'Quoriam Beef Pulao - 1 KG Deal', price: 690, category: 'Beef Items' },
+  { id: 'default-8', name: 'Pulao Kabab without Chicken', price: 210, category: 'Beef Items' }, // Re-categorized, was 'Pulao'
+  { id: 'default-9', name: 'Quoriam Beef Pulao - Single', price: 350, category: 'Beef Items' }, // Re-categorized
+  { id: 'default-10', name: 'Quoriam Beef Pulao - Half', price: 230, category: 'Beef Items' }, // Re-categorized
+  { id: 'default-11', name: 'Quoriam Beef Pulao - 1 KG Deal', price: 690, category: 'Beef Items' }, // Re-categorized
   { id: 'default-12', name: 'Quoriam Raita', price: 30, category: 'Extras' },
   { id: 'default-13', name: 'Quoriam Salad', price: 30, category: 'Extras' },
   { id: 'default-14', name: 'Quoriam Qehwa', price: 50, category: 'Beverages' },
 ];
 
 export default function MenuPage() {
-  const { user } = useAuth(); // Get authenticated user
+  const { user } = useAuth();
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -64,7 +64,7 @@ export default function MenuPage() {
       try {
         const parsedCategories = JSON.parse(storedCategories);
         if (Array.isArray(parsedCategories)) {
-          setCategories(parsedCategories);
+          setCategories(parsedCategories.length > 0 ? parsedCategories : defaultInitialCategories);
         } else {
           setCategories(defaultInitialCategories);
         }
@@ -142,7 +142,7 @@ export default function MenuPage() {
       id: Date.now().toString(),
       name: newItemName,
       price: parseFloat(newItemPrice),
-      category: newItemCategory,
+      category: newItemCategory === NO_CATEGORY_VALUE ? undefined : newItemCategory,
     };
     setMenuItems(prevItems => [...prevItems, newItem]);
     setNewItemName('');
@@ -166,7 +166,7 @@ export default function MenuPage() {
     }
     setMenuItems(prevItems =>
       prevItems.map(item =>
-        item.id === editingItem.id ? { ...item, name: editItemName, price: parseFloat(editItemPrice), category: editItemCategory } : item
+        item.id === editingItem.id ? { ...item, name: editItemName, price: parseFloat(editItemPrice), category: editItemCategory === NO_CATEGORY_VALUE ? undefined : editItemCategory } : item
       )
     );
     setIsEditDialogOpen(false);
@@ -182,98 +182,105 @@ export default function MenuPage() {
     }
   };
   
-  if (user?.role !== 'admin') {
+  if (!user) { // Should be handled by ProtectedLayout
     return (
       <div className="flex items-center justify-center h-full">
         <Alert variant="destructive">
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>You do not have permission to manage the menu. Please contact an administrator.</AlertDescription>
+          <AlertDescription>You need to be logged in.</AlertDescription>
         </Alert>
       </div>
     );
   }
+
 
   return (
     <>
       <PageHeader title="Menu & Category Management" description="Manage your restaurant's menu items and their categories." />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Manage Categories</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex space-x-2">
-              <Input
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                placeholder="New category name"
-              />
-              <Button onClick={handleAddCategory} className="whitespace-nowrap">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add
-              </Button>
-            </div>
-            {categories.length > 0 ? (
-              <ul className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-2">
-                {categories.map(cat => (
-                  <li key={cat} className="flex justify-between items-center p-1 hover:bg-muted/50 rounded">
-                    <span>{cat}</span>
-                    <Button variant="ghost" size="icon" onClick={() => handleDeleteCategory(cat)} className="h-7 w-7">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-sm text-muted-foreground text-center py-2">No categories defined yet.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-1">
-          <CardHeader>
-            <CardTitle>Add New Menu Item</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleAddNewItem} className="space-y-4">
-              <div>
-                <Label htmlFor="newItemName">Item Name</Label>
-                <Input id="newItemName" value={newItemName} onChange={(e) => setNewItemName(e.target.value)} placeholder="e.g., Chicken Biryani" />
-              </div>
-              <div>
-                <Label htmlFor="newItemPrice">Price (PKR)</Label>
-                <Input id="newItemPrice" type="number" value={newItemPrice} onChange={(e) => setNewItemPrice(e.target.value)} placeholder="e.g., 250" min="0" step="0.01" />
-              </div>
-              <div>
-                <Label htmlFor="newItemCategory">Category</Label>
-                <Select
-                  value={newItemCategory === undefined ? NO_CATEGORY_VALUE : newItemCategory}
-                  onValueChange={(value) => setNewItemCategory(value === NO_CATEGORY_VALUE ? undefined : value)}
-                >
-                  <SelectTrigger id="newItemCategory">
-                    <SelectValue placeholder="Select category (optional)" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={NO_CATEGORY_VALUE}>Uncategorized</SelectItem>
+        {user.role === 'admin' && (
+          <>
+            <Card className="lg:col-span-1">
+              <CardHeader>
+                <CardTitle>Manage Categories</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex space-x-2">
+                  <Input
+                    value={newCategoryName}
+                    onChange={(e) => setNewCategoryName(e.target.value)}
+                    placeholder="New category name"
+                  />
+                  <Button onClick={handleAddCategory} className="whitespace-nowrap">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add
+                  </Button>
+                </div>
+                {categories.length > 0 ? (
+                  <ul className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-2">
                     {categories.map(cat => (
-                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                      <li key={cat} className="flex justify-between items-center p-1 hover:bg-muted/50 rounded">
+                        <span>{cat}</span>
+                        <Button variant="ghost" size="icon" onClick={() => handleDeleteCategory(cat)} className="h-7 w-7">
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </li>
                     ))}
-                    {categories.length === 0 && <p className="p-2 text-sm text-muted-foreground">No categories defined.</p>}
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Item
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-2">No categories defined yet.</p>
+                )}
+              </CardContent>
+            </Card>
 
-        <Card className="lg:col-span-1">
+            <Card className="lg:col-span-1">
+              <CardHeader>
+                <CardTitle>Add New Menu Item</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleAddNewItem} className="space-y-4">
+                  <div>
+                    <Label htmlFor="newItemName">Item Name</Label>
+                    <Input id="newItemName" value={newItemName} onChange={(e) => setNewItemName(e.target.value)} placeholder="e.g., Chicken Biryani" />
+                  </div>
+                  <div>
+                    <Label htmlFor="newItemPrice">Price (PKR)</Label>
+                    <Input id="newItemPrice" type="number" value={newItemPrice} onChange={(e) => setNewItemPrice(e.target.value)} placeholder="e.g., 250" min="0" step="0.01" />
+                  </div>
+                  <div>
+                    <Label htmlFor="newItemCategory">Category</Label>
+                    <Select
+                      value={newItemCategory === undefined ? NO_CATEGORY_VALUE : newItemCategory}
+                      onValueChange={(value) => setNewItemCategory(value)}
+                    >
+                      <SelectTrigger id="newItemCategory">
+                        <SelectValue placeholder="Select category (optional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={NO_CATEGORY_VALUE}>Uncategorized</SelectItem>
+                        {categories.map(cat => (
+                          <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                        ))}
+                        {categories.length === 0 && <p className="p-2 text-sm text-muted-foreground">No categories defined.</p>}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
+                    <PlusCircle className="mr-2 h-4 w-4" /> Add Item
+                  </Button>
+                </form>
+              </CardContent>
+            </Card>
+          </>
+        )}
+
+        <Card className={user.role === 'admin' ? "lg:col-span-1" : "lg:col-span-3"}>
           <CardHeader>
             <CardTitle>Current Menu Items</CardTitle>
-            <CardDescription>View and manage your existing menu items.</CardDescription>
+            <CardDescription>
+              {user.role === 'admin' ? "View and manage your existing menu items." : "Browse available menu items."}
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
@@ -282,13 +289,13 @@ export default function MenuPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Price (PKR)</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  {user.role === 'admin' && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {menuItems.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center text-muted-foreground">No menu items yet. Add some!</TableCell>
+                    <TableCell colSpan={user.role === 'admin' ? 4 : 3} className="text-center text-muted-foreground">No menu items yet. {user.role === 'admin' && 'Add some!'}</TableCell>
                   </TableRow>
                 )}
                 {menuItems.map((item) => (
@@ -296,16 +303,18 @@ export default function MenuPage() {
                     <TableCell>{item.name}</TableCell>
                     <TableCell>{item.category || 'Uncategorized'}</TableCell>
                     <TableCell>{item.price.toFixed(2)}</TableCell>
-                    <TableCell className="text-right space-x-1">
-                      <Button variant="outline" size="icon" onClick={() => handleOpenEditDialog(item)} className="h-8 w-8">
-                        <Pencil className="h-4 w-4" />
-                        <span className="sr-only">Edit</span>
-                      </Button>
-                      <Button variant="destructive" size="icon" onClick={() => handleDeleteItem(item.id)} className="h-8 w-8">
-                        <Trash2 className="h-4 w-4" />
-                        <span className="sr-only">Delete</span>
-                      </Button>
-                    </TableCell>
+                    {user.role === 'admin' && (
+                      <TableCell className="text-right space-x-1">
+                        <Button variant="outline" size="icon" onClick={() => handleOpenEditDialog(item)} className="h-8 w-8">
+                          <Pencil className="h-4 w-4" />
+                          <span className="sr-only">Edit</span>
+                        </Button>
+                        <Button variant="destructive" size="icon" onClick={() => handleDeleteItem(item.id)} className="h-8 w-8">
+                          <Trash2 className="h-4 w-4" />
+                          <span className="sr-only">Delete</span>
+                        </Button>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))}
               </TableBody>
@@ -314,7 +323,7 @@ export default function MenuPage() {
         </Card>
       </div>
 
-      {editingItem && (
+      {editingItem && user.role === 'admin' && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -333,7 +342,7 @@ export default function MenuPage() {
                 <Label htmlFor="editItemCategory">Category</Label>
                 <Select
                   value={editItemCategory === undefined ? NO_CATEGORY_VALUE : editItemCategory}
-                  onValueChange={(value) => setEditItemCategory(value === NO_CATEGORY_VALUE ? undefined : value)}
+                  onValueChange={(value) => setEditItemCategory(value)}
                 >
                   <SelectTrigger id="editItemCategory">
                     <SelectValue placeholder="Select category (optional)" />
@@ -360,3 +369,4 @@ export default function MenuPage() {
     </>
   );
 }
+

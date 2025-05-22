@@ -41,16 +41,27 @@ const allInitialStaffWithRoles: ManagedEmployee[] = [
 const initialMockPerformance: EmployeePerformance[] = allInitialStaffWithRoles.slice(0, 6).map((emp, index) => ({
   id: `P00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: format(new Date(Date.now() - (index * 86400000)), 'yyyy-MM-dd'), salesTarget: 5000 - (index * 500), salesAchieved: 4800 - (index * 500), tasksCompleted: 8 - index, tasksAssigned: 10 - index
 }));
+// Add more mock records to use a wider range of employees from allInitialStaffWithRoles
+initialMockPerformance.push(
+    { id: `P007`, employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee', date: format(new Date(Date.now() - (6 * 86400000)), 'yyyy-MM-dd'), salesTarget: 4000, salesAchieved: 3800, tasksCompleted: 7, tasksAssigned: 9 },
+    { id: `P008`, employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', date: format(new Date(Date.now() - (7 * 86400000)), 'yyyy-MM-dd'), salesTarget: 4200, salesAchieved: 4000, tasksCompleted: 8, tasksAssigned: 10 }
+);
+
 
 const initialMockAttendance: EmployeeAttendance[] = allInitialStaffWithRoles.slice(0, 7).map((emp, index) => ({
   id: `A00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: format(new Date(Date.now() - (index * 86400000)), 'yyyy-MM-dd'), inTime: `09:0${index} AM`, outTime: `05:0${index} PM`, status: 'Present'
 }));
 initialMockAttendance.push({ id: 'A00X', employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee', date: format(new Date(Date.now() - (8 * 86400000)), 'yyyy-MM-dd'), status: 'Leave' });
+initialMockAttendance.push({ id: 'A00Y', employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', date: format(new Date(Date.now() - (1 * 86400000)), 'yyyy-MM-dd'), inTime: '09:15 AM', outTime: '05:30 PM', status: 'Present' });
 
 
 const initialMockSalaries: EmployeeSalary[] = allInitialStaffWithRoles.slice(0, 5).map((emp, index) => ({
   id: `S00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, month: format(new Date(new Date().getFullYear(), new Date().getMonth() - index, 1), 'yyyy-MM'), basicSalary: emp.role === 'admin' ? 50000 : 30000 - (index * 1000), advances: emp.role === 'admin' ? 5000 : 2000, bonuses: emp.role === 'admin' ? 3000 : 1500, deductions: 500, netSalary: (emp.role === 'admin' ? 50000 : 30000 - (index * 1000)) + (emp.role === 'admin' ? 3000 : 1500) - (emp.role === 'admin' ? 5000 : 2000) - 500
 }));
+initialMockSalaries.push(
+    { id: 'S006', employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'employee', month: format(new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1), 'yyyy-MM'), basicSalary: 28000, advances: 1000, bonuses: 1000, deductions: 300, netSalary: 28000 + 1000 - 1000 - 300 },
+    { id: 'S007', employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee', month: format(new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1), 'yyyy-MM'), basicSalary: 27000, advances: 0, bonuses: 2000, deductions: 200, netSalary: 27000 + 2000 - 0 - 200 }
+);
 
 
 const deriveInitialManagedEmployees = (): ManagedEmployee[] => {
@@ -59,7 +70,7 @@ const deriveInitialManagedEmployees = (): ManagedEmployee[] => {
 
 const generateNewEmployeeId = (employees: ManagedEmployee[] | null): string => {
   const prefix = "QE";
-  let maxNum = 100;
+  let maxNum = 100; // Start numbering from 101
   (employees || []).forEach(emp => {
     if (emp && emp.employeeId && emp.employeeId.startsWith(prefix)) {
       const numPartString = emp.employeeId.substring(prefix.length);
@@ -128,19 +139,16 @@ export default function PerformancePage() {
   useEffect(() => {
     const loadData = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T[]>>, defaultValue: T[], keyNameForLog?: string): void => {
       let loadedFromStorage = false;
-      let finalData: T[] = defaultValue; // Ensure finalData is always an array
+      let finalData: T[] = defaultValue;
       try {
         const storedValue = localStorage.getItem(key);
         if (storedValue) {
           const parsedValue = JSON.parse(storedValue);
-          if (Array.isArray(parsedValue)) {
-            if (key === MANAGED_EMPLOYEES_KEY && parsedValue.length === 0) {
-              // For managed employees, if localStorage has an empty array, use defaults.
-              finalData = defaultValue;
-            } else {
-              finalData = parsedValue;
-              loadedFromStorage = true;
-            }
+          // For MANAGED_EMPLOYEES_KEY, if localStorage has an empty array, use defaults.
+          // For other keys, an empty array from localStorage is valid.
+          if (Array.isArray(parsedValue) && (key !== MANAGED_EMPLOYEES_KEY || parsedValue.length > 0)) {
+            finalData = parsedValue;
+            loadedFromStorage = true;
           }
         }
       } catch (error) {
@@ -182,16 +190,16 @@ export default function PerformancePage() {
       toast({ title: "Error", description: "Employee Name, Role, and Email are required.", variant: "destructive" });
       return;
     }
-    if (employeeFormMode === 'add' && !currentEditingEmployee.formPassword) {
+    if (employeeFormMode === 'add' && (!currentEditingEmployee.formPassword || currentEditingEmployee.formPassword.trim() === '')) {
         toast({ title: "Error", description: "Initial Password is required for new employees.", variant: "destructive" });
         return;
     }
 
-    if (employeeFormMode === 'add' && (managedEmployees || []).some(emp => emp.email.toLowerCase() === currentEditingEmployee.email?.toLowerCase())) {
+    if (employeeFormMode === 'add' && (managedEmployees || []).some(emp => emp.email.toLowerCase() === currentEditingEmployee.email!.toLowerCase())) {
         toast({ title: "Error", description: `Email "${currentEditingEmployee.email}" is already in use.`, variant: "destructive" });
         return;
     }
-    if (employeeFormMode === 'edit' && (managedEmployees || []).some(emp => emp.employeeId !== currentEditingEmployee.employeeId && emp.email.toLowerCase() === currentEditingEmployee.email?.toLowerCase())) {
+    if (employeeFormMode === 'edit' && (managedEmployees || []).some(emp => emp.employeeId !== currentEditingEmployee.employeeId && emp.email.toLowerCase() === currentEditingEmployee.email!.toLowerCase())) {
         toast({ title: "Error", description: `Email "${currentEditingEmployee.email}" is already in use by another employee.`, variant: "destructive" });
         return;
     }
@@ -201,7 +209,7 @@ export default function PerformancePage() {
         employeeName: currentEditingEmployee.employeeName!,
         role: currentEditingEmployee.role!,
         email: currentEditingEmployee.email!,
-        // Password handling depends on mode
+        password: currentEditingEmployee.password // Preserve existing if not changing
     };
 
     if (employeeFormMode === 'add') {
@@ -209,15 +217,15 @@ export default function PerformancePage() {
         toast({ title: "Error", description: `Employee ID ${employeeToSave.employeeId} conflict. This should not happen.`, variant: "destructive" });
         return;
       }
-      employeeToSave.password = currentEditingEmployee.formPassword;
+      employeeToSave.password = currentEditingEmployee.formPassword; // Set initial password
       setManagedEmployees(prev => [...(prev || []), employeeToSave].sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
       toast({ title: "Success", description: "New employee added." });
     } else { // 'edit' mode
       setManagedEmployees(prev => (prev || []).map(emp => {
         if (emp.employeeId === employeeToSave.employeeId) {
-          const updatedEmp = { ...emp, employeeName: employeeToSave.employeeName, role: employeeToSave.role, email: employeeToSave.email };
+          const updatedEmp: ManagedEmployee = { ...emp, employeeName: employeeToSave.employeeName, role: employeeToSave.role, email: employeeToSave.email };
           if (currentEditingEmployee.formPassword && currentEditingEmployee.formPassword.trim() !== '') {
-            updatedEmp.password = currentEditingEmployee.formPassword;
+            updatedEmp.password = currentEditingEmployee.formPassword; // Update password if new one is provided
           }
           return updatedEmp;
         }
@@ -301,7 +309,7 @@ export default function PerformancePage() {
     };
     setPerformanceRecords(prev => [newRecord, ...(prev || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setIsAddPerformanceDialogOpen(false);
-    setPerformanceFormData({ date: new Date() });
+    setPerformanceFormData({ date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : undefined });
     toast({ title: "Success", description: "Performance record added." });
   };
 
@@ -331,7 +339,7 @@ export default function PerformancePage() {
     };
     setAttendanceRecords(prev => [newRecord, ...(prev || [])].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setIsAddAttendanceDialogOpen(false);
-    setAttendanceFormData({ date: new Date() });
+    setAttendanceFormData({ date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : undefined });
     toast({ title: "Success", description: "Attendance record added." });
   };
 
@@ -369,7 +377,7 @@ export default function PerformancePage() {
     };
     setSalaryRecords(prev => [newRecord, ...(prev || [])].sort((a, b) => new Date(b.month + '-01').getTime() - new Date(a.month + '-01').getTime()));
     setIsAddSalaryDialogOpen(false);
-    setSalaryFormData({ month: format(new Date(), 'yyyy-MM') });
+    setSalaryFormData({ month: format(new Date(), 'yyyy-MM'), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : undefined });
     toast({ title: "Success", description: "Salary record added." });
   };
 
@@ -388,9 +396,9 @@ export default function PerformancePage() {
       dataToSet = { ...dataToSet, selectedEmployeeId: user.employeeId };
     }
 
-    if (!initialData.hasOwnProperty('date') && !initialData.hasOwnProperty('month')) {
-      dataToSet = { ...dataToSet, date: defaultDate };
-    } else if (initialData.hasOwnProperty('month') && !initialData.hasOwnProperty('date') && !initialData['month']) {
+    if (!initialData.hasOwnProperty('date') && !initialData.hasOwnProperty('month')) { // if neither date nor month is in initialData
+      dataToSet = { ...dataToSet, date: defaultDate }; // default to date
+    } else if (initialData.hasOwnProperty('month') && !initialData.hasOwnProperty('date') && !initialData['month']) { // if only month is in initialData and it's undefined/null
       dataToSet = { ...dataToSet, month: format(defaultDate, 'yyyy-MM') };
     }
     formSetter(dataToSet);
@@ -468,7 +476,7 @@ export default function PerformancePage() {
                 <CardDescription>Monitor sales targets and task completion.</CardDescription>
               </div>
               {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId)) && (
-                <Button size="sm" onClick={() => openRecordDialog(setIsAddPerformanceDialogOpen, setPerformanceFormData, { date: new Date() })}>
+                <Button size="sm" onClick={() => openRecordDialog(setIsAddPerformanceDialogOpen, setPerformanceFormData, { date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : undefined })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Add Record
                 </Button>
               )}
@@ -493,7 +501,7 @@ export default function PerformancePage() {
                       <TableCell>{record.employeeId}</TableCell>
                       <TableCell>{record.employeeName}</TableCell>
                       <TableCell>{record.role || 'N/A'}</TableCell>
-                      <TableCell>{record.date}</TableCell>
+                      <TableCell>{format(parseISO(record.date), "PPP")}</TableCell>
                       <TableCell>PKR {record.salesTarget?.toLocaleString() || 'N/A'}</TableCell>
                       <TableCell>PKR {record.salesAchieved?.toLocaleString() || 'N/A'}</TableCell>
                       <TableCell>{record.tasksCompleted}/{record.tasksAssigned}</TableCell>
@@ -525,7 +533,7 @@ export default function PerformancePage() {
                 <CardDescription>Track daily in-time and out-time.</CardDescription>
               </div>
               {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId)) && (
-                <Button size="sm" onClick={() => openRecordDialog(setIsAddAttendanceDialogOpen, setAttendanceFormData, { date: new Date() })}>
+                <Button size="sm" onClick={() => openRecordDialog(setIsAddAttendanceDialogOpen, setAttendanceFormData, { date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : undefined })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Mark Attendance
                 </Button>
               )}
@@ -550,7 +558,7 @@ export default function PerformancePage() {
                       <TableCell>{record.employeeId}</TableCell>
                       <TableCell>{record.employeeName}</TableCell>
                       <TableCell>{record.role || 'N/A'}</TableCell>
-                      <TableCell>{record.date}</TableCell>
+                      <TableCell>{format(parseISO(record.date), "PPP")}</TableCell>
                       <TableCell>{record.inTime || 'N/A'}</TableCell>
                       <TableCell>{record.outTime || 'N/A'}</TableCell>
                       <TableCell>{record.status}</TableCell>
@@ -581,7 +589,7 @@ export default function PerformancePage() {
                 <CardTitle>Salary Details</CardTitle>
                 <CardDescription>Manage monthly salaries, advances, bonuses, and deductions.</CardDescription>
               </div>
-              {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId)) && (
+              {user?.role === 'admin' && ( // Only admins can add salary entries
                 <Button size="sm" onClick={() => openRecordDialog(setIsAddSalaryDialogOpen, setSalaryFormData, { month: format(new Date(), 'yyyy-MM') })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Add Salary Entry
                 </Button>
@@ -600,7 +608,7 @@ export default function PerformancePage() {
                     <TableHead>Bonuses</TableHead>
                     <TableHead>Deductions</TableHead>
                     <TableHead>Net Salary</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    {user?.role === 'admin' && <TableHead className="text-right">Actions</TableHead> }
                   </TableRow>
                 </TableHeaderComponent>
                 <TableBody>
@@ -615,18 +623,18 @@ export default function PerformancePage() {
                       <TableCell>PKR {record.bonuses.toLocaleString()}</TableCell>
                       <TableCell>PKR {record.deductions.toLocaleString()}</TableCell>
                       <TableCell className="font-semibold">PKR {record.netSalary.toLocaleString()}</TableCell>
-                      <TableCell className="text-right">
-                        {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId === record.employeeId)) && (
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteSalaryRecord(record.id)} aria-label="Delete salary record">
-                            <Trash2 className="h-4 w-4 text-destructive" />
-                          </Button>
-                        )}
-                      </TableCell>
+                      {user?.role === 'admin' && (
+                        <TableCell className="text-right">
+                            <Button variant="ghost" size="icon" onClick={() => handleDeleteSalaryRecord(record.id)} aria-label="Delete salary record">
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                            </Button>
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                   {(userSalaryRecords || []).length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center text-muted-foreground py-4">No salary records yet.</TableCell>
+                      <TableCell colSpan={user?.role === 'admin' ? 10 : 9} className="text-center text-muted-foreground py-4">No salary records yet.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -719,7 +727,7 @@ export default function PerformancePage() {
                   value={currentEditingEmployee.formPassword || ''}
                   onChange={(e) => setCurrentEditingEmployee(prev => prev ? { ...prev, formPassword: e.target.value } : null)}
                   required={employeeFormMode === 'add'}
-                  placeholder={employeeFormMode === 'edit' ? 'Enter new password or leave blank' : ''}
+                  placeholder={employeeFormMode === 'edit' ? 'Enter new password or leave blank' : 'Required'}
                 />
               </div>
               <div>
@@ -747,7 +755,7 @@ export default function PerformancePage() {
       )}
 
       {/* Add Performance Record Dialog */}
-      <Dialog open={isAddPerformanceDialogOpen} onOpenChange={(isOpen) => { setIsAddPerformanceDialogOpen(isOpen); if (!isOpen) { setPerformanceFormData({ date: new Date() }); } }}>
+      <Dialog open={isAddPerformanceDialogOpen} onOpenChange={(isOpen) => { setIsAddPerformanceDialogOpen(isOpen); if (!isOpen) { setPerformanceFormData({ date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : undefined }); } }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add Performance Record</DialogTitle></DialogHeader>
           <form onSubmit={handleAddPerformanceRecord} className="space-y-4 py-4">
@@ -794,7 +802,7 @@ export default function PerformancePage() {
       </Dialog>
 
       {/* Add Attendance Record Dialog */}
-      <Dialog open={isAddAttendanceDialogOpen} onOpenChange={(isOpen) => { setIsAddAttendanceDialogOpen(isOpen); if (!isOpen) { setAttendanceFormData({ date: new Date() }); } }}>
+      <Dialog open={isAddAttendanceDialogOpen} onOpenChange={(isOpen) => { setIsAddAttendanceDialogOpen(isOpen); if (!isOpen) { setAttendanceFormData({ date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : undefined }); } }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Mark Attendance</DialogTitle></DialogHeader>
           <form onSubmit={handleAddAttendanceRecord} className="space-y-4 py-4">
@@ -849,41 +857,42 @@ export default function PerformancePage() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Salary Record Dialog */}
-      <Dialog open={isAddSalaryDialogOpen} onOpenChange={(isOpen) => { setIsAddSalaryDialogOpen(isOpen); if (!isOpen) { setSalaryFormData({ month: format(new Date(), 'yyyy-MM') }); } }}>
-        <DialogContent>
-          <DialogHeader><DialogTitle>Add Salary Entry</DialogTitle></DialogHeader>
-          <form onSubmit={handleAddSalaryRecord} className="space-y-4 py-4">
-            <div>
-              <Label htmlFor="salaryEmployeeId">Employee</Label>
-              <Select
-                name="selectedEmployeeId"
-                value={salaryFormData.selectedEmployeeId || ""}
-                onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'salary')}
-                disabled={user?.role === 'employee'}
-              >
-                <SelectTrigger id="salaryEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
-                <SelectContent>
-                  {(employeeDropdownList && employeeDropdownList.length > 0) ? (
-                    employeeDropdownList.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
-                  ) : (
-                    <SelectItem value="no-employees" disabled>No employees found. Please add via Manage Employees.</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div><Label htmlFor="month">Month (YYYY-MM)</Label><Input id="month" name="month" type="month" value={salaryFormData.month || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} /></div>
-            <div><Label htmlFor="basicSalary">Basic Salary (PKR)</Label><Input id="basicSalary" name="basicSalary" type="number" value={salaryFormData.basicSalary || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
-            <div><Label htmlFor="advances">Advances (PKR)</Label><Input id="advances" name="advances" type="number" value={salaryFormData.advances || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
-            <div><Label htmlFor="bonuses">Bonuses (PKR)</Label><Input id="bonuses" name="bonuses" type="number" value={salaryFormData.bonuses || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
-            <div><Label htmlFor="deductions">Deductions (PKR)</Label><Input id="deductions" name="deductions" type="number" value={salaryFormData.deductions || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
-            <DialogFooter>
-              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-              <Button type="submit">Add Entry</Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      {/* Add Salary Record Dialog - Only for Admins */}
+      {user?.role === 'admin' && isAddSalaryDialogOpen && (
+        <Dialog open={isAddSalaryDialogOpen} onOpenChange={(isOpen) => { setIsAddSalaryDialogOpen(isOpen); if (!isOpen) { setSalaryFormData({ month: format(new Date(), 'yyyy-MM')}); } }}>
+          <DialogContent>
+            <DialogHeader><DialogTitle>Add Salary Entry</DialogTitle></DialogHeader>
+            <form onSubmit={handleAddSalaryRecord} className="space-y-4 py-4">
+              <div>
+                <Label htmlFor="salaryEmployeeId">Employee</Label>
+                <Select
+                  name="selectedEmployeeId"
+                  value={salaryFormData.selectedEmployeeId || ""}
+                  onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'salary')}
+                >
+                  <SelectTrigger id="salaryEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
+                  <SelectContent>
+                    {(employeeDropdownList && employeeDropdownList.length > 0) ? (
+                      employeeDropdownList.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
+                    ) : (
+                      <SelectItem value="no-employees" disabled>No employees found. Please add via Manage Employees.</SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div><Label htmlFor="month">Month (YYYY-MM)</Label><Input id="month" name="month" type="month" value={salaryFormData.month || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} /></div>
+              <div><Label htmlFor="basicSalary">Basic Salary (PKR)</Label><Input id="basicSalary" name="basicSalary" type="number" value={salaryFormData.basicSalary || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
+              <div><Label htmlFor="advances">Advances (PKR)</Label><Input id="advances" name="advances" type="number" value={salaryFormData.advances || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
+              <div><Label htmlFor="bonuses">Bonuses (PKR)</Label><Input id="bonuses" name="bonuses" type="number" value={salaryFormData.bonuses || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
+              <div><Label htmlFor="deductions">Deductions (PKR)</Label><Input id="deductions" name="deductions" type="number" value={salaryFormData.deductions || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
+              <DialogFooter>
+                <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
+                <Button type="submit">Add Entry</Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   );
 }

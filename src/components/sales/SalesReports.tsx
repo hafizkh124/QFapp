@@ -27,19 +27,21 @@ import {
   setYear,
   setMonth
 } from 'date-fns';
+import { useAuth } from '@/context/AuthContext'; // Import useAuth
 
 interface SalesReportsProps {
-  allSalesData: SaleRecord[];
+  allSalesData: SaleRecord[]; // Renamed to reflect it can be pre-filtered for employees
   menuItems: MenuItem[];
   onViewReceipt: (saleId: string) => void;
   managedEmployeesList: ManagedEmployee[];
-  allCategories: string[]; // Added prop for all defined categories
+  allCategories: string[];
 }
 
 type ReportPeriodType = 'daily' | 'weekly' | 'monthly' | 'custom' | 'all';
 const paymentMethods: Array<SaleRecord['paymentMethod']> = ['cash', 'card', 'online', 'credit'];
 
 export default function SalesReports({ allSalesData, menuItems, onViewReceipt, managedEmployeesList, allCategories }: SalesReportsProps) {
+  const { user } = useAuth(); // Get user from AuthContext
   const [reportPeriodType, setReportPeriodType] = useState<ReportPeriodType>('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCustomStart, setSelectedCustomStart] = useState<Date | undefined>();
@@ -79,6 +81,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
 
     let filtered = salesDataWithParsedDates;
 
+    // Apply time-based filtering
     if (reportPeriodType === 'daily' && selectedDate) {
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isSameDay(sale.parsedDate, selectedDate));
     } else if (reportPeriodType === 'weekly' && selectedDate) {
@@ -94,10 +97,12 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: selectedCustomStart, end: selectedCustomEnd }));
     }
 
-    if (selectedCashierId) {
+    // Apply cashier filter (only if admin, employees see their own data from prop)
+    if (user?.role === 'admin' && selectedCashierId) {
       filtered = filtered.filter(sale => sale.employeeId === selectedCashierId);
     }
 
+    // Apply item/category filter
     if (selectedReportMenuItemId) {
       const selectedItem = menuItems.find(item => item.id === selectedReportMenuItemId);
       if (selectedItem) {
@@ -106,16 +111,13 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
     } else if (selectedReportCategory) {
       filtered = filtered.filter(sale => {
         return sale.items.some(saleItem => {
-          // We need to find the category of the saleItem.
-          // The saleItem itself might not have category if it was a custom item added before categories.
-          // Or if it's from the menu, its category might have changed.
-          // So, we look up the current category of the item from the menuItems prop.
-          const menuItemDetails = menuItems.find(mi => mi.name === saleItem.name); // Assuming name is unique for lookup
+          const menuItemDetails = menuItems.find(mi => mi.name === saleItem.name);
           return menuItemDetails?.category === selectedReportCategory;
         });
       });
     }
 
+    // Apply payment method filter
     if (selectedPaymentMethod) {
       filtered = filtered.filter(sale => sale.paymentMethod === selectedPaymentMethod);
     }
@@ -130,6 +132,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
     selectedMonth,
     selectedYear,
     selectedCashierId,
+    user?.role, // Add user role to dependency array for cashier filter
     selectedReportMenuItemId,
     selectedReportCategory,
     selectedPaymentMethod,
@@ -304,6 +307,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
 
   const getEmployeeNameById = (employeeId: string) => {
     const employee = managedEmployeesList.find(emp => emp.employeeId === employeeId);
+    // Fallback to employeeName stored in sale record if not found in current managed list
     return employee ? employee.employeeName : (allSalesData.find(s => s.employeeId === employeeId)?.employeeName || employeeId);
   };
 
@@ -348,23 +352,25 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
                 </SelectContent>
               </Select>
             </div>
-             <div>
-              <Label htmlFor="reportCashier">By Cashier</Label>
-              <Select value={selectedCashierId} onValueChange={(value) => setSelectedCashierId(value === 'all-cashiers' ? undefined : value)}>
-                <SelectTrigger id="reportCashier">
-                  <div className="flex items-center gap-2">
-                    <UserCircle className="h-4 w-4 text-muted-foreground" />
-                    <SelectValue placeholder="All Cashiers" />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all-cashiers">All Cashiers</SelectItem>
-                  {managedEmployeesList.map(cashier => (
-                    <SelectItem key={cashier.employeeId} value={cashier.employeeId}>{cashier.employeeName} (ID: {cashier.employeeId})</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {user?.role === 'admin' && ( // Only show Cashier filter for Admins
+              <div>
+                <Label htmlFor="reportCashier">By Cashier</Label>
+                <Select value={selectedCashierId} onValueChange={(value) => setSelectedCashierId(value === 'all-cashiers' ? undefined : value)}>
+                  <SelectTrigger id="reportCashier">
+                    <div className="flex items-center gap-2">
+                      <UserCircle className="h-4 w-4 text-muted-foreground" />
+                      <SelectValue placeholder="All Cashiers" />
+                    </div>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all-cashiers">All Cashiers</SelectItem>
+                    {managedEmployeesList.map(cashier => (
+                      <SelectItem key={cashier.employeeId} value={cashier.employeeId}>{cashier.employeeName} (ID: {cashier.employeeId})</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
             <div>
               <Label htmlFor="reportCategory">By Category</Label>
               <Select value={selectedReportCategory} onValueChange={(value) => setSelectedReportCategory(value === 'all-categories' ? undefined : value)}>

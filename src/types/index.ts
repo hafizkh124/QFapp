@@ -25,6 +25,8 @@ export interface ExpenseRecord {
   category: string;
   description: string;
   amount: number;
+  employeeId?: string; // Added
+  employeeName?: string; // Added
 }
 
 export interface ProfitEntry {
@@ -90,7 +92,8 @@ export interface MenuItem {
 export interface AuthUser {
   uid: string; // Can be same as employeeId for simplicity in mock
   email: string | null;
-  role: 'admin' | 'employee'; // Removed 'guest' as pages are protected
+  role: 'admin' | 'employee';
   employeeId?: string; // Link to ManagedEmployee ID
   employeeName?: string;
 }
+

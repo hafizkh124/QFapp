@@ -19,7 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SalesReports from '@/components/sales/SalesReports';
 import ReceiptModal from '@/components/sales/ReceiptModal';
 import { format } from 'date-fns';
-import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { useAuth } from '@/context/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface NewSaleItem extends Omit<SaleItem, 'id' | 'total'> {
@@ -40,19 +40,19 @@ const NO_CATEGORY_VALUE = "__no_category__";
 
 const defaultFallbackCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
 const defaultSalesCashiersFallback: ManagedEmployee[] = [
-    { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin' },
-    { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee' },
-    { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'employee' },
-    { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee' },
-    { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'employee' },
-    { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'employee' },
-    { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee' },
-    { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee' },
+    { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', email: 'hafizkh124@gmail.com', password: '1quoriam1' },
+    { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee', email: 'khubaib@quoriam.com', password: 'khubaib123' },
+    { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'employee', email: 'shoaib@quoriam.com', password: 'shoaib123' },
+    { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee', email: 'salman@quoriam.com', password: 'salman123' },
+    { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'employee', email: 'suraqa@quoriam.com', password: 'suraqa123' },
+    { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'employee', email: 'bilal@quoriam.com', password: 'bilal123' },
+    { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee', email: 'kaleem@quoriam.com', password: 'kaleem123' },
+    { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', email: 'arslan@quoriam.com', password: 'arslan123' },
 ];
 
 
 export default function SalesPage() {
-  const { user } = useAuth(); // Get authenticated user
+  const { user } = useAuth();
   const { toast } = useToast();
 
   const [salesRecords, setSalesRecords] = useState<SaleRecord[]>([]);
@@ -82,14 +82,14 @@ export default function SalesPage() {
         if (Array.isArray(parsedEmployees) && parsedEmployees.length > 0) {
           setCashierList(parsedEmployees);
         } else {
-          setCashierList(defaultSalesCashiersFallback);
+          setCashierList(defaultSalesCashiersFallback); // Use default if localStorage has empty array
         }
       } else {
-        setCashierList(defaultSalesCashiersFallback);
+        setCashierList(defaultSalesCashiersFallback); // Use default if key not in localStorage
       }
     } catch (error) {
       console.error("Error loading managed employees from localStorage:", error);
-      setCashierList(defaultSalesCashiersFallback);
+      setCashierList(defaultSalesCashiersFallback); // Fallback in case of parsing error
     }
 
     const storedCategories = localStorage.getItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY);
@@ -143,8 +143,9 @@ export default function SalesPage() {
     if (user?.role === 'employee' && user.employeeId) {
       setSelectedCashierId(user.employeeId);
     } else if (user?.role === 'admin' && cashierList.length > 0 && !selectedCashierId) {
-      const adminDefaultCashier = cashierList.find(c => c.employeeId === user.employeeId);
-      setSelectedCashierId(adminDefaultCashier ? adminDefaultCashier.employeeId : cashierList[0].employeeId);
+      // If admin and no cashier is selected yet, try to select their own ID if they are in the list, otherwise default to first.
+      const adminSelf = cashierList.find(c => c.employeeId === user.employeeId);
+      setSelectedCashierId(adminSelf ? adminSelf.employeeId : cashierList[0]?.employeeId);
     }
   }, [user, cashierList, selectedCashierId]);
 
@@ -264,7 +265,7 @@ export default function SalesPage() {
 
 
     if (!currentCashierInfo) {
-      toast({ title: "Error", description: "Cashier information is missing.", variant: "destructive"});
+      toast({ title: "Error", description: "Cashier information is missing. Please select a cashier.", variant: "destructive"});
       return;
     }
 
@@ -276,7 +277,7 @@ export default function SalesPage() {
       items: currentOrderItems.map(item => ({ ...item, id: `I${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2, 3)}`, total: item.quantity * item.price })),
       totalAmount: currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0),
       paymentMethod,
-      employeeName: currentCashierInfo.employeeName,
+      employeeName: currentCashierInfo.employeeName, // Store current name
       employeeId: currentCashierInfo.employeeId,
     };
     setSalesRecords(prevRecords => [newSale, ...prevRecords].sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()));
@@ -297,7 +298,15 @@ export default function SalesPage() {
 
   const currentOrderTotal = currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
 
-  if (!user) {
+  const salesDataForReport = useMemo(() => {
+    if (user?.role === 'employee') {
+      return salesRecords.filter(sale => sale.employeeId === user.employeeId);
+    }
+    return salesRecords;
+  }, [salesRecords, user]);
+
+
+  if (!user) { // Should be handled by ProtectedLayout, but good fallback
     return (
       <div className="flex items-center justify-center h-full">
         <Alert variant="destructive">
@@ -327,7 +336,7 @@ export default function SalesPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmitSale} className="space-y-4">
-                  {user?.role === 'admin' && (
+                  {user?.role === 'admin' ? (
                     <div>
                       <Label htmlFor="cashierSelect" className="mb-1 block">Select Cashier</Label>
                       <Select
@@ -349,13 +358,12 @@ export default function SalesPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                  )}
-                   {user?.role === 'employee' && user.employeeName && user.employeeId && (
+                   ) : user?.employeeName && user?.employeeId ? (
                      <div>
                         <Label className="mb-1 block">Cashier</Label>
                         <Input value={`${user.employeeName} (ID: ${user.employeeId})`} disabled className="bg-muted/50" />
                     </div>
-                   )}
+                   ) : null}
 
                   <div>
                     <Label className="mb-1 block">Select Menu Items</Label>
@@ -400,13 +408,13 @@ export default function SalesPage() {
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Selected Items to Order
                   </Button>
 
-                  {user?.role === 'admin' && !showCustomItemForm && (
+                  {!showCustomItemForm && ( // Custom item button visible to all roles
                     <Button type="button" variant="secondary" onClick={() => setShowCustomItemForm(true)} className="w-full">
                       <UtensilsCrossed className="mr-2 h-4 w-4" /> Add New Custom Item
                     </Button>
                   )}
 
-                  {user?.role === 'admin' && showCustomItemForm && (
+                  {showCustomItemForm && ( // Custom item form visible to all roles
                     <div className="space-y-3 border p-3 rounded-md bg-muted/50">
                       <h4 className="font-medium text-sm text-center">Add Custom Item</h4>
                       <div>
@@ -510,7 +518,7 @@ export default function SalesPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      salesRecords.slice(0, 10).map((sale) => (
+                      salesRecords.filter(sale => user?.role === 'admin' || sale.employeeId === user?.employeeId).slice(0, 10).map((sale) => (
                         <TableRow key={sale.id}>
                           <TableCell className="font-medium">{sale.id}</TableCell>
                           <TableCell>{sale.date}</TableCell>
@@ -524,6 +532,13 @@ export default function SalesPage() {
                         </TableRow>
                       ))
                     )}
+                     {salesRecords.filter(sale => user?.role === 'admin' || sale.employeeId === user?.employeeId).length === 0 && salesRecords.length > 0 && (
+                        <TableRow>
+                            <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
+                            No sales records found for you.
+                            </TableCell>
+                        </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
@@ -533,7 +548,7 @@ export default function SalesPage() {
 
         <TabsContent value="salesReports">
            <SalesReports
-             allSalesData={salesRecords}
+             allSalesData={salesDataForReport} // Pass filtered data for employees
              menuItems={menuItems}
              onViewReceipt={handleViewReceipt}
              managedEmployeesList={cashierList}
@@ -552,3 +567,4 @@ export default function SalesPage() {
     </>
   );
 }
+
