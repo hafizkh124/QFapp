@@ -6,24 +6,13 @@ import React, { createContext, useContext, useState, useEffect, type ReactNode }
 import { useToast } from "@/hooks/use-toast";
 import { useRouter, usePathname } from 'next/navigation';
 
-// Sample users for mock authentication
-// In a real app, this data (especially roles and employeeId) would come from Firestore/backend
-const MOCK_USERS: Record<string, { passwordSaltedHash?: string; passwordPlain: string; user: AuthUser, managedEmployeeDetails?: ManagedEmployee }> = {
-  'admin@quoriam.com': {
-    passwordPlain: 'admin123',
-    user: { uid: 'admin-uid', email: 'admin@quoriam.com', role: 'admin' },
-    managedEmployeeDetails: { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin'}
-  },
-  'employee@quoriam.com': {
-    passwordPlain: 'employee123',
-    user: { uid: 'employee-uid', email: 'employee@quoriam.com', role: 'employee', employeeId: 'QE104', employeeName: 'Salman Karamat'},
-    managedEmployeeDetails: { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee'}
-  },
-   'khubaib@quoriam.com': {
-    passwordPlain: 'khubaib123',
-    user: { uid: 'khubaib-uid', email: 'khubaib@quoriam.com', role: 'employee', employeeId: 'QE102', employeeName: 'Abdullah Khubaib'},
-    managedEmployeeDetails: { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee'}
-  }
+// Minimal hardcoded user for initial admin login IF localStorage is empty
+const FALLBACK_ADMIN_USER: ManagedEmployee = {
+  employeeId: 'QE000', // Special ID for fallback
+  employeeName: 'Fallback Admin',
+  role: 'admin',
+  email: 'admin@quoriam.com',
+  password: 'admin123' // This is still plain text, for mock only
 };
 
 interface AuthContextType {
@@ -32,34 +21,33 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, pass: string) => Promise<boolean>;
   logout: () => Promise<void>;
-  // In a real app, you'd have a method to fetch full user profile with employee details
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const MANAGED_EMPLOYEES_KEY_AUTH = 'quoriam-managed-employees-v2'; // Must match performance page key
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [isLoading, setIsLoading] = useState(true); // Start with loading true
+  const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
   const router = useRouter();
   const pathname = usePathname();
 
   useEffect(() => {
-    // Simulate checking auth state from localStorage or a cookie
     try {
       const storedUser = localStorage.getItem('quoriam-auth-user');
       if (storedUser) {
         const parsedUser: AuthUser = JSON.parse(storedUser);
-        // Basic validation of the stored user object
         if (parsedUser && parsedUser.uid && parsedUser.role) {
           setUser(parsedUser);
         } else {
-          localStorage.removeItem('quoriam-auth-user'); // Clear invalid stored user
+          localStorage.removeItem('quoriam-auth-user');
         }
       }
     } catch (error) {
-        console.error("Error reading auth user from localStorage:", error);
-        localStorage.removeItem('quoriam-auth-user');
+      console.error("Error reading auth user from localStorage:", error);
+      localStorage.removeItem('quoriam-auth-user');
     }
     setIsLoading(false);
   }, []);
@@ -68,17 +56,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!isLoading && !user && pathname !== '/login') {
       router.push('/login');
     } else if (!isLoading && user && pathname === '/login') {
-      router.push('/'); // Redirect logged-in users away from login page
+      router.push('/');
     }
   }, [user, isLoading, pathname, router]);
 
 
   const login = async (email: string, pass: string): Promise<boolean> => {
     setIsLoading(true);
-    const mockUserData = MOCK_USERS[email.toLowerCase()];
-    if (mockUserData && mockUserData.passwordPlain === pass) {
-      setUser(mockUserData.user);
-      localStorage.setItem('quoriam-auth-user', JSON.stringify(mockUserData.user));
+    let authenticatedEmployee: ManagedEmployee | null = null;
+    let foundInLocalStorage = false;
+
+    try {
+      const storedEmployeesString = localStorage.getItem(MANAGED_EMPLOYEES_KEY_AUTH);
+      if (storedEmployeesString) {
+        const storedEmployees: ManagedEmployee[] = JSON.parse(storedEmployeesString);
+        if (Array.isArray(storedEmployees)) {
+          const foundEmp = storedEmployees.find(emp => emp.email.toLowerCase() === email.toLowerCase() && emp.password === pass);
+          if (foundEmp) {
+            authenticatedEmployee = foundEmp;
+            foundInLocalStorage = true;
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error reading managed employees from localStorage during login:", error);
+      // Proceed to fallback check
+    }
+
+    // If not found in localStorage, check fallback admin
+    if (!authenticatedEmployee && FALLBACK_ADMIN_USER.email.toLowerCase() === email.toLowerCase() && FALLBACK_ADMIN_USER.password === pass) {
+        authenticatedEmployee = FALLBACK_ADMIN_USER;
+    }
+
+    if (authenticatedEmployee) {
+      const authUserPayload: AuthUser = {
+        uid: authenticatedEmployee.employeeId, // Use employeeId as uid for simplicity
+        email: authenticatedEmployee.email,
+        role: authenticatedEmployee.role,
+        employeeId: authenticatedEmployee.employeeId,
+        employeeName: authenticatedEmployee.employeeName,
+      };
+      setUser(authUserPayload);
+      localStorage.setItem('quoriam-auth-user', JSON.stringify(authUserPayload));
       setIsLoading(false);
       return true;
     } else {
@@ -92,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem('quoriam-auth-user');
     router.push('/login');
-    toast({ title: 'Logged Out', description: 'You have been successfully logged out.'});
+    toast({ title: 'Logged Out', description: 'You have been successfully logged out.' });
   };
 
   return (

@@ -38,7 +38,9 @@ export interface ProfitEntry {
 export interface ManagedEmployee {
   employeeId: string; // Unique Employee ID
   employeeName: string;
-  role: 'admin' | 'employee'; // Added role
+  role: 'admin' | 'employee';
+  email: string; // For login
+  password?: string; // For login (mocked, plain text for this simulation)
 }
 
 export interface EmployeePerformance {
@@ -86,9 +88,9 @@ export interface MenuItem {
 
 // User type for AuthContext
 export interface AuthUser {
-  uid: string;
+  uid: string; // Can be same as employeeId for simplicity in mock
   email: string | null;
-  role: 'admin' | 'employee' | 'guest'; // guest for unauthenticated
-  employeeId?: string; // Link to ManagedEmployee ID if role is 'employee'
+  role: 'admin' | 'employee'; // Removed 'guest' as pages are protected
+  employeeId?: string; // Link to ManagedEmployee ID
   employeeName?: string;
 }

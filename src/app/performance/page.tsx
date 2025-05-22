@@ -28,46 +28,43 @@ const ATTENDANCE_KEY = 'quoriam-attendanceRecords-v2';
 const SALARY_KEY = 'quoriam-salaryRecords-v2';
 
 const allInitialStaffWithRoles: ManagedEmployee[] = [
-  { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin' },
-  { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee' },
-  { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'employee' },
-  { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee' },
-  { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'employee' },
-  { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'employee' },
-  { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee' },
-  { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee' },
+  { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', email: 'admin@quoriam.com', password: 'admin123' },
+  { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee', email: 'khubaib@quoriam.com', password: 'khubaib123' },
+  { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'employee', email: 'shoaib@quoriam.com', password: 'shoaib123' },
+  { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee', email: 'salman@quoriam.com', password: 'salman123' },
+  { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'employee', email: 'suraqa@quoriam.com', password: 'suraqa123' },
+  { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'employee', email: 'bilal@quoriam.com', password: 'bilal123' },
+  { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee', email: 'kaleem@quoriam.com', password: 'kaleem123' },
+  { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', email: 'arslan@quoriam.com', password: 'arslan123' },
 ];
 
-const initialMockPerformance: EmployeePerformance[] = allInitialStaffWithRoles.filter(emp => emp.role === 'employee').slice(0,3).map((emp, index) => ({
-  id: `P00${index+1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: '2024-07-28', salesTarget: 500 - (index*50), salesAchieved: 480- (index*50), tasksCompleted: 8-index, tasksAssigned: 10-index
+// Expanded mock data to include more employees by default
+const initialMockPerformance: EmployeePerformance[] = allInitialStaffWithRoles.slice(0, 5).map((emp, index) => ({
+  id: `P00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: format(new Date(Date.now() - (index * 86400000)), 'yyyy-MM-dd'), salesTarget: 500 - (index * 50), salesAchieved: 480 - (index * 50), tasksCompleted: 8 - index, tasksAssigned: 10 - index
 }));
-initialMockPerformance.push({id: 'P00A', employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', date: '2024-07-28', salesTarget: 1000, salesAchieved: 950, tasksCompleted: 15, tasksAssigned: 15 });
 
-
-const initialMockAttendance: EmployeeAttendance[] = allInitialStaffWithRoles.filter(emp => emp.role === 'employee').slice(0,3).map((emp, index) => ({
-  id: `A00${index+1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: '2024-07-28', inTime: `09:0${index} AM`, outTime: `05:0${index} PM`, status: 'Present'
+const initialMockAttendance: EmployeeAttendance[] = allInitialStaffWithRoles.slice(0, 5).map((emp, index) => ({
+  id: `A00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: format(new Date(Date.now() - (index * 86400000)), 'yyyy-MM-dd'), inTime: `09:0${index} AM`, outTime: `05:0${index} PM`, status: 'Present'
 }));
-initialMockAttendance.push({id: 'A00A', employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', date: '2024-07-28', inTime: '08:45 AM', outTime: '06:00 PM', status: 'Present' });
-initialMockAttendance.push({id: 'A00X', employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee', date: '2024-07-27', status: 'Leave'});
+initialMockAttendance.push({ id: 'A00X', employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee', date: format(new Date(Date.now() - (6 * 86400000)), 'yyyy-MM-dd'), status: 'Leave' });
 
 
-const initialMockSalaries: EmployeeSalary[] = allInitialStaffWithRoles.filter(emp => emp.role === 'employee').slice(0,2).map((emp, index) => ({
- id: `S00${index+1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, month: '2024-07', basicSalary: 30000 - (index*2000), advances: 2000, bonuses: 1500, deductions: 500, netSalary: 29000 - (index*2000)
+const initialMockSalaries: EmployeeSalary[] = allInitialStaffWithRoles.slice(0, 4).map((emp, index) => ({
+  id: `S00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, month: format(new Date(new Date().getFullYear(), new Date().getMonth() - index, 1), 'yyyy-MM'), basicSalary: emp.role === 'admin' ? 50000 : 30000 - (index * 1000), advances: emp.role === 'admin' ? 5000 : 2000, bonuses: emp.role === 'admin' ? 3000 : 1500, deductions: 500, netSalary: (emp.role === 'admin' ? 50000 : 30000 - (index * 1000)) + (emp.role === 'admin' ? 3000 : 1500) - (emp.role === 'admin' ? 5000 : 2000) - 500
 }));
-initialMockSalaries.push({id: 'S00A', employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', month: '2024-07', basicSalary: 50000, advances: 5000, bonuses: 3000, deductions: 1000, netSalary: 47000 });
 
 
 const deriveInitialManagedEmployees = (): ManagedEmployee[] => {
-  return [...allInitialStaffWithRoles].sort((a,b) => a.employeeName.localeCompare(b.employeeName));
+  return [...allInitialStaffWithRoles].sort((a, b) => a.employeeName.localeCompare(b.employeeName));
 };
 
 const generateNewEmployeeId = (employees: ManagedEmployee[] | null): string => {
   const prefix = "QE";
-  let maxNum = 100;
+  let maxNum = 100; // Start checking from QE100
   (employees || []).forEach(emp => {
     if (emp && emp.employeeId && emp.employeeId.startsWith(prefix)) {
       const numPartString = emp.employeeId.substring(prefix.length);
-      if (numPartString.length > 0) {
+      if (numPartString.length > 0) { // Ensure there's a numeric part
         const numPart = parseInt(numPartString, 10);
         if (!isNaN(numPart) && numPart > maxNum) {
           maxNum = numPart;
@@ -105,7 +102,7 @@ interface SalaryFormData extends Omit<RecordFormDataBase, 'date'> {
 
 export default function PerformancePage() {
   const { toast } = useToast();
-  const { user } = useAuth(); // Get authenticated user
+  const { user } = useAuth();
 
   const [managedEmployees, setManagedEmployees] = useState<ManagedEmployee[]>([]);
   const [performanceRecords, setPerformanceRecords] = useState<EmployeePerformance[]>([]);
@@ -114,7 +111,7 @@ export default function PerformancePage() {
 
   const [isManageEmployeesDialogOpen, setIsManageEmployeesDialogOpen] = useState(false);
   const [isEmployeeFormDialogOpen, setIsEmployeeFormDialogOpen] = useState(false);
-  const [currentEditingEmployee, setCurrentEditingEmployee] = useState<ManagedEmployee | null>(null);
+  const [currentEditingEmployee, setCurrentEditingEmployee] = useState<Partial<ManagedEmployee> | null>(null); // Partial for new employee
   const [employeeFormMode, setEmployeeFormMode] = useState<'add' | 'edit'>('add');
 
   const [isAddPerformanceDialogOpen, setIsAddPerformanceDialogOpen] = useState(false);
@@ -133,16 +130,13 @@ export default function PerformancePage() {
         const storedValue = localStorage.getItem(key);
         if (storedValue) {
           const parsedValue = JSON.parse(storedValue);
-          if (Array.isArray(parsedValue)) {
-            if (key === MANAGED_EMPLOYEES_KEY && parsedValue.length === 0 && defaultValue.length > 0) {
-              finalData = defaultValue; // Prioritize default if stored is empty for managed employees
-            } else if (parsedValue.length > 0) {
-              finalData = parsedValue;
-              loadedFromStorage = true;
-            } else { // Stored value is '[]' and it's not for managed employees or default is also empty
-              finalData = [];
-              loadedFromStorage = true;
-            }
+          // For managed employees, if localStorage has an empty array, still use defaults to ensure dropdowns are populated.
+          if (key === MANAGED_EMPLOYEES_KEY && Array.isArray(parsedValue) && parsedValue.length === 0) {
+            finalData = defaultValue; // Keep default if stored is empty for managed employees
+            loadedFromStorage = false; // Treat as loaded from defaults
+          } else if (Array.isArray(parsedValue)) {
+            finalData = parsedValue;
+            loadedFromStorage = true;
           }
         }
       } catch (error) {
@@ -150,7 +144,7 @@ export default function PerformancePage() {
       }
       setter(finalData);
       if (keyNameForLog) {
-         console.log(`${keyNameForLog} loaded from ${loadedFromStorage ? 'localStorage' : 'defaults'}. Count: ${finalData.length}`);
+        console.log(`${keyNameForLog} loaded from ${loadedFromStorage ? 'localStorage' : 'defaults'}. Count: ${finalData.length}`);
       }
     };
     loadData<ManagedEmployee>(MANAGED_EMPLOYEES_KEY, setManagedEmployees, deriveInitialManagedEmployees(), 'Managed Employees');
@@ -159,48 +153,77 @@ export default function PerformancePage() {
     loadData<EmployeeSalary>(SALARY_KEY, setSalaryRecords, initialMockSalaries, 'Salary Records');
   }, []);
 
-  useEffect(() => { if (managedEmployees.length > 0 || localStorage.getItem(MANAGED_EMPLOYEES_KEY)) localStorage.setItem(MANAGED_EMPLOYEES_KEY, JSON.stringify(managedEmployees)); }, [managedEmployees]);
-  useEffect(() => { if (performanceRecords.length > 0 || localStorage.getItem(PERFORMANCE_KEY)) localStorage.setItem(PERFORMANCE_KEY, JSON.stringify(performanceRecords)); }, [performanceRecords]);
-  useEffect(() => { if (attendanceRecords.length > 0 || localStorage.getItem(ATTENDANCE_KEY)) localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(attendanceRecords)); }, [attendanceRecords]);
-  useEffect(() => { if (salaryRecords.length > 0 || localStorage.getItem(SALARY_KEY)) localStorage.setItem(SALARY_KEY, JSON.stringify(salaryRecords)); }, [salaryRecords]);
+  useEffect(() => { if ((managedEmployees || []).length > 0 || localStorage.getItem(MANAGED_EMPLOYEES_KEY)) localStorage.setItem(MANAGED_EMPLOYEES_KEY, JSON.stringify(managedEmployees)); }, [managedEmployees]);
+  useEffect(() => { if ((performanceRecords || []).length > 0 || localStorage.getItem(PERFORMANCE_KEY)) localStorage.setItem(PERFORMANCE_KEY, JSON.stringify(performanceRecords)); }, [performanceRecords]);
+  useEffect(() => { if ((attendanceRecords || []).length > 0 || localStorage.getItem(ATTENDANCE_KEY)) localStorage.setItem(ATTENDANCE_KEY, JSON.stringify(attendanceRecords)); }, [attendanceRecords]);
+  useEffect(() => { if ((salaryRecords || []).length > 0 || localStorage.getItem(SALARY_KEY)) localStorage.setItem(SALARY_KEY, JSON.stringify(salaryRecords)); }, [salaryRecords]);
 
 
   const handleOpenAddEmployeeDialog = () => {
     setEmployeeFormMode('add');
     const newId = generateNewEmployeeId(managedEmployees);
-    setCurrentEditingEmployee({ employeeId: newId, employeeName: '', role: 'employee' }); // Default role to employee
+    setCurrentEditingEmployee({ employeeId: newId, employeeName: '', role: 'employee', email: '', password: '' });
     setIsEmployeeFormDialogOpen(true);
   };
 
   const handleOpenEditEmployeeDialog = (employee: ManagedEmployee) => {
     setEmployeeFormMode('edit');
-    setCurrentEditingEmployee({...employee});
+    setCurrentEditingEmployee({ ...employee }); // Don't include password for editing form display
     setIsEmployeeFormDialogOpen(true);
   };
 
   const handleSaveEmployee = (e: FormEvent) => {
     e.preventDefault();
-    if (!currentEditingEmployee || !currentEditingEmployee.employeeId || !currentEditingEmployee.employeeName || !currentEditingEmployee.role) {
-      toast({ title: "Error", description: "Employee Name, and Role are required.", variant: "destructive" });
+    if (!currentEditingEmployee || !currentEditingEmployee.employeeId || !currentEditingEmployee.employeeName || !currentEditingEmployee.role || !currentEditingEmployee.email) {
+      toast({ title: "Error", description: "Employee Name, Role, and Email are required.", variant: "destructive" });
       return;
     }
+    if (employeeFormMode === 'add' && !currentEditingEmployee.password) {
+        toast({ title: "Error", description: "Initial Password is required for new employees.", variant: "destructive" });
+        return;
+    }
+    // Ensure email uniqueness for new employees
+    if (employeeFormMode === 'add' && managedEmployees.some(emp => emp.email.toLowerCase() === currentEditingEmployee.email?.toLowerCase())) {
+        toast({ title: "Error", description: `Email "${currentEditingEmployee.email}" is already in use.`, variant: "destructive" });
+        return;
+    }
+    // Ensure email uniqueness when editing (if email was changed)
+    if (employeeFormMode === 'edit' && managedEmployees.some(emp => emp.employeeId !== currentEditingEmployee.employeeId && emp.email.toLowerCase() === currentEditingEmployee.email?.toLowerCase())) {
+        toast({ title: "Error", description: `Email "${currentEditingEmployee.email}" is already in use by another employee.`, variant: "destructive" });
+        return;
+    }
+
+
+    const employeeToSave: ManagedEmployee = {
+        employeeId: currentEditingEmployee.employeeId!,
+        employeeName: currentEditingEmployee.employeeName!,
+        role: currentEditingEmployee.role!,
+        email: currentEditingEmployee.email!,
+        // Only include password if it's being set for a new user or explicitly changed
+        // For this iteration, password is only set on creation
+        password: employeeFormMode === 'add' ? currentEditingEmployee.password : undefined,
+    };
+
 
     if (employeeFormMode === 'add') {
-      if (managedEmployees.some(emp => emp.employeeId === currentEditingEmployee.employeeId)) {
-        toast({ title: "Error", description: `Employee ID ${currentEditingEmployee.employeeId} already exists. A new ID will be generated.`, variant: "destructive" });
-        const newId = generateNewEmployeeId(managedEmployees);
-        setCurrentEditingEmployee(prev => prev ? {...prev, employeeId: newId} : null);
-        return;
+      // ID uniqueness should be guaranteed by generateNewEmployeeId, but a check doesn't hurt
+      if (managedEmployees.some(emp => emp.employeeId === employeeToSave.employeeId)) {
+        toast({ title: "Error", description: `Employee ID ${employeeToSave.employeeId} conflict. This should not happen.`, variant: "destructive" });
+        return; // Or regenerate ID
       }
-      setManagedEmployees(prev => [...prev, { ...currentEditingEmployee }].sort((a,b) => a.employeeName.localeCompare(b.employeeName)));
+      setManagedEmployees(prev => [...prev, { ...employeeToSave }].sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
       toast({ title: "Success", description: "New employee added." });
-    } else {
-      setManagedEmployees(prev => prev.map(emp => emp.employeeId === currentEditingEmployee.employeeId ? { ...currentEditingEmployee } : emp).sort((a,b) => a.employeeName.localeCompare(b.employeeName)));
-      
-      const updateRecordEmployeeDetails = <T extends {employeeId: string; employeeName: string; role: string}>(records: T[]): T[] => {
+    } else { // 'edit' mode
+      setManagedEmployees(prev => prev.map(emp =>
+        emp.employeeId === employeeToSave.employeeId
+          ? { ...emp, employeeName: employeeToSave.employeeName, role: employeeToSave.role, email: employeeToSave.email } // Keep existing password if not changed
+          : emp
+      ).sort((a, b) => a.employeeName.localeCompare(b.employeeName)));
+
+      const updateRecordEmployeeDetails = <T extends { employeeId: string; employeeName: string; role: string }>(records: T[]): T[] => {
         return records.map(rec =>
-          rec.employeeId === currentEditingEmployee.employeeId
-            ? { ...rec, employeeName: currentEditingEmployee.employeeName, role: currentEditingEmployee.role }
+          rec.employeeId === employeeToSave.employeeId
+            ? { ...rec, employeeName: employeeToSave.employeeName, role: employeeToSave.role }
             : rec
         );
       };
@@ -214,9 +237,15 @@ export default function PerformancePage() {
   };
 
   const handleDeleteEmployee = (employeeId: string) => {
+    // Prevent deleting the currently logged-in admin (e.g., the primary admin)
+    if (user?.employeeId === employeeId && user.role === 'admin') {
+      toast({ title: "Cannot Delete", description: "You cannot delete your own admin account.", variant: "destructive"});
+      return;
+    }
+
     const hasRecords = (performanceRecords || []).some(r => r.employeeId === employeeId) ||
-                       (attendanceRecords || []).some(r => r.employeeId === employeeId) ||
-                       (salaryRecords || []).some(r => r.employeeId === employeeId);
+      (attendanceRecords || []).some(r => r.employeeId === employeeId) ||
+      (salaryRecords || []).some(r => r.employeeId === employeeId);
     if (hasRecords) {
       toast({ title: "Cannot Delete", description: "Employee has existing records. Please delete their records first or reassign them.", variant: "destructive" });
       return;
@@ -240,8 +269,8 @@ export default function PerformancePage() {
     value: string, name: string,
     formType: 'performance' | 'attendance' | 'salary'
   ) => {
-     const setter = formType === 'performance' ? setPerformanceFormData : formType === 'attendance' ? setAttendanceFormData : setSalaryFormData;
-     setter(prev => ({ ...prev, [name]: value }));
+    const setter = formType === 'performance' ? setPerformanceFormData : formType === 'attendance' ? setAttendanceFormData : setSalaryFormData;
+    setter(prev => ({ ...prev, [name]: value }));
   };
 
   const handleRecordDateChange = (date: Date | undefined, name: string, formType: 'performance' | 'attendance') => {
@@ -267,9 +296,9 @@ export default function PerformancePage() {
       tasksCompleted: performanceFormData.tasksCompleted || 0,
       tasksAssigned: performanceFormData.tasksAssigned || 0,
     };
-    setPerformanceRecords(prev => [newRecord, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setPerformanceRecords(prev => [newRecord, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setIsAddPerformanceDialogOpen(false);
-    setPerformanceFormData({date: new Date()});
+    setPerformanceFormData({ date: new Date() });
     toast({ title: "Success", description: "Performance record added." });
   };
 
@@ -297,14 +326,14 @@ export default function PerformancePage() {
       outTime: attendanceFormData.outTime,
       status: attendanceFormData.status,
     };
-    setAttendanceRecords(prev => [newRecord, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+    setAttendanceRecords(prev => [newRecord, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
     setIsAddAttendanceDialogOpen(false);
-    setAttendanceFormData({date: new Date()});
+    setAttendanceFormData({ date: new Date() });
     toast({ title: "Success", description: "Attendance record added." });
   };
 
   const handleDeleteAttendanceRecord = (id: string) => {
-     if (window.confirm("Are you sure you want to delete this attendance record?")) {
+    if (window.confirm("Are you sure you want to delete this attendance record?")) {
       setAttendanceRecords(prev => prev.filter(record => record.id !== id));
       toast({ title: "Success", description: "Attendance record deleted." });
     }
@@ -335,9 +364,9 @@ export default function PerformancePage() {
       deductions,
       netSalary,
     };
-    setSalaryRecords(prev => [newRecord, ...prev].sort((a,b) => new Date(b.month + '-01').getTime() - new Date(a.month + '-01').getTime()));
+    setSalaryRecords(prev => [newRecord, ...prev].sort((a, b) => new Date(b.month + '-01').getTime() - new Date(a.month + '-01').getTime()));
     setIsAddSalaryDialogOpen(false);
-    setSalaryFormData({month: format(new Date(), 'yyyy-MM')});
+    setSalaryFormData({ month: format(new Date(), 'yyyy-MM') });
     toast({ title: "Success", description: "Salary record added." });
   };
 
@@ -350,44 +379,47 @@ export default function PerformancePage() {
 
   const openRecordDialog = (setter: React.Dispatch<React.SetStateAction<boolean>>, formSetter: any, initialData: Partial<PerformanceFormData | AttendanceFormData | SalaryFormData> = {}) => {
     const defaultDate = new Date();
-    let dataToSet: Partial<PerformanceFormData | AttendanceFormData | SalaryFormData> = {...initialData};
+    let dataToSet: Partial<PerformanceFormData | AttendanceFormData | SalaryFormData> = { ...initialData };
 
     if (user?.role === 'employee' && user.employeeId) {
       dataToSet = { ...dataToSet, selectedEmployeeId: user.employeeId };
     }
 
     if (!initialData.hasOwnProperty('date') && !initialData.hasOwnProperty('month')) {
-        dataToSet = {...dataToSet, date: defaultDate};
+      dataToSet = { ...dataToSet, date: defaultDate };
     } else if (initialData.hasOwnProperty('month') && !initialData.hasOwnProperty('date') && !initialData['month']) {
-        dataToSet = {...dataToSet, month: format(defaultDate, 'yyyy-MM')};
+      dataToSet = { ...dataToSet, month: format(defaultDate, 'yyyy-MM') };
     }
     formSetter(dataToSet);
     setter(true);
   };
 
-  // Filter records based on user role
   const userPerformanceRecords = useMemo(() => {
-    if (user?.role === 'employee') {
+    if (!user) return [];
+    if (user.role === 'employee') {
       return (performanceRecords || []).filter(r => r.employeeId === user.employeeId);
     }
     return performanceRecords || [];
   }, [performanceRecords, user]);
 
   const userAttendanceRecords = useMemo(() => {
-    if (user?.role === 'employee') {
+    if (!user) return [];
+    if (user.role === 'employee') {
       return (attendanceRecords || []).filter(r => r.employeeId === user.employeeId);
     }
     return attendanceRecords || [];
   }, [attendanceRecords, user]);
 
   const userSalaryRecords = useMemo(() => {
-    if (user?.role === 'employee') {
+    if (!user) return [];
+    if (user.role === 'employee') {
       return (salaryRecords || []).filter(r => r.employeeId === user.employeeId);
     }
     return salaryRecords || [];
   }, [salaryRecords, user]);
 
   const employeeDropdownList = useMemo(() => {
+    if (!managedEmployees) return [];
     if (user?.role === 'employee' && user.employeeId) {
       return managedEmployees.filter(emp => emp.employeeId === user.employeeId);
     }
@@ -432,8 +464,8 @@ export default function PerformancePage() {
                 <CardDescription>Monitor sales targets and task completion.</CardDescription>
               </div>
               {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId)) && (
-                 <Button size="sm" onClick={() => openRecordDialog(setIsAddPerformanceDialogOpen, setPerformanceFormData, { date: new Date() })}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Record
+                <Button size="sm" onClick={() => openRecordDialog(setIsAddPerformanceDialogOpen, setPerformanceFormData, { date: new Date() })}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Add Record
                 </Button>
               )}
             </CardHeader>
@@ -463,16 +495,16 @@ export default function PerformancePage() {
                       <TableCell>{record.tasksCompleted}/{record.tasksAssigned}</TableCell>
                       <TableCell className="text-right">
                         {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId === record.employeeId)) && (
-                            <Button variant="ghost" size="icon" onClick={() => handleDeletePerformanceRecord(record.id)} aria-label="Delete performance record">
+                          <Button variant="ghost" size="icon" onClick={() => handleDeletePerformanceRecord(record.id)} aria-label="Delete performance record">
                             <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
                   ))}
                   {(userPerformanceRecords).length === 0 && (
-                     <TableRow>
-                        <TableCell colSpan={8} className="text-center text-muted-foreground py-4">No performance records yet.</TableCell>
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-4">No performance records yet.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -490,7 +522,7 @@ export default function PerformancePage() {
               </div>
               {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId)) && (
                 <Button size="sm" onClick={() => openRecordDialog(setIsAddAttendanceDialogOpen, setAttendanceFormData, { date: new Date() })}>
-                    <PlusCircle className="mr-2 h-4 w-4" /> Mark Attendance
+                  <PlusCircle className="mr-2 h-4 w-4" /> Mark Attendance
                 </Button>
               )}
             </CardHeader>
@@ -519,17 +551,17 @@ export default function PerformancePage() {
                       <TableCell>{record.outTime || 'N/A'}</TableCell>
                       <TableCell>{record.status}</TableCell>
                       <TableCell className="text-right">
-                         {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId === record.employeeId)) && (
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteAttendanceRecord(record.id)} aria-label="Delete attendance record">
+                        {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId === record.employeeId)) && (
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteAttendanceRecord(record.id)} aria-label="Delete attendance record">
                             <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
-                         )}
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
                   {(userAttendanceRecords).length === 0 && (
                     <TableRow>
-                        <TableCell colSpan={8} className="text-center text-muted-foreground py-4">No attendance records yet.</TableCell>
+                      <TableCell colSpan={8} className="text-center text-muted-foreground py-4">No attendance records yet.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -546,9 +578,9 @@ export default function PerformancePage() {
                 <CardDescription>Manage monthly salaries, advances, bonuses, and deductions.</CardDescription>
               </div>
               {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId)) && (
-               <Button size="sm" onClick={() => openRecordDialog(setIsAddSalaryDialogOpen, setSalaryFormData, { month: format(new Date(), 'yyyy-MM') })}>
-                <PlusCircle className="mr-2 h-4 w-4" /> Add Salary Entry
-              </Button>
+                <Button size="sm" onClick={() => openRecordDialog(setIsAddSalaryDialogOpen, setSalaryFormData, { month: format(new Date(), 'yyyy-MM') })}>
+                  <PlusCircle className="mr-2 h-4 w-4" /> Add Salary Entry
+                </Button>
               )}
             </CardHeader>
             <CardContent>
@@ -581,16 +613,16 @@ export default function PerformancePage() {
                       <TableCell className="font-semibold">PKR {record.netSalary.toLocaleString()}</TableCell>
                       <TableCell className="text-right">
                         {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId === record.employeeId)) && (
-                            <Button variant="ghost" size="icon" onClick={() => handleDeleteSalaryRecord(record.id)} aria-label="Delete salary record">
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteSalaryRecord(record.id)} aria-label="Delete salary record">
                             <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                          </Button>
                         )}
                       </TableCell>
                     </TableRow>
                   ))}
                   {(userSalaryRecords).length === 0 && (
-                     <TableRow>
-                        <TableCell colSpan={10} className="text-center text-muted-foreground py-4">No salary records yet.</TableCell>
+                    <TableRow>
+                      <TableCell colSpan={10} className="text-center text-muted-foreground py-4">No salary records yet.</TableCell>
                     </TableRow>
                   )}
                 </TableBody>
@@ -603,43 +635,45 @@ export default function PerformancePage() {
       {user?.role === 'admin' && isManageEmployeesDialogOpen && (
         <Dialog open={isManageEmployeesDialogOpen} onOpenChange={setIsManageEmployeesDialogOpen}>
           <DialogContent className="sm:max-w-2xl">
-              <DialogHeader><DialogTitle>Manage Employees</DialogTitle></DialogHeader>
-              <div className="my-4">
-                <Button onClick={handleOpenAddEmployeeDialog}><PlusCircle className="mr-2 h-4 w-4" /> Add New Employee</Button>
-              </div>
-              <Table>
-                <TableHeaderComponent>
-                  <TableRow>
-                    <TableHead>Employee ID</TableHead>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+            <DialogHeader><DialogTitle>Manage Employees</DialogTitle></DialogHeader>
+            <div className="my-4">
+              <Button onClick={handleOpenAddEmployeeDialog}><PlusCircle className="mr-2 h-4 w-4" /> Add New Employee</Button>
+            </div>
+            <Table>
+              <TableHeaderComponent>
+                <TableRow>
+                  <TableHead>Employee ID</TableHead>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeaderComponent>
+              <TableBody>
+                {(managedEmployees || []).map(emp => (
+                  <TableRow key={emp.employeeId}>
+                    <TableCell>{emp.employeeId}</TableCell>
+                    <TableCell>{emp.employeeName}</TableCell>
+                    <TableCell>{emp.email}</TableCell>
+                    <TableCell>{emp.role.charAt(0).toUpperCase() + emp.role.slice(1)}</TableCell>
+                    <TableCell className="text-right space-x-1">
+                      <Button variant="outline" size="icon" onClick={() => handleOpenEditEmployeeDialog(emp)} aria-label={`Edit ${emp.employeeName}`}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="icon" onClick={() => handleDeleteEmployee(emp.employeeId)} aria-label={`Delete ${emp.employeeName}`}><Trash2 className="h-4 w-4" /></Button>
+                    </TableCell>
                   </TableRow>
-                </TableHeaderComponent>
-                <TableBody>
-                  {(managedEmployees || []).map(emp => (
-                    <TableRow key={emp.employeeId}>
-                      <TableCell>{emp.employeeId}</TableCell>
-                      <TableCell>{emp.employeeName}</TableCell>
-                      <TableCell>{emp.role.charAt(0).toUpperCase() + emp.role.slice(1)}</TableCell>
-                      <TableCell className="text-right space-x-1">
-                        <Button variant="outline" size="icon" onClick={() => handleOpenEditEmployeeDialog(emp)} aria-label={`Edit ${emp.employeeName}`}><Edit className="h-4 w-4" /></Button>
-                        <Button variant="destructive" size="icon" onClick={() => handleDeleteEmployee(emp.employeeId)} aria-label={`Delete ${emp.employeeName}`}><Trash2 className="h-4 w-4" /></Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                  {(managedEmployees || []).length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">No employees managed yet.</TableCell></TableRow>}
-                </TableBody>
-              </Table>
-              <DialogFooter>
-                <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
-              </DialogFooter>
+                ))}
+                {(managedEmployees || []).length === 0 && <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-4">No employees managed yet.</TableCell></TableRow>}
+              </TableBody>
+            </Table>
+            <DialogFooter>
+              <DialogClose asChild><Button variant="outline">Close</Button></DialogClose>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
       )}
 
       {isEmployeeFormDialogOpen && currentEditingEmployee && user?.role === 'admin' && (
-        <Dialog open={isEmployeeFormDialogOpen} onOpenChange={(isOpen) => { if(!isOpen) setCurrentEditingEmployee(null); setIsEmployeeFormDialogOpen(isOpen);}}>
+        <Dialog open={isEmployeeFormDialogOpen} onOpenChange={(isOpen) => { if (!isOpen) setCurrentEditingEmployee(null); setIsEmployeeFormDialogOpen(isOpen); }}>
           <DialogContent>
             <DialogHeader><DialogTitle>{employeeFormMode === 'add' ? 'Add New Employee' : 'Edit Employee'}</DialogTitle></DialogHeader>
             <form onSubmit={handleSaveEmployee} className="space-y-4 py-4">
@@ -647,7 +681,7 @@ export default function PerformancePage() {
                 <Label htmlFor="empFormId">Employee ID</Label>
                 <Input
                   id="empFormId"
-                  value={currentEditingEmployee.employeeId}
+                  value={currentEditingEmployee.employeeId || ''}
                   disabled
                   className="bg-muted/50"
                 />
@@ -656,16 +690,38 @@ export default function PerformancePage() {
                 <Label htmlFor="empFormName">Employee Name</Label>
                 <Input
                   id="empFormName"
-                  value={currentEditingEmployee.employeeName}
-                  onChange={(e) => setCurrentEditingEmployee(prev => prev ? {...prev, employeeName: e.target.value} : null)}
+                  value={currentEditingEmployee.employeeName || ''}
+                  onChange={(e) => setCurrentEditingEmployee(prev => prev ? { ...prev, employeeName: e.target.value } : null)}
                   required
                 />
               </div>
+               <div>
+                <Label htmlFor="empFormEmail">Email</Label>
+                <Input
+                  id="empFormEmail"
+                  type="email"
+                  value={currentEditingEmployee.email || ''}
+                  onChange={(e) => setCurrentEditingEmployee(prev => prev ? { ...prev, email: e.target.value } : null)}
+                  required
+                />
+              </div>
+              {employeeFormMode === 'add' && (
+                <div>
+                  <Label htmlFor="empFormPassword">Initial Password</Label>
+                  <Input
+                    id="empFormPassword"
+                    type="password"
+                    value={currentEditingEmployee.password || ''}
+                    onChange={(e) => setCurrentEditingEmployee(prev => prev ? { ...prev, password: e.target.value } : null)}
+                    required
+                  />
+                </div>
+              )}
               <div>
                 <Label htmlFor="empFormRole">Role</Label>
                 <Select
-                  value={currentEditingEmployee.role}
-                  onValueChange={(value: 'admin' | 'employee') => setCurrentEditingEmployee(prev => prev ? {...prev, role: value } : null)}
+                  value={currentEditingEmployee.role || 'employee'}
+                  onValueChange={(value: 'admin' | 'employee') => setCurrentEditingEmployee(prev => prev ? { ...prev, role: value } : null)}
                   required
                 >
                   <SelectTrigger id="empFormRole">
@@ -686,144 +742,144 @@ export default function PerformancePage() {
         </Dialog>
       )}
 
-    {/* Add Performance Record Dialog */}
-    <Dialog open={isAddPerformanceDialogOpen} onOpenChange={(isOpen) => { setIsAddPerformanceDialogOpen(isOpen); if (!isOpen) {setPerformanceFormData({date: new Date()});}}}>
+      {/* Add Performance Record Dialog */}
+      <Dialog open={isAddPerformanceDialogOpen} onOpenChange={(isOpen) => { setIsAddPerformanceDialogOpen(isOpen); if (!isOpen) { setPerformanceFormData({ date: new Date() }); } }}>
         <DialogContent>
-        <DialogHeader><DialogTitle>Add Performance Record</DialogTitle></DialogHeader>
-        <form onSubmit={handleAddPerformanceRecord} className="space-y-4 py-4">
+          <DialogHeader><DialogTitle>Add Performance Record</DialogTitle></DialogHeader>
+          <form onSubmit={handleAddPerformanceRecord} className="space-y-4 py-4">
             <div>
-            <Label htmlFor="perfEmployeeId">Employee</Label>
-            <Select 
-                name="selectedEmployeeId" 
-                value={performanceFormData.selectedEmployeeId || ""} 
+              <Label htmlFor="perfEmployeeId">Employee</Label>
+              <Select
+                name="selectedEmployeeId"
+                value={performanceFormData.selectedEmployeeId || ""}
                 onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'performance')}
                 disabled={user?.role === 'employee'}
-            >
+              >
                 <SelectTrigger id="perfEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
-                {(employeeDropdownList && employeeDropdownList.length > 0) ? (
+                  {(employeeDropdownList && employeeDropdownList.length > 0) ? (
                     employeeDropdownList.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
-                ) : (
+                  ) : (
                     <SelectItem value="no-employees" disabled>No employees found. Please add via Manage Employees.</SelectItem>
-                )}
+                  )}
                 </SelectContent>
-            </Select>
+              </Select>
             </div>
             <div>
-            <Label htmlFor="perfDate">Date</Label>
-            <Popover>
+              <Label htmlFor="perfDate">Date</Label>
+              <Popover>
                 <PopoverTrigger asChild>
-                <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !performanceFormData.date && "text-muted-foreground")}>
+                  <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !performanceFormData.date && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {performanceFormData.date ? format(performanceFormData.date, "PPP") : <span>Pick a date</span>}
-                </Button>
+                  </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={performanceFormData.date} onSelect={(d) => handleRecordDateChange(d, 'date', 'performance')} initialFocus /></PopoverContent>
-            </Popover>
+              </Popover>
             </div>
             <div><Label htmlFor="salesTarget">Sales Target (PKR)</Label><Input id="salesTarget" name="salesTarget" type="number" value={performanceFormData.salesTarget || ''} onChange={(e) => handleRecordFormInputChange(e, 'performance')} min="0" /></div>
-            <div><Label htmlFor="salesAchieved">Sales Achieved (PKR)</Label><Input id="salesAchieved" name="salesAchieved" type="number" value={performanceFormData.salesAchieved || ''} onChange={(e) => handleRecordFormInputChange(e, 'performance')} min="0"/></div>
-            <div><Label htmlFor="tasksCompleted">Tasks Completed</Label><Input id="tasksCompleted" name="tasksCompleted" type="number" value={performanceFormData.tasksCompleted || ''} onChange={(e) => handleRecordFormInputChange(e, 'performance')} min="0"/></div>
-            <div><Label htmlFor="tasksAssigned">Tasks Assigned</Label><Input id="tasksAssigned" name="tasksAssigned" type="number" value={performanceFormData.tasksAssigned || ''} onChange={(e) => handleRecordFormInputChange(e, 'performance')} min="0"/></div>
+            <div><Label htmlFor="salesAchieved">Sales Achieved (PKR)</Label><Input id="salesAchieved" name="salesAchieved" type="number" value={performanceFormData.salesAchieved || ''} onChange={(e) => handleRecordFormInputChange(e, 'performance')} min="0" /></div>
+            <div><Label htmlFor="tasksCompleted">Tasks Completed</Label><Input id="tasksCompleted" name="tasksCompleted" type="number" value={performanceFormData.tasksCompleted || ''} onChange={(e) => handleRecordFormInputChange(e, 'performance')} min="0" /></div>
+            <div><Label htmlFor="tasksAssigned">Tasks Assigned</Label><Input id="tasksAssigned" name="tasksAssigned" type="number" value={performanceFormData.tasksAssigned || ''} onChange={(e) => handleRecordFormInputChange(e, 'performance')} min="0" /></div>
             <DialogFooter>
-            <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-            <Button type="submit">Add Record</Button>
+              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
+              <Button type="submit">Add Record</Button>
             </DialogFooter>
-        </form>
+          </form>
         </DialogContent>
-    </Dialog>
+      </Dialog>
 
-    {/* Add Attendance Record Dialog */}
-    <Dialog open={isAddAttendanceDialogOpen} onOpenChange={(isOpen) => { setIsAddAttendanceDialogOpen(isOpen); if (!isOpen) {setAttendanceFormData({date: new Date()});}}}>
+      {/* Add Attendance Record Dialog */}
+      <Dialog open={isAddAttendanceDialogOpen} onOpenChange={(isOpen) => { setIsAddAttendanceDialogOpen(isOpen); if (!isOpen) { setAttendanceFormData({ date: new Date() }); } }}>
         <DialogContent>
-        <DialogHeader><DialogTitle>Mark Attendance</DialogTitle></DialogHeader>
-        <form onSubmit={handleAddAttendanceRecord} className="space-y-4 py-4">
+          <DialogHeader><DialogTitle>Mark Attendance</DialogTitle></DialogHeader>
+          <form onSubmit={handleAddAttendanceRecord} className="space-y-4 py-4">
             <div>
-            <Label htmlFor="attEmployeeId">Employee</Label>
-             <Select 
-                name="selectedEmployeeId" 
-                value={attendanceFormData.selectedEmployeeId || ""} 
+              <Label htmlFor="attEmployeeId">Employee</Label>
+              <Select
+                name="selectedEmployeeId"
+                value={attendanceFormData.selectedEmployeeId || ""}
                 onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'attendance')}
                 disabled={user?.role === 'employee'}
-            >
+              >
                 <SelectTrigger id="attEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
-                {(employeeDropdownList && employeeDropdownList.length > 0) ? (
+                  {(employeeDropdownList && employeeDropdownList.length > 0) ? (
                     employeeDropdownList.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
-                ) : (
+                  ) : (
                     <SelectItem value="no-employees" disabled>No employees found. Please add via Manage Employees.</SelectItem>
-                )}
+                  )}
                 </SelectContent>
-            </Select>
+              </Select>
             </div>
             <div>
-            <Label htmlFor="attDate">Date</Label>
-            <Popover>
+              <Label htmlFor="attDate">Date</Label>
+              <Popover>
                 <PopoverTrigger asChild>
-                <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !attendanceFormData.date && "text-muted-foreground")}>
+                  <Button variant={"outline"} className={cn("w-full justify-start text-left font-normal", !attendanceFormData.date && "text-muted-foreground")}>
                     <CalendarIcon className="mr-2 h-4 w-4" />
                     {attendanceFormData.date ? format(attendanceFormData.date, "PPP") : <span>Pick a date</span>}
-                </Button>
+                  </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={attendanceFormData.date} onSelect={(d) => handleRecordDateChange(d, 'date', 'attendance')} initialFocus /></PopoverContent>
-            </Popover>
+              </Popover>
             </div>
             <div><Label htmlFor="inTime">In-Time</Label><Input id="inTime" name="inTime" type="time" value={attendanceFormData.inTime || ''} onChange={(e) => handleRecordFormInputChange(e, 'attendance')} /></div>
             <div><Label htmlFor="outTime">Out-Time</Label><Input id="outTime" name="outTime" type="time" value={attendanceFormData.outTime || ''} onChange={(e) => handleRecordFormInputChange(e, 'attendance')} /></div>
             <div>
-            <Label htmlFor="status">Status</Label>
-            <Select name="status" value={attendanceFormData.status || ""} onValueChange={(value) => handleRecordFormSelectChange(value as 'Present' | 'Absent' | 'Leave', 'status', 'attendance')}>
+              <Label htmlFor="status">Status</Label>
+              <Select name="status" value={attendanceFormData.status || ""} onValueChange={(value) => handleRecordFormSelectChange(value as 'Present' | 'Absent' | 'Leave', 'status', 'attendance')}>
                 <SelectTrigger id="status"><SelectValue placeholder="Select Status" /></SelectTrigger>
                 <SelectContent>
-                <SelectItem value="Present">Present</SelectItem>
-                <SelectItem value="Absent">Absent</SelectItem>
-                <SelectItem value="Leave">Leave</SelectItem>
+                  <SelectItem value="Present">Present</SelectItem>
+                  <SelectItem value="Absent">Absent</SelectItem>
+                  <SelectItem value="Leave">Leave</SelectItem>
                 </SelectContent>
-            </Select>
+              </Select>
             </div>
             <DialogFooter>
-            <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-            <Button type="submit">Mark Attendance</Button>
+              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
+              <Button type="submit">Mark Attendance</Button>
             </DialogFooter>
-        </form>
+          </form>
         </DialogContent>
-    </Dialog>
+      </Dialog>
 
-    {/* Add Salary Record Dialog */}
-    <Dialog open={isAddSalaryDialogOpen} onOpenChange={(isOpen) => { setIsAddSalaryDialogOpen(isOpen); if (!isOpen) {setSalaryFormData({month: format(new Date(), 'yyyy-MM')}); }}}>
+      {/* Add Salary Record Dialog */}
+      <Dialog open={isAddSalaryDialogOpen} onOpenChange={(isOpen) => { setIsAddSalaryDialogOpen(isOpen); if (!isOpen) { setSalaryFormData({ month: format(new Date(), 'yyyy-MM') }); } }}>
         <DialogContent>
-        <DialogHeader><DialogTitle>Add Salary Entry</DialogTitle></DialogHeader>
-        <form onSubmit={handleAddSalaryRecord} className="space-y-4 py-4">
+          <DialogHeader><DialogTitle>Add Salary Entry</DialogTitle></DialogHeader>
+          <form onSubmit={handleAddSalaryRecord} className="space-y-4 py-4">
             <div>
-            <Label htmlFor="salaryEmployeeId">Employee</Label>
-            <Select 
-                name="selectedEmployeeId" 
-                value={salaryFormData.selectedEmployeeId || ""} 
+              <Label htmlFor="salaryEmployeeId">Employee</Label>
+              <Select
+                name="selectedEmployeeId"
+                value={salaryFormData.selectedEmployeeId || ""}
                 onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'salary')}
                 disabled={user?.role === 'employee'}
-            >
+              >
                 <SelectTrigger id="salaryEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
-                {(employeeDropdownList && employeeDropdownList.length > 0) ? (
+                  {(employeeDropdownList && employeeDropdownList.length > 0) ? (
                     employeeDropdownList.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
-                ) : (
-                     <SelectItem value="no-employees" disabled>No employees found. Please add via Manage Employees.</SelectItem>
-                )}
+                  ) : (
+                    <SelectItem value="no-employees" disabled>No employees found. Please add via Manage Employees.</SelectItem>
+                  )}
                 </SelectContent>
-            </Select>
+              </Select>
             </div>
             <div><Label htmlFor="month">Month (YYYY-MM)</Label><Input id="month" name="month" type="month" value={salaryFormData.month || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} /></div>
             <div><Label htmlFor="basicSalary">Basic Salary (PKR)</Label><Input id="basicSalary" name="basicSalary" type="number" value={salaryFormData.basicSalary || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
-            <div><Label htmlFor="advances">Advances (PKR)</Label><Input id="advances" name="advances" type="number" value={salaryFormData.advances || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0"/></div>
-            <div><Label htmlFor="bonuses">Bonuses (PKR)</Label><Input id="bonuses" name="bonuses" type="number" value={salaryFormData.bonuses || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0"/></div>
-            <div><Label htmlFor="deductions">Deductions (PKR)</Label><Input id="deductions" name="deductions" type="number" value={salaryFormData.deductions || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0"/></div>
+            <div><Label htmlFor="advances">Advances (PKR)</Label><Input id="advances" name="advances" type="number" value={salaryFormData.advances || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
+            <div><Label htmlFor="bonuses">Bonuses (PKR)</Label><Input id="bonuses" name="bonuses" type="number" value={salaryFormData.bonuses || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
+            <div><Label htmlFor="deductions">Deductions (PKR)</Label><Input id="deductions" name="deductions" type="number" value={salaryFormData.deductions || ''} onChange={(e) => handleRecordFormInputChange(e, 'salary')} min="0" /></div>
             <DialogFooter>
-            <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-            <Button type="submit">Add Entry</Button>
+              <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
+              <Button type="submit">Add Entry</Button>
             </DialogFooter>
-        </form>
+          </form>
         </DialogContent>
-    </Dialog>
+      </Dialog>
     </>
   );
 }
