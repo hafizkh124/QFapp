@@ -25,8 +25,8 @@ export interface ExpenseRecord {
   category: string;
   description: string;
   amount: number;
-  employeeId?: string; // Added
-  employeeName?: string; // Added
+  employeeId?: string; 
+  employeeName?: string; 
 }
 
 export interface ProfitEntry {
@@ -43,6 +43,9 @@ export interface ManagedEmployee {
   role: 'admin' | 'employee';
   email: string; // For login
   password?: string; // For login (mocked, plain text for this simulation)
+  phone?: string;
+  status: 'active' | 'inactive';
+  // Salary fields like baseSalary, hourlyRate can be added here later
 }
 
 export interface EmployeePerformance {

@@ -4,18 +4,19 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
-import { LayoutDashboard, DollarSign, Receipt, TrendingUp, Users, Lightbulb, ListPlus, ShieldCheck, ShoppingCart } from 'lucide-react';
+import { LayoutDashboard, DollarSign, Receipt, TrendingUp, Users, Lightbulb, ListPlus, UserCog } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 
 const allNavItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'employee'] },
   { href: '/sales', label: 'Sales', icon: DollarSign, roles: ['admin', 'employee'] },
-  { href: '/menu', label: 'Menu', icon: ListPlus, roles: ['admin', 'employee'] }, // Employees can view
-  { href: '/expenses', label: 'Expenses', icon: Receipt, roles: ['admin', 'employee'] }, // Employees can add/view own
-  { href: '/profits', label: 'Profits', icon: TrendingUp, roles: ['admin', 'employee'] }, // Now accessible to employees
+  { href: '/menu', label: 'Menu', icon: ListPlus, roles: ['admin', 'employee'] }, 
+  { href: '/expenses', label: 'Expenses', icon: Receipt, roles: ['admin', 'employee'] }, 
+  { href: '/profits', label: 'Profits', icon: TrendingUp, roles: ['admin', 'employee'] }, 
   { href: '/performance', label: 'Performance', icon: Users, roles: ['admin', 'employee'] },
-  { href: '/insights', label: 'Insights AI', icon: Lightbulb, roles: ['admin', 'employee'] }, // Now accessible to employees
+  { href: '/insights', label: 'Insights AI', icon: Lightbulb, roles: ['admin', 'employee'] }, 
+  { href: '/admin/employee-management', label: 'Employee Mgmt', icon: UserCog, roles: ['admin'] },
 ];
 
 export function SidebarNav() {
