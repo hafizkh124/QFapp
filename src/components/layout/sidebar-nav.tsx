@@ -11,13 +11,11 @@ import { useAuth } from '@/context/AuthContext';
 const allNavItems = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'employee'] },
   { href: '/sales', label: 'Sales', icon: DollarSign, roles: ['admin', 'employee'] },
-  { href: '/menu', label: 'Menu', icon: ListPlus, roles: ['admin'] },
-  { href: '/expenses', label: 'Expenses', icon: Receipt, roles: ['admin'] },
-  { href: '/profits', label: 'Profits', icon: TrendingUp, roles: ['admin'] },
+  { href: '/menu', label: 'Menu', icon: ListPlus, roles: ['admin', 'employee'] }, // Employees can view
+  { href: '/expenses', label: 'Expenses', icon: Receipt, roles: ['admin', 'employee'] }, // Employees can add/view own
+  { href: '/profits', label: 'Profits', icon: TrendingUp, roles: ['admin', 'employee'] }, // Now accessible to employees
   { href: '/performance', label: 'Performance', icon: Users, roles: ['admin', 'employee'] },
-  { href: '/insights', label: 'Insights AI', icon: Lightbulb, roles: ['admin'] },
-  // Example of a future employee-specific link:
-  // { href: '/my-tasks', label: 'My Tasks', icon: CheckSquare, roles: ['employee'] },
+  { href: '/insights', label: 'Insights AI', icon: Lightbulb, roles: ['admin', 'employee'] }, // Now accessible to employees
 ];
 
 export function SidebarNav() {

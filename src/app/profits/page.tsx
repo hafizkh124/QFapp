@@ -15,7 +15,7 @@ import { CalendarIcon, ShieldAlert } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay, addDays, subMonths, getYear, setYear, startOfYear, endOfYear } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
-import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { useAuth } from '@/context/AuthContext'; 
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const chartConfig: ChartConfig = {
@@ -76,7 +76,7 @@ const mockAnnualProfits: ProfitEntry[] = [
 
 
 export default function ProfitsPage() {
-  const { user } = useAuth(); // Get authenticated user
+  const { user } = useAuth(); 
   type Timeframe = 'daily' | 'weekly' | 'monthly' | 'annual' | 'custom';
   const [timeframe, setTimeframe] = useState<Timeframe>('monthly');
   const [profitData, setProfitData] = useState<ProfitEntry[]>(mockMonthlyProfits);
@@ -115,17 +115,18 @@ export default function ProfitsPage() {
   const totalSales = profitData.reduce((sum, item) => sum + item.sales, 0);
   const totalExpenses = profitData.reduce((sum, item) => sum + item.expenses, 0);
 
-  if (user?.role !== 'admin') {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <Alert variant="destructive">
-          <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>You do not have permission to view profit visualizations. Please contact an administrator.</AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
+  // No role check needed for page access
+  // if (user?.role !== 'admin') {
+  //   return (
+  //     <div className="flex items-center justify-center h-full">
+  //       <Alert variant="destructive">
+  //         <ShieldAlert className="h-4 w-4" />
+  //         <AlertTitle>Access Denied</AlertTitle>
+  //         <AlertDescription>You do not have permission to view profit visualizations. Please contact an administrator.</AlertDescription>
+  //       </Alert>
+  //     </div>
+  //   );
+  // }
 
   return (
     <>
