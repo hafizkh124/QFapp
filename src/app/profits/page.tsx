@@ -11,7 +11,7 @@ import type { ProfitEntry } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon, ShieldExclamation } from 'lucide-react';
+import { CalendarIcon, ShieldAlert } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay, addDays, subMonths, getYear, setYear, startOfYear, endOfYear } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
@@ -119,7 +119,7 @@ export default function ProfitsPage() {
     return (
       <div className="flex items-center justify-center h-full">
         <Alert variant="destructive">
-          <ShieldExclamation className="h-4 w-4" />
+          <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Access Denied</AlertTitle>
           <AlertDescription>You do not have permission to view profit visualizations. Please contact an administrator.</AlertDescription>
         </Alert>

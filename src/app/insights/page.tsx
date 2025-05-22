@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, Sparkles, ShieldExclamation } from 'lucide-react';
+import { Loader2, Sparkles, ShieldAlert } from 'lucide-react';
 import { generateInsights, type GenerateInsightsInput } from '@/ai/flows/generate-insights';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useAuth } from '@/context/AuthContext'; // Import useAuth
@@ -65,7 +65,7 @@ export default function InsightsPage() {
     return (
       <div className="flex items-center justify-center h-full">
         <Alert variant="destructive">
-          <ShieldExclamation className="h-4 w-4" />
+          <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Access Denied</AlertTitle>
           <AlertDescription>You do not have permission to access AI Insights. Please contact an administrator.</AlertDescription>
         </Alert>

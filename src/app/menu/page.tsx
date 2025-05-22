@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { PlusCircle, Pencil, Trash2, ShieldExclamation } from 'lucide-react';
+import { PlusCircle, Pencil, Trash2, ShieldAlert } from 'lucide-react';
 import type { MenuItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/context/AuthContext'; // Import useAuth
@@ -186,7 +186,7 @@ export default function MenuPage() {
     return (
       <div className="flex items-center justify-center h-full">
         <Alert variant="destructive">
-          <ShieldExclamation className="h-4 w-4" />
+          <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Access Denied</AlertTitle>
           <AlertDescription>You do not have permission to manage the menu. Please contact an administrator.</AlertDescription>
         </Alert>

@@ -11,7 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, PlusCircle, ShieldExclamation } from 'lucide-react';
+import { CalendarIcon, PlusCircle, ShieldAlert } from 'lucide-react';
 import { format } from 'date-fns';
 import type { ExpenseRecord } from '@/types';
 import { cn } from '@/lib/utils';
@@ -59,7 +59,7 @@ export default function ExpensesPage() {
     return (
       <div className="flex items-center justify-center h-full">
         <Alert variant="destructive">
-          <ShieldExclamation className="h-4 w-4" />
+          <ShieldAlert className="h-4 w-4" />
           <AlertTitle>Access Denied</AlertTitle>
           <AlertDescription>You do not have permission to manage expenses. Please contact an administrator.</AlertDescription>
         </Alert>
