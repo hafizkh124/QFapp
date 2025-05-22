@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { SaleRecord, MenuItem, Cashier } from '@/types';
+import type { SaleRecord, MenuItem, ManagedEmployee } from '@/types'; // Updated to ManagedEmployee
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -32,13 +32,13 @@ interface SalesReportsProps {
   allSalesData: SaleRecord[];
   menuItems: MenuItem[];
   onViewReceipt: (saleId: string) => void;
-  availableCashiers: Cashier[];
+  managedEmployeesList: ManagedEmployee[]; // Changed from availableCashiers: Cashier[]
 }
 
 type ReportPeriodType = 'daily' | 'weekly' | 'monthly' | 'custom' | 'all';
 const paymentMethods: Array<SaleRecord['paymentMethod']> = ['cash', 'card', 'online', 'credit'];
 
-export default function SalesReports({ allSalesData, menuItems, onViewReceipt, availableCashiers }: SalesReportsProps) {
+export default function SalesReports({ allSalesData, menuItems, onViewReceipt, managedEmployeesList }: SalesReportsProps) {
   const [reportPeriodType, setReportPeriodType] = useState<ReportPeriodType>('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCustomStart, setSelectedCustomStart] = useState<Date | undefined>();
@@ -68,7 +68,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
     if (selectedYear === undefined) {
         const currentActualYear = getYear(now);
         setSelectedYear(currentActualYear);
-        const startYear = currentActualYear - 5;
+        const startYear = currentActualYear - 5; // Show last 5 years + next 4
         setYearsForDropdown(Array.from({ length: 10 }, (_, i) => startYear + i));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -91,17 +91,18 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
     if (reportPeriodType === 'daily' && selectedDate) {
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isSameDay(sale.parsedDate, selectedDate));
     } else if (reportPeriodType === 'weekly' && selectedDate) {
-      const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+      const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Assuming week starts on Monday
       const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: weekStart, end: weekEnd }));
     } else if (reportPeriodType === 'monthly' && selectedMonth !== undefined && selectedYear !== undefined) {
-      const monthDate = setYear(setMonth(new Date(0,0), selectedMonth), selectedYear);
+      const monthDate = setYear(setMonth(new Date(0,0), selectedMonth), selectedYear); // Create a date in the selected month/year
       const monthStart = startOfMonth(monthDate);
       const monthEnd = endOfMonth(monthDate);
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: monthStart, end: monthEnd }));
     } else if (reportPeriodType === 'custom' && selectedCustomStart && selectedCustomEnd) {
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: selectedCustomStart, end: selectedCustomEnd }));
     }
+    // reportPeriodType === 'all' implies no time-based filtering here
 
     // 2. Cashier filtering
     if (selectedCashierId) {
@@ -112,12 +113,12 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
     if (selectedReportMenuItemId) { // Item-specific filter takes precedence
       const selectedItem = menuItems.find(item => item.id === selectedReportMenuItemId);
       if (selectedItem) {
-         filtered = filtered.filter(sale => sale.items.some(item => item.name === selectedItem.name));
+         filtered = filtered.filter(sale => sale.items.some(item => item.name === selectedItem.name)); // Assuming item.name is unique identifier here, ideally use ID
       }
     } else if (selectedReportCategory) { // Category filter (if no specific item is chosen)
       filtered = filtered.filter(sale => {
         return sale.items.some(saleItem => {
-          const menuItemDetails = menuItems.find(mi => mi.name === saleItem.name);
+          const menuItemDetails = menuItems.find(mi => mi.name === saleItem.name); // Assuming name is unique, better to use ID if available on SaleItem
           return menuItemDetails?.category === selectedReportCategory;
         });
       });
@@ -128,7 +129,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
       filtered = filtered.filter(sale => sale.paymentMethod === selectedPaymentMethod);
     }
 
-    return filtered;
+    return filtered.sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
   }, [
     salesDataWithParsedDates,
     reportPeriodType,
@@ -188,7 +189,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
         breakdown[sale.paymentMethod].totalAmount += sale.totalAmount;
       }
     });
-    const totalSalesForPercentage = salesSummary.totalRevenue > 0 ? salesSummary.totalRevenue : 1;
+    const totalSalesForPercentage = salesSummary.totalRevenue > 0 ? salesSummary.totalRevenue : 1; // Avoid division by zero
 
     return Object.entries(breakdown).map(([method, data]) => ({
       method: method.charAt(0).toUpperCase() + method.slice(1),
@@ -207,7 +208,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
 
     filteredSales.forEach(sale => { // filteredSales already respects date & cashier filters
       sale.items.forEach(item => {
-        if (item.name === selectedItem.name) {
+        if (item.name === selectedItem.name) { // Match by name, assumes name is unique enough for this report.
           totalQuantitySold += item.quantity;
           totalRevenueFromItem += item.total;
         }
@@ -306,9 +307,14 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
             </Popover>
           </div>
         );
-      default:
+      default: // 'all' or undefined
         return null;
     }
+  };
+
+  const getEmployeeNameById = (employeeId: string) => {
+    const employee = managedEmployeesList.find(emp => emp.employeeId === employeeId);
+    return employee ? employee.employeeName : employeeId; // Fallback to ID if name not found
   };
 
   return (
@@ -363,8 +369,8 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all-cashiers">All Cashiers</SelectItem>
-                  {availableCashiers.map(cashier => (
-                    <SelectItem key={cashier.employeeId} value={cashier.employeeId}>{cashier.name} (ID: {cashier.employeeId})</SelectItem>
+                  {managedEmployeesList.map(cashier => (
+                    <SelectItem key={cashier.employeeId} value={cashier.employeeId}>{cashier.employeeName} (ID: {cashier.employeeId})</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -438,6 +444,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
                       <TableRow>
                         <TableHead>Order ID</TableHead>
                         <TableHead>Date</TableHead>
+                        <TableHead>Cashier</TableHead>
                         <TableHead>Quantity of Item</TableHead>
                         <TableHead>Total Order Amount</TableHead>
                         <TableHead className="text-center">Actions</TableHead>
@@ -452,6 +459,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
                             <TableRow key={sale.id}>
                               <TableCell>{sale.id}</TableCell>
                               <TableCell>{sale.date}</TableCell>
+                              <TableCell>{getEmployeeNameById(sale.employeeId)}</TableCell>
                               <TableCell>{itemInSale?.quantity || 0}</TableCell>
                               <TableCell>PKR {sale.totalAmount.toFixed(2)}</TableCell>
                               <TableCell className="text-center">
@@ -582,6 +590,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
                       <TableRow>
                         <TableHead>Order ID</TableHead>
                         <TableHead>Date</TableHead>
+                        <TableHead>Cashier</TableHead>
                         <TableHead>Items (Qty)</TableHead>
                         <TableHead>Payment</TableHead>
                         <TableHead className="text-right">Total (PKR)</TableHead>
@@ -593,7 +602,8 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
                         <TableRow key={sale.id}>
                           <TableCell>{sale.id}</TableCell>
                           <TableCell>{sale.date}</TableCell>
-                           <TableCell className="max-w-[200px] truncate">
+                          <TableCell>{getEmployeeNameById(sale.employeeId)}</TableCell>
+                           <TableCell className="max-w-[200px] truncate" title={sale.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}>
                             {sale.items.map(item => `${item.name} (x${item.quantity})`).join(', ')}
                           </TableCell>
                           <TableCell>{sale.paymentMethod.charAt(0).toUpperCase() + sale.paymentMethod.slice(1)}</TableCell>
@@ -618,4 +628,3 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, a
     </div>
   );
 }
-

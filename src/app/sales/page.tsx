@@ -12,7 +12,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PlusCircle, Trash2, UtensilsCrossed, Eye, UserCircle } from 'lucide-react';
-import type { SaleRecord, SaleItem, MenuItem, Cashier } from '@/types';
+import type { SaleRecord, SaleItem, MenuItem, ManagedEmployee } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -31,17 +31,19 @@ interface MenuSelectionItem extends MenuItem {
 
 const MENU_LOCAL_STORAGE_KEY = 'quoriam-menu-items';
 const SALES_LOCAL_STORAGE_KEY = 'quoriam-sales-records';
+const MANAGED_EMPLOYEES_KEY = 'quoriam-managed-employees-v2'; // Key from performance page
 
-// List of cashiers for selection - IDs updated to QE prefix
-const availableCashiers: Cashier[] = [
-  { employeeId: 'QE101', name: 'Umar Hayat' },
-  { employeeId: 'QE102', name: 'Abdullah Qarafi' },
-  { employeeId: 'QE103', name: 'Shoaib Ashfaq' },
-  { employeeId: 'QE104', name: 'Salman Karamat' },
-  { employeeId: 'QE105', name: 'Suraqa Zohaib' },
-  { employeeId: 'QE106', name: 'Bilal Karamat' },
-  { employeeId: 'QE107', name: 'Kaleemullah Qarafi' },
-  { employeeId: 'QE108', name: 'Alice Smith' },
+// Default list of cashiers/employees, mimicking allInitialStaffWithRoles from performance page
+// This is used as a fallback if localStorage is empty.
+const defaultSalesCashiers: ManagedEmployee[] = [
+  { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager' },
+  { employeeId: 'QE102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper' },
+  { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy' },
+  { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier' },
+  { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier' },
+  { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'Cashier' },
+  { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier' },
+  { employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff' },
 ];
 
 
@@ -52,7 +54,9 @@ export default function SalesPage() {
   
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online' | 'credit'>('cash');
   const [currentOrderItems, setCurrentOrderItems] = useState<NewSaleItem[]>([]);
-  const [selectedCashier, setSelectedCashier] = useState<Cashier | undefined>(undefined); 
+  
+  const [cashierList, setCashierList] = useState<ManagedEmployee[]>([]);
+  const [selectedCashier, setSelectedCashier] = useState<ManagedEmployee | undefined>(undefined); 
 
 
   const [showCustomItemForm, setShowCustomItemForm] = useState(false);
@@ -69,9 +73,36 @@ export default function SalesPage() {
 
 
   useEffect(() => {
-    if (availableCashiers.length > 0 && !selectedCashier) {
-        setSelectedCashier(availableCashiers[0]);
+    // Load managed employees (cashiers)
+    try {
+      const storedManagedEmployees = localStorage.getItem(MANAGED_EMPLOYEES_KEY);
+      if (storedManagedEmployees) {
+        const parsedEmployees: ManagedEmployee[] = JSON.parse(storedManagedEmployees);
+        if (Array.isArray(parsedEmployees) && parsedEmployees.length > 0) {
+          setCashierList(parsedEmployees);
+          if (!selectedCashier && parsedEmployees.length > 0) {
+            setSelectedCashier(parsedEmployees[0]);
+          }
+        } else {
+          setCashierList(defaultSalesCashiers);
+           if (!selectedCashier && defaultSalesCashiers.length > 0) {
+            setSelectedCashier(defaultSalesCashiers[0]);
+          }
+        }
+      } else {
+        setCashierList(defaultSalesCashiers);
+        if (!selectedCashier && defaultSalesCashiers.length > 0) {
+          setSelectedCashier(defaultSalesCashiers[0]);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading managed employees from localStorage:", error);
+      setCashierList(defaultSalesCashiers); // Fallback to default
+      if (!selectedCashier && defaultSalesCashiers.length > 0) {
+        setSelectedCashier(defaultSalesCashiers[0]);
+      }
     }
+    
     if (defaultCategories.length > 0 && !customItemCategory) {
         setCustomItemCategory(defaultCategories[0]);
     }
@@ -101,20 +132,41 @@ export default function SalesPage() {
         if (Array.isArray(parsedSales)) {
           setSalesRecords(parsedSales);
         }
-      } catch (error) {
+      } catch (error)
+       {
         console.error("Error parsing sales records from localStorage:", error);
         localStorage.removeItem(SALES_LOCAL_STORAGE_KEY);
+         // Initialize with some default sales if localStorage is problematic (for demo)
+        const placeholderDate = new Date();
+        const initialRecords: SaleRecord[] = [
+          { id: 'S001', date: format(placeholderDate, 'yyyy-MM-dd'), dateTime: placeholderDate.toISOString(), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card', employeeName: defaultSalesCashiers[0]?.employeeName || "N/A", employeeId: defaultSalesCashiers[0]?.employeeId || "N/A" },
+          { id: 'S002', date: format(new Date(Date.now() - 86400000 * 1 ), 'yyyy-MM-dd'), dateTime: new Date(Date.now() - 86400000 * 1 ).toISOString(), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash', employeeName: defaultSalesCashiers[1]?.employeeName || "N/A", employeeId: defaultSalesCashiers[1]?.employeeId || "N/A" },
+        ];
+        setSalesRecords(initialRecords);
       }
     } else {
         const placeholderDate = new Date();
         const initialRecords: SaleRecord[] = [
-          { id: 'S001', date: format(placeholderDate, 'yyyy-MM-dd'), dateTime: placeholderDate.toISOString(), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card', employeeName: availableCashiers[0]?.name || "N/A", employeeId: availableCashiers[0]?.employeeId || "N/A" },
-          { id: 'S002', date: format(new Date(Date.now() - 86400000 * 1 ), 'yyyy-MM-dd'), dateTime: new Date(Date.now() - 86400000 * 1 ).toISOString(), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash', employeeName: availableCashiers[1]?.name || "N/A", employeeId: availableCashiers[1]?.employeeId || "N/A" },
+          { id: 'S001', date: format(placeholderDate, 'yyyy-MM-dd'), dateTime: placeholderDate.toISOString(), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card', employeeName: defaultSalesCashiers[0]?.employeeName || "N/A", employeeId: defaultSalesCashiers[0]?.employeeId || "N/A" },
+          { id: 'S002', date: format(new Date(Date.now() - 86400000 * 1 ), 'yyyy-MM-dd'), dateTime: new Date(Date.now() - 86400000 * 1 ).toISOString(), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash', employeeName: defaultSalesCashiers[1]?.employeeName || "N/A", employeeId: defaultSalesCashiers[1]?.employeeId || "N/A" },
         ];
         setSalesRecords(initialRecords);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, []); // selectedCashier removed from dependency array to prevent re-triggering on its own change
+
+  useEffect(() => {
+    // Ensure selectedCashier is updated if cashierList changes and current selected is not in new list
+    if (cashierList.length > 0) {
+        const currentSelectedStillExists = cashierList.some(c => c.employeeId === selectedCashier?.employeeId);
+        if (!selectedCashier || !currentSelectedStillExists) {
+            setSelectedCashier(cashierList[0]);
+        }
+    } else {
+        setSelectedCashier(undefined);
+    }
+  }, [cashierList, selectedCashier]);
+
 
   useEffect(() => {
     setMenuSelection(
@@ -233,10 +285,10 @@ export default function SalesPage() {
       items: currentOrderItems.map(item => ({ ...item, id: `I${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2, 3)}`, total: item.quantity * item.price })),
       totalAmount: currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0),
       paymentMethod,
-      employeeName: selectedCashier.name,
+      employeeName: selectedCashier.employeeName, // Current name from ManagedEmployee
       employeeId: selectedCashier.employeeId,
     };
-    setSalesRecords(prevRecords => [newSale, ...prevRecords]);
+    setSalesRecords(prevRecords => [newSale, ...prevRecords].sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()));
     setCurrentReceipt(newSale); 
     setIsReceiptModalOpen(true);   
     
@@ -276,9 +328,9 @@ export default function SalesPage() {
                   <div>
                     <Label htmlFor="cashierSelect" className="mb-1 block">Select Cashier</Label>
                     <Select
-                      value={selectedCashier?.employeeId}
+                      value={selectedCashier?.employeeId || ""}
                       onValueChange={(employeeId) => {
-                        const cashier = availableCashiers.find(c => c.employeeId === employeeId);
+                        const cashier = cashierList.find(c => c.employeeId === employeeId);
                         if (cashier) setSelectedCashier(cashier);
                       }}
                     >
@@ -289,17 +341,17 @@ export default function SalesPage() {
                         </div>
                       </SelectTrigger>
                       <SelectContent>
-                        {availableCashiers.map(cashier => (
+                        {cashierList.length > 0 ? cashierList.map(cashier => (
                           <SelectItem key={cashier.employeeId} value={cashier.employeeId}>
-                            {cashier.name} (ID: {cashier.employeeId})
+                            {cashier.employeeName} (ID: {cashier.employeeId})
                           </SelectItem>
-                        ))}
+                        )) : <SelectItem value="no-cashiers" disabled>No cashiers available</SelectItem>}
                       </SelectContent>
                     </Select>
                   </div>
                   <div>
                     <Label className="mb-1 block">Select Menu Items</Label>
-                    <ScrollArea className="h-[300px] w-full rounded-md border p-3">
+                    <ScrollArea className="h-[250px] md:h-[300px] w-full rounded-md border p-3">
                        {menuSelection.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No menu items available. Add items in Menu page.</p>}
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                         {menuSelection.map(item => (
@@ -450,7 +502,7 @@ export default function SalesPage() {
                         <TableRow key={sale.id}>
                           <TableCell className="font-medium">{sale.id}</TableCell>
                           <TableCell>{sale.date}</TableCell>
-                          <TableCell>{sale.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
+                          <TableCell className="max-w-[150px] truncate" title={sale.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}>{sale.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
                           <TableCell className="text-right">{sale.totalAmount.toFixed(2)}</TableCell>
                           <TableCell className="text-center">
                             <Button variant="ghost" size="icon" onClick={() => handleViewReceipt(sale.id)} title="View Receipt">
@@ -472,7 +524,7 @@ export default function SalesPage() {
              allSalesData={salesRecords} 
              menuItems={menuItems} 
              onViewReceipt={handleViewReceipt}
-             availableCashiers={availableCashiers}
+             managedEmployeesList={cashierList} // Pass the dynamic list
            />
         </TabsContent>
       </Tabs>
