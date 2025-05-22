@@ -37,20 +37,26 @@ const allInitialStaffWithRoles: ManagedEmployee[] = [
   { employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff' }, // Example additional staff
 ];
 
-// Initial Mock Data (using QE-prefixed IDs)
+// Updated Initial Mock Data using QE-prefixed IDs and more variety
 const initialMockPerformance: EmployeePerformance[] = [
   { id: 'P001', employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', salesTarget: 500, salesAchieved: 480, tasksCompleted: 8, tasksAssigned: 10 },
+  { id: 'P002', employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier', date: '2024-07-28', salesTarget: 400, salesAchieved: 380, tasksCompleted: 7, tasksAssigned: 8 },
   { id: 'P003', employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', salesTarget: 1000, salesAchieved: 950, tasksCompleted: 15, tasksAssigned: 15 },
-  { id: 'P004', employeeId: 'QE102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', date: '2024-07-28', salesTarget: 450, salesAchieved: 430, tasksCompleted: 9, tasksAssigned: 10 },
+  { id: 'P004', employeeId: 'QE102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', date: '2024-07-27', salesTarget: 450, salesAchieved: 430, tasksCompleted: 9, tasksAssigned: 10 },
+  { id: 'P005', employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier', date: '2024-07-27', salesTarget: 350, salesAchieved: 360, tasksCompleted: 10, tasksAssigned: 10 },
 ];
 const initialMockAttendance: EmployeeAttendance[] = [
   { id: 'A001', employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff', date: '2024-07-28', inTime: '09:00 AM', outTime: '05:00 PM', status: 'Present' },
+  { id: 'A002', employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier', date: '2024-07-28', inTime: '09:05 AM', outTime: '05:15 PM', status: 'Present' },
   { id: 'A003', employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager', date: '2024-07-28', inTime: '08:45 AM', outTime: '06:00 PM', status: 'Present' },
-  { id: 'A005', employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy', date: '2024-07-28', status: 'Leave' },
+  { id: 'A004', employeeId: 'QE102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', date: '2024-07-27', status: 'Leave' },
+  { id: 'A005', employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy', date: '2024-07-27', inTime: '10:00 AM', outTime: '07:00 PM', status: 'Present' },
 ];
 const initialMockSalaries: EmployeeSalary[] = [
   { id: 'S001', employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff', month: '2024-07', basicSalary: 30000, advances: 2000, bonuses: 1500, deductions: 500, netSalary: 29000 },
+  { id: 'S002', employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier', month: '2024-07', basicSalary: 28000, advances: 1000, bonuses: 1000, deductions: 200, netSalary: 27800 },
   { id: 'S003', employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager', month: '2024-07', basicSalary: 50000, advances: 5000, bonuses: 3000, deductions: 1000, netSalary: 47000 },
+  { id: 'S004', employeeId: 'QE102', employeeName: 'Abdullah Qarafi', role: 'Shop Keeper', month: '2024-06', basicSalary: 32000, advances: 0, bonuses: 1200, deductions: 300, netSalary: 32900 },
 ];
 
 // Function to derive initial managed employees from the master list
@@ -63,8 +69,8 @@ const generateNewEmployeeId = (employees: ManagedEmployee[]): string => {
   const prefix = "QE";
   let maxNum = 100; 
   
-  employees.forEach(emp => {
-    if (emp.employeeId.startsWith(prefix)) {
+  (employees || []).forEach(emp => {
+    if (emp.employeeId && emp.employeeId.startsWith(prefix)) {
       const numPartString = emp.employeeId.substring(prefix.length);
       if (numPartString.length > 0) { 
         const numPart = parseInt(numPartString, 10);
@@ -129,28 +135,34 @@ export default function PerformancePage() {
     
   // Load data from localStorage on mount
   useEffect(() => {
-    const loadData = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T[]>>, defaultValue: T[]): void => {
+    const loadData = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T[]>>, defaultValue: T[], keyNameForLog?: string): void => {
+      let loadedFromStorage = false;
+      let finalData = defaultValue;
       try {
         const storedValue = localStorage.getItem(key);
         if (storedValue) {
           const parsedValue = JSON.parse(storedValue);
-           if (Array.isArray(parsedValue)) { // Ensure it's an array
-            setter(parsedValue.length > 0 ? parsedValue : defaultValue); // Use default if parsed array is empty
-          } else { 
-            setter(defaultValue);
+           if (Array.isArray(parsedValue)) { 
+            finalData = parsedValue.length > 0 ? parsedValue : defaultValue;
+            loadedFromStorage = parsedValue.length > 0;
           }
-        } else { 
-          setter(defaultValue);
         }
       } catch (error) {
         console.error(`Error loading ${key} from localStorage:`, error);
-        setter(defaultValue); 
+        // finalData remains defaultValue
+      }
+      setter(finalData);
+      if (keyNameForLog) {
+         console.log(`${keyNameForLog} loaded from ${loadedFromStorage ? 'localStorage' : 'defaults'}. Count: ${finalData.length}`);
       }
     };
-    loadData<ManagedEmployee>(MANAGED_EMPLOYEES_KEY, setManagedEmployees, deriveInitialManagedEmployees());
-    loadData<EmployeePerformance>(PERFORMANCE_KEY, setPerformanceRecords, initialMockPerformance);
-    loadData<EmployeeAttendance>(ATTENDANCE_KEY, setAttendanceRecords, initialMockAttendance);
-    loadData<EmployeeSalary>(SALARY_KEY, setSalaryRecords, initialMockSalaries);
+    // Note: If a shorter list of managed employees persists from a previous app version,
+    // clearing 'quoriam-managed-employees' in localStorage (e.g. via browser dev tools) 
+    // will reset to the full default list defined in `allInitialStaffWithRoles`.
+    loadData<ManagedEmployee>(MANAGED_EMPLOYEES_KEY, setManagedEmployees, deriveInitialManagedEmployees(), 'Managed Employees');
+    loadData<EmployeePerformance>(PERFORMANCE_KEY, setPerformanceRecords, initialMockPerformance, 'Performance Records');
+    loadData<EmployeeAttendance>(ATTENDANCE_KEY, setAttendanceRecords, initialMockAttendance, 'Attendance Records');
+    loadData<EmployeeSalary>(SALARY_KEY, setSalaryRecords, initialMockSalaries, 'Salary Records');
   }, []);
 
 
@@ -183,31 +195,30 @@ export default function PerformancePage() {
     }
 
     if (employeeFormMode === 'add') {
+       // Check for duplicate ID, though auto-generation should prevent this
+      if (managedEmployees.some(emp => emp.employeeId === currentEditingEmployee.employeeId)) {
+        toast({ title: "Error", description: `Employee ID ${currentEditingEmployee.employeeId} already exists.`, variant: "destructive" });
+        // Regenerate ID if it somehow conflicted, though unlikely with current generator
+        const newId = generateNewEmployeeId(managedEmployees);
+        setCurrentEditingEmployee(prev => prev ? {...prev, employeeId: newId} : null);
+        return;
+      }
       setManagedEmployees(prev => [...prev, { ...currentEditingEmployee }].sort((a,b) => a.employeeName.localeCompare(b.employeeName)));
       toast({ title: "Success", description: "New employee added." });
     } else { 
       setManagedEmployees(prev => prev.map(emp => emp.employeeId === currentEditingEmployee.employeeId ? { ...currentEditingEmployee } : emp).sort((a,b) => a.employeeName.localeCompare(b.employeeName)));
       
-      const updatedPerformanceRecords = performanceRecords.map(rec => 
-        rec.employeeId === currentEditingEmployee.employeeId 
-          ? { ...rec, employeeName: currentEditingEmployee.employeeName, role: currentEditingEmployee.role } 
-          : rec
-      );
-      setPerformanceRecords(updatedPerformanceRecords);
-
-      const updatedAttendanceRecords = attendanceRecords.map(rec => 
-        rec.employeeId === currentEditingEmployee.employeeId 
-          ? { ...rec, employeeName: currentEditingEmployee.employeeName, role: currentEditingEmployee.role } 
-          : rec
-      );
-      setAttendanceRecords(updatedAttendanceRecords);
-
-      const updatedSalaryRecords = salaryRecords.map(rec => 
-        rec.employeeId === currentEditingEmployee.employeeId 
-          ? { ...rec, employeeName: currentEditingEmployee.employeeName, role: currentEditingEmployee.role } 
-          : rec
-      );
-      setSalaryRecords(updatedSalaryRecords);
+      // Propagate name/role changes to existing records
+      const updateRecordEmployeeDetails = <T extends {employeeId: string; employeeName: string; role: string}>(records: T[]): T[] => {
+        return records.map(rec => 
+          rec.employeeId === currentEditingEmployee.employeeId 
+            ? { ...rec, employeeName: currentEditingEmployee.employeeName, role: currentEditingEmployee.role } 
+            : rec
+        );
+      };
+      setPerformanceRecords(prev => updateRecordEmployeeDetails(prev));
+      setAttendanceRecords(prev => updateRecordEmployeeDetails(prev));
+      setSalaryRecords(prev => updateRecordEmployeeDetails(prev));
       toast({ title: "Success", description: "Employee details updated." });
     }
     setIsEmployeeFormDialogOpen(false);
@@ -355,7 +366,15 @@ export default function PerformancePage() {
   };
   
   const openRecordDialog = (setter: React.Dispatch<React.SetStateAction<boolean>>, formSetter: any, initialData = {}) => {
-    formSetter(initialData); 
+    const defaultDate = new Date();
+    let dataToSet = {...initialData};
+    if (!initialData.hasOwnProperty('date') && !initialData.hasOwnProperty('month')) {
+        dataToSet = {...dataToSet, date: defaultDate};
+    } else if (initialData.hasOwnProperty('month') && !initialData.hasOwnProperty('date') && !initialData['month']) {
+        dataToSet = {...dataToSet, month: format(defaultDate, 'yyyy-MM')};
+    }
+
+    formSetter(dataToSet); 
     setter(true);
   };
 
@@ -559,18 +578,18 @@ export default function PerformancePage() {
                 </TableRow>
               </TableHeaderComponent>
               <TableBody>
-                {managedEmployees.map(emp => (
+                {(managedEmployees || []).map(emp => (
                   <TableRow key={emp.employeeId}>
                     <TableCell>{emp.employeeId}</TableCell>
                     <TableCell>{emp.employeeName}</TableCell>
                     <TableCell>{emp.role}</TableCell>
                     <TableCell className="text-right space-x-1">
-                      <Button variant="outline" size="icon" onClick={() => handleOpenEditEmployeeDialog(emp)}><Edit className="h-4 w-4" /></Button>
-                      <Button variant="destructive" size="icon" onClick={() => handleDeleteEmployee(emp.employeeId)}><Trash2 className="h-4 w-4" /></Button>
+                      <Button variant="outline" size="icon" onClick={() => handleOpenEditEmployeeDialog(emp)} aria-label={`Edit ${emp.employeeName}`}><Edit className="h-4 w-4" /></Button>
+                      <Button variant="destructive" size="icon" onClick={() => handleDeleteEmployee(emp.employeeId)} aria-label={`Delete ${emp.employeeName}`}><Trash2 className="h-4 w-4" /></Button>
                     </TableCell>
                   </TableRow>
                 ))}
-                {managedEmployees.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">No employees managed yet.</TableCell></TableRow>}
+                {(managedEmployees || []).length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">No employees managed yet.</TableCell></TableRow>}
               </TableBody>
             </Table>
             <DialogFooter>
@@ -632,7 +651,7 @@ export default function PerformancePage() {
               <Select name="selectedEmployeeId" value={performanceFormData.selectedEmployeeId || ""} onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'performance')}>
                 <SelectTrigger id="perfEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
-                  {managedEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
+                  {(managedEmployees || []).map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -670,7 +689,7 @@ export default function PerformancePage() {
               <Select name="selectedEmployeeId" value={attendanceFormData.selectedEmployeeId || ""} onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'attendance')}>
                 <SelectTrigger id="attEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
-                  {managedEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
+                  {(managedEmployees || []).map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -717,7 +736,7 @@ export default function PerformancePage() {
               <Select name="selectedEmployeeId" value={salaryFormData.selectedEmployeeId || ""} onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'salary')}>
                 <SelectTrigger id="salaryEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
-                  {managedEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
+                  {(managedEmployees || []).map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
                 </SelectContent>
               </Select>
             </div>
@@ -736,5 +755,3 @@ export default function PerformancePage() {
     </>
   );
 }
-
-    
