@@ -73,7 +73,7 @@ export interface MenuItem {
   id: string;
   name: string;
   price: number;
-  category?: string; // Optional for now
+  category?: string;
 }
 
 // Simplified type for cashier selection
@@ -82,3 +82,4 @@ export interface Cashier {
   employeeId: string; // The user-facing Employee ID
   name: string;
 }
+

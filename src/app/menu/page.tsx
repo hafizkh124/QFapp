@@ -1,3 +1,4 @@
+
 // src/app/menu/page.tsx
 'use client';
 
@@ -6,6 +7,7 @@ import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
@@ -15,32 +17,36 @@ import { useToast } from "@/hooks/use-toast";
 
 const LOCAL_STORAGE_KEY = 'quoriam-menu-items';
 
+const itemCategories = ["Pulao", "Chicken Items", "Beef Items", "Kabab", "Extras", "Beverages"];
+
 const defaultMenuItems: MenuItem[] = [
-  { id: 'default-1', name: 'Quoriam Single', price: 310 },
-  { id: 'default-2', name: 'Quoriam Half', price: 210 },
-  { id: 'default-3', name: 'Quoriam Single Choice', price: 320 },
-  { id: 'default-4', name: 'Quoriam Special', price: 450 },
-  { id: 'default-5', name: 'Quoriam Single Without Kabab', price: 270 },
-  { id: 'default-6', name: 'Quoriam Shami Kabab', price: 40 },
-  { id: 'default-7', name: 'Quoriam Chicken Piece', price: 90 },
-  { id: 'default-8', name: 'Pulao Kabab without Chicken', price: 210 },
-  { id: 'default-9', name: 'Quoriam Beef Pulao - Single', price: 350 },
-  { id: 'default-10', name: 'Quoriam Beef Pulao - Half', price: 230 },
-  { id: 'default-11', name: 'Quoriam Beef Pulao - 1 KG Deal', price: 690 },
-  { id: 'default-12', name: 'Quoriam Raita', price: 30 },
-  { id: 'default-13', name: 'Quoriam Salad', price: 30 },
-  { id: 'default-14', name: 'Quoriam Qehwa', price: 50 },
+  { id: 'default-1', name: 'Quoriam Single', price: 310, category: 'Pulao' },
+  { id: 'default-2', name: 'Quoriam Half', price: 210, category: 'Pulao' },
+  { id: 'default-3', name: 'Quoriam Single Choice', price: 320, category: 'Pulao' },
+  { id: 'default-4', name: 'Quoriam Special', price: 450, category: 'Pulao' },
+  { id: 'default-5', name: 'Quoriam Single Without Kabab', price: 270, category: 'Pulao' },
+  { id: 'default-6', name: 'Quoriam Shami Kabab', price: 40, category: 'Kabab' },
+  { id: 'default-7', name: 'Quoriam Chicken Piece', price: 90, category: 'Chicken Items' },
+  { id: 'default-8', name: 'Pulao Kabab without Chicken', price: 210, category: 'Pulao' }, // Or Kabab, depends on emphasis
+  { id: 'default-9', name: 'Quoriam Beef Pulao - Single', price: 350, category: 'Beef Items' },
+  { id: 'default-10', name: 'Quoriam Beef Pulao - Half', price: 230, category: 'Beef Items' },
+  { id: 'default-11', name: 'Quoriam Beef Pulao - 1 KG Deal', price: 690, category: 'Beef Items' },
+  { id: 'default-12', name: 'Quoriam Raita', price: 30, category: 'Extras' },
+  { id: 'default-13', name: 'Quoriam Salad', price: 30, category: 'Extras' },
+  { id: 'default-14', name: 'Quoriam Qehwa', price: 50, category: 'Beverages' },
 ];
 
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [newItemName, setNewItemName] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
+  const [newItemCategory, setNewItemCategory] = useState(itemCategories[0]);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [editItemName, setEditItemName] = useState('');
   const [editItemPrice, setEditItemPrice] = useState('');
+  const [editItemCategory, setEditItemCategory] = useState('');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -50,19 +56,14 @@ export default function MenuPage() {
       if (parsedItems.length > 0) {
         setMenuItems(parsedItems);
       } else {
-        // If stored items are empty (e.g., after clearing localStorage), set default items
         setMenuItems(defaultMenuItems);
       }
     } else {
-      // If no items in localStorage, set default items
       setMenuItems(defaultMenuItems);
     }
   }, []);
 
   useEffect(() => {
-    // Only save to localStorage if menuItems is not the initial empty array during setup,
-    // or if there's already something in localStorage (to overwrite it).
-    // This prevents overwriting defaults with an empty array on first load if defaultMenuItems were just set.
     if (menuItems.length > 0 || localStorage.getItem(LOCAL_STORAGE_KEY)) {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(menuItems));
     }
@@ -70,18 +71,20 @@ export default function MenuPage() {
 
   const handleAddNewItem = (e: FormEvent) => {
     e.preventDefault();
-    if (!newItemName || !newItemPrice || parseFloat(newItemPrice) <= 0) {
-      toast({ title: "Error", description: "Please enter a valid name and price.", variant: "destructive" });
+    if (!newItemName || !newItemPrice || parseFloat(newItemPrice) <= 0 || !newItemCategory) {
+      toast({ title: "Error", description: "Please enter a valid name, price, and category.", variant: "destructive" });
       return;
     }
     const newItem: MenuItem = {
       id: Date.now().toString(),
       name: newItemName,
       price: parseFloat(newItemPrice),
+      category: newItemCategory,
     };
     setMenuItems(prevItems => [...prevItems, newItem]);
     setNewItemName('');
     setNewItemPrice('');
+    setNewItemCategory(itemCategories[0]); // Reset category
     toast({ title: "Success", description: `${newItem.name} added to the menu.` });
   };
 
@@ -89,17 +92,18 @@ export default function MenuPage() {
     setEditingItem(item);
     setEditItemName(item.name);
     setEditItemPrice(item.price.toString());
+    setEditItemCategory(item.category || itemCategories[0]); // Default if category is undefined
     setIsEditDialogOpen(true);
   };
 
   const handleSaveEditItem = () => {
-    if (!editingItem || !editItemName || !editItemPrice || parseFloat(editItemPrice) <= 0) {
-      toast({ title: "Error", description: "Please enter a valid name and price for editing.", variant: "destructive" });
+    if (!editingItem || !editItemName || !editItemPrice || parseFloat(editItemPrice) <= 0 || !editItemCategory) {
+      toast({ title: "Error", description: "Please enter a valid name, price, and category for editing.", variant: "destructive" });
       return;
     }
     setMenuItems(prevItems =>
       prevItems.map(item =>
-        item.id === editingItem.id ? { ...item, name: editItemName, price: parseFloat(editItemPrice) } : item
+        item.id === editingItem.id ? { ...item, name: editItemName, price: parseFloat(editItemPrice), category: editItemCategory } : item
       )
     );
     setIsEditDialogOpen(false);
@@ -109,7 +113,6 @@ export default function MenuPage() {
 
   const handleDeleteItem = (itemId: string) => {
     const itemToDelete = menuItems.find(item => item.id === itemId);
-    // Using window.confirm for simplicity. For better UX, consider a custom modal.
     if (window.confirm(`Are you sure you want to delete "${itemToDelete?.name}"?`)) {
       setMenuItems(prevItems => prevItems.filter(item => item.id !== itemId));
       toast({ title: "Success", description: `Item deleted successfully.` });
@@ -118,7 +121,7 @@ export default function MenuPage() {
 
   return (
     <>
-      <PageHeader title="Menu Management" description="Add, edit, or delete your restaurant's menu items." />
+      <PageHeader title="Menu Management" description="Add, edit, or delete your restaurant's menu items and categories." />
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-1">
@@ -134,6 +137,19 @@ export default function MenuPage() {
               <div>
                 <Label htmlFor="newItemPrice">Price (PKR)</Label>
                 <Input id="newItemPrice" type="number" value={newItemPrice} onChange={(e) => setNewItemPrice(e.target.value)} placeholder="e.g., 250" min="0" step="0.01" />
+              </div>
+              <div>
+                <Label htmlFor="newItemCategory">Category</Label>
+                <Select value={newItemCategory} onValueChange={setNewItemCategory}>
+                  <SelectTrigger id="newItemCategory">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {itemCategories.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground">
                 <PlusCircle className="mr-2 h-4 w-4" /> Add Item
@@ -152,6 +168,7 @@ export default function MenuPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead>Price (PKR)</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -159,12 +176,13 @@ export default function MenuPage() {
               <TableBody>
                 {menuItems.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center text-muted-foreground">No menu items yet. Add some!</TableCell>
+                    <TableCell colSpan={4} className="text-center text-muted-foreground">No menu items yet. Add some!</TableCell>
                   </TableRow>
                 )}
                 {menuItems.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{item.name}</TableCell>
+                    <TableCell>{item.category || 'N/A'}</TableCell>
                     <TableCell>{item.price.toFixed(2)}</TableCell>
                     <TableCell className="text-right space-x-2">
                       <Button variant="outline" size="icon" onClick={() => handleOpenEditDialog(item)}>
@@ -199,6 +217,19 @@ export default function MenuPage() {
                 <Label htmlFor="editItemPrice">Price (PKR)</Label>
                 <Input id="editItemPrice" type="number" value={editItemPrice} onChange={(e) => setEditItemPrice(e.target.value)} min="0" step="0.01"/>
               </div>
+              <div>
+                <Label htmlFor="editItemCategory">Category</Label>
+                <Select value={editItemCategory} onValueChange={setEditItemCategory}>
+                  <SelectTrigger id="editItemCategory">
+                    <SelectValue placeholder="Select category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {itemCategories.map(cat => (
+                      <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <DialogFooter>
               <DialogClose asChild>
@@ -212,3 +243,4 @@ export default function MenuPage() {
     </>
   );
 }
+

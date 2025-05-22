@@ -53,19 +53,32 @@ export default function SalesPage() {
   
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online' | 'credit'>('cash');
   const [currentOrderItems, setCurrentOrderItems] = useState<NewSaleItem[]>([]);
-  const [selectedCashier, setSelectedCashier] = useState<Cashier>(availableCashiers[0]);
+  const [selectedCashier, setSelectedCashier] = useState<Cashier | undefined>(undefined); // Initialize as undefined
 
 
   const [showCustomItemForm, setShowCustomItemForm] = useState(false);
   const [customItemName, setCustomItemName] = useState('');
   const [customItemPrice, setCustomItemPrice] = useState('');
+  const [customItemCategory, setCustomItemCategory] = useState(''); // Assuming defaultCategories exists or use a placeholder
   
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [currentReceipt, setCurrentReceipt] = useState<SaleRecord | null>(null);
 
   const { toast } = useToast();
+  
+  // Define defaultCategories for custom item, could be imported or defined here
+  const defaultCategories = ["Pulao", "Chicken Items", "Beef Items", "Kabab", "Extras", "Beverages"];
+
 
   useEffect(() => {
+    // Set selected cashier on client mount
+    if (availableCashiers.length > 0) {
+        setSelectedCashier(availableCashiers[0]);
+    }
+    if (defaultCategories.length > 0) {
+        setCustomItemCategory(defaultCategories[0]);
+    }
+
     const storedMenuItems = localStorage.getItem(MENU_LOCAL_STORAGE_KEY);
     let loadedMenuItems: MenuItem[] = [];
     if (storedMenuItems) {
@@ -92,11 +105,12 @@ export default function SalesPage() {
     } else {
         const placeholderDate = new Date();
         const initialRecords: SaleRecord[] = [
-          { id: 'S001', date: format(placeholderDate, 'yyyy-MM-dd'), dateTime: placeholderDate.toISOString(), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card', employeeName: availableCashiers[0].name, employeeId: availableCashiers[0].employeeId },
-          { id: 'S002', date: format(new Date(Date.now() - 86400000 * 1 ), 'yyyy-MM-dd'), dateTime: new Date(Date.now() - 86400000 * 1 ).toISOString(), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash', employeeName: availableCashiers[1].name, employeeId: availableCashiers[1].employeeId },
+          { id: 'S001', date: format(placeholderDate, 'yyyy-MM-dd'), dateTime: placeholderDate.toISOString(), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card', employeeName: availableCashiers[0]?.name || "N/A", employeeId: availableCashiers[0]?.employeeId || "N/A" },
+          { id: 'S002', date: format(new Date(Date.now() - 86400000 * 1 ), 'yyyy-MM-dd'), dateTime: new Date(Date.now() - 86400000 * 1 ).toISOString(), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash', employeeName: availableCashiers[1]?.name || "N/A", employeeId: availableCashiers[1]?.employeeId || "N/A" },
         ];
         setSalesRecords(initialRecords);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -149,6 +163,7 @@ export default function SalesPage() {
       name: item.name,
       quantity: item.quantity,
       price: item.price,
+      // category: item.category // Category is part of MenuItem, but not directly in SaleItem. Can be added if needed.
     }));
 
     setCurrentOrderItems(prevOrderItems => [...prevOrderItems, ...newOrderItems]);
@@ -164,14 +179,15 @@ export default function SalesPage() {
   };
 
   const handleAddCustomItemToOrderAndMenu = () => {
-    if (!customItemName || !customItemPrice || parseFloat(customItemPrice) <= 0) {
-      toast({ title: "Error", description: "Custom item name and price are required.", variant: "destructive"});
+    if (!customItemName || !customItemPrice || parseFloat(customItemPrice) <= 0 || !customItemCategory) {
+      toast({ title: "Error", description: "Custom item name, price, and category are required.", variant: "destructive"});
       return;
     }
     const newMenuItem: MenuItem = {
       id: Date.now().toString(),
       name: customItemName,
       price: parseFloat(customItemPrice),
+      category: customItemCategory,
     };
 
     const newItemForOrder: NewSaleItem = {
@@ -183,13 +199,14 @@ export default function SalesPage() {
     setCurrentOrderItems(prevOrderItems => [...prevOrderItems, newItemForOrder]);
     
     const updatedMenuItems = [...menuItems, newMenuItem];
-    setMenuItems(updatedMenuItems);
+    setMenuItems(updatedMenuItems); // This will also update menuSelection via its useEffect
     localStorage.setItem(MENU_LOCAL_STORAGE_KEY, JSON.stringify(updatedMenuItems));
 
     toast({ title: "Success", description: `${newMenuItem.name} added to order and menu.` });
 
     setCustomItemName('');
     setCustomItemPrice('');
+    setCustomItemCategory(defaultCategories[0]);
     setShowCustomItemForm(false);
   };
 
@@ -258,7 +275,7 @@ export default function SalesPage() {
                   <div>
                     <Label htmlFor="cashierSelect" className="mb-1 block">Select Cashier</Label>
                     <Select
-                      value={selectedCashier.employeeId}
+                      value={selectedCashier?.employeeId}
                       onValueChange={(employeeId) => {
                         const cashier = availableCashiers.find(c => c.employeeId === employeeId);
                         if (cashier) setSelectedCashier(cashier);
@@ -281,9 +298,9 @@ export default function SalesPage() {
                   </div>
                   <div>
                     <Label className="mb-1 block">Select Menu Items</Label>
-                    <ScrollArea className="h-[250px] w-full rounded-md border p-3">
+                    <ScrollArea className="h-[300px] w-full rounded-md border p-3">
                        {menuSelection.length === 0 && <p className="text-sm text-muted-foreground text-center py-4">No menu items available. Add items in Menu page.</p>}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-3">
                         {menuSelection.map(item => (
                           <div key={item.id} className="border rounded-md p-3 flex flex-col space-y-2 shadow-sm hover:shadow-md transition-shadow bg-card">
                             <div className="flex items-start justify-between mb-1">
@@ -292,6 +309,7 @@ export default function SalesPage() {
                                   {item.name}
                                 </Label>
                                 <p className="text-xs text-muted-foreground">PKR {item.price.toFixed(2)}</p>
+                                <p className="text-xs text-muted-foreground/80">{item.category || 'Uncategorized'}</p>
                               </div>
                               <Checkbox
                                 id={`item-select-${item.id}`}
@@ -337,6 +355,19 @@ export default function SalesPage() {
                       <div>
                         <Label htmlFor="customItemPrice" className="text-xs">Custom Item Price (PKR)</Label>
                         <Input id="customItemPrice" type="number" value={customItemPrice} onChange={(e) => setCustomItemPrice(e.target.value)} placeholder="e.g., 500" min="0" step="0.01" />
+                      </div>
+                      <div>
+                        <Label htmlFor="customItemCategory" className="text-xs">Category</Label>
+                        <Select value={customItemCategory} onValueChange={setCustomItemCategory}>
+                          <SelectTrigger id="customItemCategory">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {defaultCategories.map(cat => (
+                              <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                       <div className="flex gap-2">
                         <Button type="button" onClick={handleAddCustomItemToOrderAndMenu} className="flex-1">Add to Order & Menu</Button>
@@ -450,3 +481,4 @@ export default function SalesPage() {
     </>
   );
 }
+
