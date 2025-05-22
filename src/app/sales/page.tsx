@@ -30,27 +30,29 @@ interface MenuSelectionItem extends MenuItem {
 }
 
 const MENU_ITEMS_LOCAL_STORAGE_KEY = 'quoriam-menu-items';
-const MENU_CATEGORIES_LOCAL_STORAGE_KEY = 'quoriam-menu-categories';
+const MENU_CATEGORIES_LOCAL_STORAGE_KEY = 'quoriam-menu-categories'; // Used to load available categories
 const SALES_RECORDS_LOCAL_STORAGE_KEY = 'quoriam-sales-records';
 const MANAGED_EMPLOYEES_KEY = 'quoriam-managed-employees-v2';
 
-const defaultInitialCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
+const NO_CATEGORY_VALUE = "__no_category__"; // Special value for uncategorized custom items
+
+const defaultFallbackCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
 const defaultSalesCashiers: ManagedEmployee[] = [
-  { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager' },
-  { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'Shop Keeper' },
-  { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy' },
-  { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier' },
-  { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier' },
-  { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'Cashier' },
-  { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier' },
-  { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'Staff' },
+    { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager' },
+    { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'Shop Keeper' },
+    { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy' },
+    { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier' },
+    { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier' },
+    { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'Cashier' },
+    { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier' },
+    { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'Staff' },
 ];
 
 
 export default function SalesPage() {
   const [salesRecords, setSalesRecords] = useState<SaleRecord[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [allCategories, setAllCategories] = useState<string[]>([]);
+  const [allCategories, setAllCategories] = useState<string[]>([]); // Dynamic categories for custom item form
   const [menuSelection, setMenuSelection] = useState<MenuSelectionItem[]>([]);
   
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online' | 'credit'>('cash');
@@ -78,35 +80,32 @@ export default function SalesPage() {
         if (Array.isArray(parsedEmployees) && parsedEmployees.length > 0) {
           setCashierList(parsedEmployees);
         } else {
-          setCashierList(defaultSalesCashiers);
+          setCashierList(defaultSalesCashiers); // Fallback if stored list is empty or invalid
         }
       } else {
-        setCashierList(defaultSalesCashiers);
+        setCashierList(defaultSalesCashiers); // Fallback if nothing in localStorage
       }
     } catch (error) {
       console.error("Error loading managed employees from localStorage:", error);
       setCashierList(defaultSalesCashiers);
     }
     
-    // Load categories
+    // Load categories for custom item form
     const storedCategories = localStorage.getItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY);
     if (storedCategories) {
       try {
         const parsedCategories = JSON.parse(storedCategories);
         if (Array.isArray(parsedCategories) && parsedCategories.length > 0) {
           setAllCategories(parsedCategories);
-          if (customItemCategory === undefined) setCustomItemCategory(parsedCategories[0]);
+          // Do not set customItemCategory here, let placeholder show
         } else {
-          setAllCategories(defaultInitialCategories);
-           if (customItemCategory === undefined) setCustomItemCategory(defaultInitialCategories[0]);
+          setAllCategories(defaultFallbackCategories);
         }
       } catch (e) {
-        setAllCategories(defaultInitialCategories);
-        if (customItemCategory === undefined) setCustomItemCategory(defaultInitialCategories[0]);
+        setAllCategories(defaultFallbackCategories);
       }
     } else {
-      setAllCategories(defaultInitialCategories);
-      if (customItemCategory === undefined) setCustomItemCategory(defaultInitialCategories[0]);
+      setAllCategories(defaultFallbackCategories);
     }
 
     // Load menu items
@@ -121,10 +120,8 @@ export default function SalesPage() {
         }
       } catch (error) {
         console.error("Error parsing menu items from localStorage:", error);
-        // localStorage.removeItem(MENU_ITEMS_LOCAL_STORAGE_KEY); // Consider if removal is desired on error
       }
     }
-    // This effect depends on menuItems, so it should be after menuItems is set
     setMenuSelection(
       loadedMenuItems.map(item => ({ ...item, selected: false, quantity: 1 }))
     );
@@ -139,7 +136,6 @@ export default function SalesPage() {
         }
       } catch (error) {
         console.error("Error parsing sales records from localStorage:", error);
-        // localStorage.removeItem(SALES_RECORDS_LOCAL_STORAGE_KEY);
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -158,7 +154,6 @@ export default function SalesPage() {
 
 
   useEffect(() => {
-    // Re-initialize menuSelection when menuItems or allCategories change to reflect latest data
     setMenuSelection(
       menuItems.map(item => {
         const existingSelection = menuSelection.find(ms => ms.id === item.id);
@@ -169,12 +164,8 @@ export default function SalesPage() {
         };
       })
     );
-    // Set default custom item category if categories are loaded and it's not set
-    if (allCategories.length > 0 && customItemCategory === undefined) {
-      setCustomItemCategory(allCategories[0]);
-    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuItems, allCategories]); 
+  }, [menuItems]); 
 
   useEffect(() => {
     if (salesRecords.length > 0 || localStorage.getItem(SALES_RECORDS_LOCAL_STORAGE_KEY)) {
@@ -228,7 +219,7 @@ export default function SalesPage() {
   };
 
   const handleAddCustomItemToOrderAndMenu = () => {
-    if (!customItemName || !customItemPrice || parseFloat(customItemPrice) <= 0) { // Category is optional
+    if (!customItemName || !customItemPrice || parseFloat(customItemPrice) <= 0) {
       toast({ title: "Error", description: "Custom item name and price are required.", variant: "destructive"});
       return;
     }
@@ -236,7 +227,7 @@ export default function SalesPage() {
       id: Date.now().toString(),
       name: customItemName,
       price: parseFloat(customItemPrice),
-      category: customItemCategory, // Can be undefined if no category selected
+      category: customItemCategory,
     };
 
     const newItemForOrder: NewSaleItem = {
@@ -256,7 +247,7 @@ export default function SalesPage() {
 
     setCustomItemName('');
     setCustomItemPrice('');
-    if (allCategories.length > 0) setCustomItemCategory(allCategories[0]); else setCustomItemCategory(undefined);
+    setCustomItemCategory(undefined); // Reset to show placeholder
     setShowCustomItemForm(false);
   };
 
@@ -405,12 +396,15 @@ export default function SalesPage() {
                       </div>
                       <div>
                         <Label htmlFor="customItemCategory" className="text-xs">Category</Label>
-                        <Select value={customItemCategory} onValueChange={setCustomItemCategory}>
+                        <Select
+                          value={customItemCategory === undefined ? NO_CATEGORY_VALUE : customItemCategory}
+                          onValueChange={(value) => setCustomItemCategory(value === NO_CATEGORY_VALUE ? undefined : value)}
+                        >
                           <SelectTrigger id="customItemCategory">
                             <SelectValue placeholder="Select category (optional)" />
                           </SelectTrigger>
                           <SelectContent>
-                             <SelectItem value="">Uncategorized</SelectItem>
+                             <SelectItem value={NO_CATEGORY_VALUE}>Uncategorized</SelectItem>
                             {allCategories.map(cat => (
                               <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                             ))}
@@ -520,8 +514,8 @@ export default function SalesPage() {
              allSalesData={salesRecords} 
              menuItems={menuItems} 
              onViewReceipt={handleViewReceipt}
-             managedEmployeesList={cashierList}
-             allCategories={allCategories}
+             managedEmployeesList={cashierList} // Pass the dynamic list
+             allCategories={allCategories} // Pass the dynamic categories
            />
         </TabsContent>
       </Tabs>
@@ -536,4 +530,3 @@ export default function SalesPage() {
     </>
   );
 }
-

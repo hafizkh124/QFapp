@@ -11,12 +11,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { PlusCircle, Pencil, Trash2, ListFilter } from 'lucide-react';
+import { PlusCircle, Pencil, Trash2 } from 'lucide-react';
 import type { MenuItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 
 const MENU_ITEMS_LOCAL_STORAGE_KEY = 'quoriam-menu-items';
 const MENU_CATEGORIES_LOCAL_STORAGE_KEY = 'quoriam-menu-categories';
+
+const NO_CATEGORY_VALUE = "__no_category__"; // Special value for uncategorized
 
 const defaultInitialCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
 
@@ -62,25 +64,16 @@ export default function MenuPage() {
         if (Array.isArray(parsedCategories)) {
           setCategories(parsedCategories);
           if (parsedCategories.length > 0 && newItemCategory === undefined) {
-            setNewItemCategory(parsedCategories[0]);
+            // Keep newItemCategory undefined to show placeholder initially
           }
         } else {
           setCategories(defaultInitialCategories);
-           if (defaultInitialCategories.length > 0 && newItemCategory === undefined) {
-            setNewItemCategory(defaultInitialCategories[0]);
-          }
         }
       } catch (e) {
         setCategories(defaultInitialCategories);
-         if (defaultInitialCategories.length > 0 && newItemCategory === undefined) {
-            setNewItemCategory(defaultInitialCategories[0]);
-          }
       }
     } else {
       setCategories(defaultInitialCategories);
-      if (defaultInitialCategories.length > 0 && newItemCategory === undefined) {
-            setNewItemCategory(defaultInitialCategories[0]);
-      }
     }
 
     // Load menu items
@@ -143,7 +136,7 @@ export default function MenuPage() {
 
   const handleAddNewItem = (e: FormEvent) => {
     e.preventDefault();
-    if (!newItemName || !newItemPrice || parseFloat(newItemPrice) <= 0) { // Category is optional now
+    if (!newItemName || !newItemPrice || parseFloat(newItemPrice) <= 0) {
       toast({ title: "Error", description: "Please enter a valid name and price.", variant: "destructive" });
       return;
     }
@@ -156,7 +149,7 @@ export default function MenuPage() {
     setMenuItems(prevItems => [...prevItems, newItem]);
     setNewItemName('');
     setNewItemPrice('');
-    if (categories.length > 0) setNewItemCategory(categories[0]); else setNewItemCategory(undefined);
+    setNewItemCategory(undefined); // Reset to show placeholder
     toast({ title: "Success", description: `${newItem.name} added to the menu.` });
   };
 
@@ -164,12 +157,12 @@ export default function MenuPage() {
     setEditingItem(item);
     setEditItemName(item.name);
     setEditItemPrice(item.price.toString());
-    setEditItemCategory(item.category || (categories.length > 0 ? categories[0] : undefined));
+    setEditItemCategory(item.category); // Stays undefined if item.category is undefined
     setIsEditDialogOpen(true);
   };
 
   const handleSaveEditItem = () => {
-    if (!editingItem || !editItemName || !editItemPrice || parseFloat(editItemPrice) <= 0) { // Category is optional
+    if (!editingItem || !editItemName || !editItemPrice || parseFloat(editItemPrice) <= 0) {
       toast({ title: "Error", description: "Please enter a valid name and price for editing.", variant: "destructive" });
       return;
     }
@@ -244,12 +237,15 @@ export default function MenuPage() {
               </div>
               <div>
                 <Label htmlFor="newItemCategory">Category</Label>
-                <Select value={newItemCategory} onValueChange={setNewItemCategory}>
+                <Select
+                  value={newItemCategory === undefined ? NO_CATEGORY_VALUE : newItemCategory}
+                  onValueChange={(value) => setNewItemCategory(value === NO_CATEGORY_VALUE ? undefined : value)}
+                >
                   <SelectTrigger id="newItemCategory">
                     <SelectValue placeholder="Select category (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Uncategorized</SelectItem>
+                    <SelectItem value={NO_CATEGORY_VALUE}>Uncategorized</SelectItem>
                     {categories.map(cat => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
@@ -264,7 +260,7 @@ export default function MenuPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-1"> {/* Adjusted span if 3 cards in a row */}
+        <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>Current Menu Items</CardTitle>
             <CardDescription>View and manage your existing menu items.</CardDescription>
@@ -325,12 +321,15 @@ export default function MenuPage() {
               </div>
               <div>
                 <Label htmlFor="editItemCategory">Category</Label>
-                <Select value={editItemCategory} onValueChange={setEditItemCategory}>
+                <Select
+                  value={editItemCategory === undefined ? NO_CATEGORY_VALUE : editItemCategory}
+                  onValueChange={(value) => setEditItemCategory(value === NO_CATEGORY_VALUE ? undefined : value)}
+                >
                   <SelectTrigger id="editItemCategory">
                     <SelectValue placeholder="Select category (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                     <SelectItem value="">Uncategorized</SelectItem>
+                     <SelectItem value={NO_CATEGORY_VALUE}>Uncategorized</SelectItem>
                     {categories.map(cat => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
@@ -351,4 +350,3 @@ export default function MenuPage() {
     </>
   );
 }
-
