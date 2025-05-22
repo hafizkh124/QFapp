@@ -5,6 +5,7 @@ export interface SaleItem {
   quantity: number;
   price: number;
   total: number;
+  category?: string; // Added from menu categorization
 }
 
 export interface SaleRecord {
@@ -14,8 +15,8 @@ export interface SaleRecord {
   items: SaleItem[];
   totalAmount: number;
   paymentMethod: 'cash' | 'card' | 'online' | 'credit';
-  employeeName: string; 
-  employeeId: string; 
+  employeeName: string;
+  employeeId: string;
 }
 
 export interface ExpenseRecord {
@@ -37,12 +38,12 @@ export interface ProfitEntry {
 export interface ManagedEmployee {
   employeeId: string; // Unique Employee ID
   employeeName: string;
-  role: string;
+  role: 'admin' | 'employee'; // Added role
 }
 
 export interface EmployeePerformance {
   id: string; // Record ID
-  employeeId: string; 
+  employeeId: string;
   employeeName: string;
   role: string; // Denormalized role at the time of record creation
   date: string;
@@ -54,7 +55,7 @@ export interface EmployeePerformance {
 
 export interface EmployeeAttendance {
   id: string; // Record ID
-  employeeId: string; 
+  employeeId: string;
   employeeName: string;
   role: string; // Denormalized role
   date: string;
@@ -65,7 +66,7 @@ export interface EmployeeAttendance {
 
 export interface EmployeeSalary {
   id: string; // Record ID
-  employeeId: string; 
+  employeeId: string;
   employeeName: string;
   role: string; // Denormalized role
   month: string; // e.g., 'Mar 2024'
@@ -83,8 +84,11 @@ export interface MenuItem {
   category?: string;
 }
 
-// Simplified type for cashier selection in sales page
-export interface Cashier {
-  employeeId: string; 
-  name: string;
+// User type for AuthContext
+export interface AuthUser {
+  uid: string;
+  email: string | null;
+  role: 'admin' | 'employee' | 'guest'; // guest for unauthenticated
+  employeeId?: string; // Link to ManagedEmployee ID if role is 'employee'
+  employeeName?: string;
 }

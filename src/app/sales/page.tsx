@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Trash2, UtensilsCrossed, Eye, UserCircle } from 'lucide-react';
+import { PlusCircle, Trash2, UtensilsCrossed, Eye, UserCircle, ShieldExclamation } from 'lucide-react';
 import type { SaleRecord, SaleItem, MenuItem, ManagedEmployee } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -19,6 +19,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SalesReports from '@/components/sales/SalesReports';
 import ReceiptModal from '@/components/sales/ReceiptModal';
 import { format } from 'date-fns';
+import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface NewSaleItem extends Omit<SaleItem, 'id' | 'total'> {
   tempId: string; // for client-side list management
@@ -30,36 +32,39 @@ interface MenuSelectionItem extends MenuItem {
 }
 
 const MENU_ITEMS_LOCAL_STORAGE_KEY = 'quoriam-menu-items';
-const MENU_CATEGORIES_LOCAL_STORAGE_KEY = 'quoriam-menu-categories'; // Used to load available categories
+const MENU_CATEGORIES_LOCAL_STORAGE_KEY = 'quoriam-menu-categories';
 const SALES_RECORDS_LOCAL_STORAGE_KEY = 'quoriam-sales-records';
 const MANAGED_EMPLOYEES_KEY = 'quoriam-managed-employees-v2';
 
-const NO_CATEGORY_VALUE = "__no_category__"; // Special value for uncategorized custom items
+const NO_CATEGORY_VALUE = "__no_category__";
 
 const defaultFallbackCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
-const defaultSalesCashiers: ManagedEmployee[] = [
-    { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager' },
-    { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'Shop Keeper' },
-    { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy' },
-    { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier' },
-    { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier' },
-    { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'Cashier' },
-    { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier' },
-    { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'Staff' },
+const defaultSalesCashiersFallback: ManagedEmployee[] = [ // Renamed to avoid conflict
+    { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin' },
+    { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee' },
+    { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'employee' },
+    { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee' },
+    { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'employee' },
+    { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'employee' },
+    { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee' },
+    { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee' },
 ];
 
 
 export default function SalesPage() {
+  const { user } = useAuth(); // Get authenticated user
+  const { toast } = useToast();
+
   const [salesRecords, setSalesRecords] = useState<SaleRecord[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
-  const [allCategories, setAllCategories] = useState<string[]>([]); // Dynamic categories for custom item form
+  const [allCategories, setAllCategories] = useState<string[]>([]);
   const [menuSelection, setMenuSelection] = useState<MenuSelectionItem[]>([]);
   
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online' | 'credit'>('cash');
   const [currentOrderItems, setCurrentOrderItems] = useState<NewSaleItem[]>([]);
   
   const [cashierList, setCashierList] = useState<ManagedEmployee[]>([]);
-  const [selectedCashier, setSelectedCashier] = useState<ManagedEmployee | undefined>(undefined); 
+  const [selectedCashierId, setSelectedCashierId] = useState<string | undefined>(undefined);
 
   const [showCustomItemForm, setShowCustomItemForm] = useState(false);
   const [customItemName, setCustomItemName] = useState('');
@@ -69,10 +74,7 @@ export default function SalesPage() {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [currentReceipt, setCurrentReceipt] = useState<SaleRecord | null>(null);
 
-  const { toast } = useToast();
-  
   useEffect(() => {
-    // Load managed employees (cashiers)
     try {
       const storedManagedEmployees = localStorage.getItem(MANAGED_EMPLOYEES_KEY);
       if (storedManagedEmployees) {
@@ -80,24 +82,22 @@ export default function SalesPage() {
         if (Array.isArray(parsedEmployees) && parsedEmployees.length > 0) {
           setCashierList(parsedEmployees);
         } else {
-          setCashierList(defaultSalesCashiers); // Fallback if stored list is empty or invalid
+          setCashierList(defaultSalesCashiersFallback);
         }
       } else {
-        setCashierList(defaultSalesCashiers); // Fallback if nothing in localStorage
+        setCashierList(defaultSalesCashiersFallback);
       }
     } catch (error) {
       console.error("Error loading managed employees from localStorage:", error);
-      setCashierList(defaultSalesCashiers);
+      setCashierList(defaultSalesCashiersFallback);
     }
     
-    // Load categories for custom item form
     const storedCategories = localStorage.getItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY);
     if (storedCategories) {
       try {
         const parsedCategories = JSON.parse(storedCategories);
         if (Array.isArray(parsedCategories) && parsedCategories.length > 0) {
           setAllCategories(parsedCategories);
-          // Do not set customItemCategory here, let placeholder show
         } else {
           setAllCategories(defaultFallbackCategories);
         }
@@ -108,7 +108,6 @@ export default function SalesPage() {
       setAllCategories(defaultFallbackCategories);
     }
 
-    // Load menu items
     const storedMenuItems = localStorage.getItem(MENU_ITEMS_LOCAL_STORAGE_KEY);
     let loadedMenuItems: MenuItem[] = [];
     if (storedMenuItems) {
@@ -126,7 +125,6 @@ export default function SalesPage() {
       loadedMenuItems.map(item => ({ ...item, selected: false, quantity: 1 }))
     );
 
-    // Load sales records
     const storedSales = localStorage.getItem(SALES_RECORDS_LOCAL_STORAGE_KEY);
     if (storedSales) {
       try {
@@ -139,33 +137,32 @@ export default function SalesPage() {
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); 
+  }, []);
 
   useEffect(() => {
-    if (cashierList.length > 0) {
-        const currentSelectedStillExists = cashierList.some(c => c.employeeId === selectedCashier?.employeeId);
-        if (!selectedCashier || !currentSelectedStillExists) {
-            setSelectedCashier(cashierList[0]);
-        }
-    } else {
-        setSelectedCashier(undefined);
+    if (user?.role === 'employee' && user.employeeId) {
+      setSelectedCashierId(user.employeeId);
+    } else if (user?.role === 'admin' && cashierList.length > 0 && !selectedCashierId) {
+      // For admin, if no cashier is selected yet, default to first in list if available
+      const adminDefaultCashier = cashierList.find(c => c.employeeId === user.employeeId); // Prefer admin's own ID
+      setSelectedCashierId(adminDefaultCashier ? adminDefaultCashier.employeeId : cashierList[0].employeeId);
     }
-  }, [cashierList, selectedCashier]);
+  }, [user, cashierList, selectedCashierId]);
 
 
   useEffect(() => {
     setMenuSelection(
       menuItems.map(item => {
         const existingSelection = menuSelection.find(ms => ms.id === item.id);
-        return { 
-          ...item, 
-          selected: existingSelection?.selected || false, 
-          quantity: existingSelection?.quantity || 1 
+        return {
+          ...item,
+          selected: existingSelection?.selected || false,
+          quantity: existingSelection?.quantity || 1
         };
       })
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuItems]); 
+  }, [menuItems]);
 
   useEffect(() => {
     if (salesRecords.length > 0 || localStorage.getItem(SALES_RECORDS_LOCAL_STORAGE_KEY)) {
@@ -176,8 +173,8 @@ export default function SalesPage() {
   const handleMenuSelectionChange = (itemId: string, checked: boolean) => {
     setMenuSelection(prevSelection =>
       prevSelection.map(item =>
-        item.id === itemId 
-          ? { ...item, selected: checked, quantity: checked ? (item.quantity > 0 ? item.quantity : 1) : 1 } 
+        item.id === itemId
+          ? { ...item, selected: checked, quantity: checked ? (item.quantity > 0 ? item.quantity : 1) : 1 }
           : item
       )
     );
@@ -203,7 +200,7 @@ export default function SalesPage() {
       name: item.name,
       quantity: item.quantity,
       price: item.price,
-      category: item.category 
+      category: item.category
     }));
 
     setCurrentOrderItems(prevOrderItems => [...prevOrderItems, ...newOrderItems]);
@@ -233,21 +230,21 @@ export default function SalesPage() {
     const newItemForOrder: NewSaleItem = {
       tempId: `custom-${newMenuItem.id}`,
       name: newMenuItem.name,
-      quantity: 1, 
+      quantity: 1,
       price: newMenuItem.price,
       category: newMenuItem.category,
     };
     setCurrentOrderItems(prevOrderItems => [...prevOrderItems, newItemForOrder]);
-    
+
     const updatedMenuItems = [...menuItems, newMenuItem];
-    setMenuItems(updatedMenuItems); 
+    setMenuItems(updatedMenuItems);
     localStorage.setItem(MENU_ITEMS_LOCAL_STORAGE_KEY, JSON.stringify(updatedMenuItems));
 
     toast({ title: "Success", description: `${newMenuItem.name} added to order and menu.` });
 
     setCustomItemName('');
     setCustomItemPrice('');
-    setCustomItemCategory(undefined); // Reset to show placeholder
+    setCustomItemCategory(undefined);
     setShowCustomItemForm(false);
   };
 
@@ -258,8 +255,17 @@ export default function SalesPage() {
       toast({ title: "Error", description: "Please add items to the order before completing sale.", variant: "destructive"});
       return;
     }
-    if (!selectedCashier) {
-      toast({ title: "Error", description: "Please select a cashier.", variant: "destructive"});
+    
+    let currentCashier: ManagedEmployee | undefined;
+    if (user?.role === 'employee' && user.employeeId && user.employeeName) {
+        currentCashier = { employeeId: user.employeeId, employeeName: user.employeeName, role: 'employee' };
+    } else if (user?.role === 'admin' && selectedCashierId) {
+        currentCashier = cashierList.find(c => c.employeeId === selectedCashierId);
+    }
+
+
+    if (!currentCashier) {
+      toast({ title: "Error", description: "Cashier information is missing.", variant: "destructive"});
       return;
     }
 
@@ -271,17 +277,17 @@ export default function SalesPage() {
       items: currentOrderItems.map(item => ({ ...item, id: `I${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2, 3)}`, total: item.quantity * item.price })),
       totalAmount: currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0),
       paymentMethod,
-      employeeName: selectedCashier.employeeName,
-      employeeId: selectedCashier.employeeId,
+      employeeName: currentCashier.employeeName,
+      employeeId: currentCashier.employeeId,
     };
     setSalesRecords(prevRecords => [newSale, ...prevRecords].sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()));
-    setCurrentReceipt(newSale); 
-    setIsReceiptModalOpen(true);   
-    
+    setCurrentReceipt(newSale);
+    setIsReceiptModalOpen(true);
+
     setCurrentOrderItems([]);
     toast({ title: "Sale Recorded!", description: `Sale ID: ${newSale.id} completed successfully.`});
   };
-  
+
   const handleViewReceipt = (saleId: string) => {
     const saleToView = salesRecords.find(sale => sale.id === saleId);
     if (saleToView) {
@@ -291,11 +297,23 @@ export default function SalesPage() {
   };
 
   const currentOrderTotal = currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+  
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Alert variant="destructive">
+          <ShieldExclamation className="h-4 w-4" />
+          <AlertTitle>Access Denied</AlertTitle>
+          <AlertDescription>You need to be logged in to view sales information.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <>
       <PageHeader title="Sales Management" description="Record sales, view reports, and manage receipts." />
-      
+
       <Tabs defaultValue="recordSale" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6">
           <TabsTrigger value="recordSale">Record Sale</TabsTrigger>
@@ -310,30 +328,36 @@ export default function SalesPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmitSale} className="space-y-4">
-                  <div>
-                    <Label htmlFor="cashierSelect" className="mb-1 block">Select Cashier</Label>
-                    <Select
-                      value={selectedCashier?.employeeId || ""}
-                      onValueChange={(employeeId) => {
-                        const cashier = cashierList.find(c => c.employeeId === employeeId);
-                        if (cashier) setSelectedCashier(cashier);
-                      }}
-                    >
-                      <SelectTrigger id="cashierSelect" className="w-full">
-                         <div className="flex items-center gap-2">
-                            <UserCircle className="h-4 w-4 text-muted-foreground" />
-                            <SelectValue placeholder="Select cashier" />
-                        </div>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {cashierList.length > 0 ? cashierList.map(cashier => (
-                          <SelectItem key={cashier.employeeId} value={cashier.employeeId}>
-                            {cashier.employeeName} (ID: {cashier.employeeId})
-                          </SelectItem>
-                        )) : <SelectItem value="no-cashiers" disabled>No cashiers available</SelectItem>}
-                      </SelectContent>
-                    </Select>
-                  </div>
+                  {user?.role === 'admin' && (
+                    <div>
+                      <Label htmlFor="cashierSelect" className="mb-1 block">Select Cashier</Label>
+                      <Select
+                        value={selectedCashierId || ""}
+                        onValueChange={(employeeId) => setSelectedCashierId(employeeId)}
+                      >
+                        <SelectTrigger id="cashierSelect" className="w-full">
+                           <div className="flex items-center gap-2">
+                              <UserCircle className="h-4 w-4 text-muted-foreground" />
+                              <SelectValue placeholder="Select cashier" />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {cashierList.length > 0 ? cashierList.map(cashier => (
+                            <SelectItem key={cashier.employeeId} value={cashier.employeeId}>
+                              {cashier.employeeName} (ID: {cashier.employeeId})
+                            </SelectItem>
+                          )) : <SelectItem value="no-cashiers" disabled>No cashiers available</SelectItem>}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                   {user?.role === 'employee' && user.employeeName && (
+                     <div>
+                        <Label className="mb-1 block">Cashier</Label>
+                        <Input value={`${user.employeeName} (ID: ${user.employeeId})`} disabled className="bg-muted/50" />
+                    </div>
+                   )}
+
                   <div>
                     <Label className="mb-1 block">Select Menu Items</Label>
                     <ScrollArea className="h-[250px] md:h-[300px] w-full rounded-md border p-3">
@@ -372,18 +396,18 @@ export default function SalesPage() {
                       </div>
                     </ScrollArea>
                   </div>
-                  
+
                   <Button type="button" variant="outline" onClick={handleAddSelectedItemsToOrder} className="w-full">
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Selected Items to Order
                   </Button>
 
-                  {!showCustomItemForm && (
+                  {user?.role === 'admin' && !showCustomItemForm && (
                     <Button type="button" variant="secondary" onClick={() => setShowCustomItemForm(true)} className="w-full">
                       <UtensilsCrossed className="mr-2 h-4 w-4" /> Add New Custom Item
                     </Button>
                   )}
 
-                  {showCustomItemForm && (
+                  {user?.role === 'admin' && showCustomItemForm && (
                     <div className="space-y-3 border p-3 rounded-md bg-muted/50">
                       <h4 className="font-medium text-sm text-center">Add Custom Item</h4>
                       <div>
@@ -419,7 +443,6 @@ export default function SalesPage() {
                     </div>
                   )}
 
-
                   {currentOrderItems.length > 0 && (
                     <div className="mt-4 space-y-2 border-t pt-4">
                       <h4 className="font-medium">Current Order Items:</h4>
@@ -441,7 +464,7 @@ export default function SalesPage() {
                       <p className="font-semibold text-right pt-1">Order Total: PKR {currentOrderTotal.toFixed(2)}</p>
                     </div>
                   )}
-                  
+
                   <div className="pt-4 border-t">
                     <Label htmlFor="paymentMethod">Payment Method</Label>
                     <Select value={paymentMethod} onValueChange={(value: 'cash' | 'card' | 'online' | 'credit') => setPaymentMethod(value)}>
@@ -510,16 +533,16 @@ export default function SalesPage() {
         </TabsContent>
 
         <TabsContent value="salesReports">
-           <SalesReports 
-             allSalesData={salesRecords} 
-             menuItems={menuItems} 
+           <SalesReports
+             allSalesData={salesRecords}
+             menuItems={menuItems}
              onViewReceipt={handleViewReceipt}
-             managedEmployeesList={cashierList} // Pass the dynamic list
-             allCategories={allCategories} // Pass the dynamic categories
+             managedEmployeesList={cashierList}
+             allCategories={allCategories}
            />
         </TabsContent>
       </Tabs>
-      
+
       {currentReceipt && (
         <ReceiptModal
           isOpen={isReceiptModalOpen}

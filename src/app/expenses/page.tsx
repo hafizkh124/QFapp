@@ -11,28 +11,30 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, PlusCircle } from 'lucide-react';
+import { CalendarIcon, PlusCircle, ShieldExclamation } from 'lucide-react';
 import { format } from 'date-fns';
 import type { ExpenseRecord } from '@/types';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const expenseCategories = ["Raw Materials", "Utilities", "Rent", "Salaries", "Marketing", "Miscellaneous"];
 
 export default function ExpensesPage() {
+  const { user } = useAuth(); // Get authenticated user
   const [expenses, setExpenses] = useState<ExpenseRecord[]>([]);
   const [description, setDescription] = useState('');
   const [amount, setAmount] = useState(0);
   const [category, setCategory] = useState(expenseCategories[0]);
-  const [date, setDate] = useState<Date | undefined>(); // Initialize as undefined
+  const [date, setDate] = useState<Date | undefined>();
 
   useEffect(() => {
-    // Load initial expenses records from local storage or API if desired
     const initialExpenses: ExpenseRecord[] = [
       { id: 'E001', date: format(new Date(), 'PPP'), category: 'Raw Materials', description: 'Flour, Sugar, Eggs', amount: 150.75 },
       { id: 'E002', date: format(new Date(Date.now() - 86400000), 'PPP'), category: 'Utilities', description: 'Electricity Bill', amount: 220.50 },
     ];
     setExpenses(initialExpenses);
-    setDate(new Date()); // Set date on client-side mount
+    setDate(new Date());
   }, []);
 
   const handleSubmit = (e: FormEvent) => {
@@ -43,7 +45,7 @@ export default function ExpensesPage() {
     }
     const newExpense: ExpenseRecord = {
       id: `E${Math.random().toString(36).substr(2, 5)}`,
-      date: format(date, 'PPP'), // Store date as formatted string
+      date: format(date, 'PPP'),
       category,
       description,
       amount,
@@ -51,9 +53,19 @@ export default function ExpensesPage() {
     setExpenses([newExpense, ...expenses]);
     setDescription('');
     setAmount(0);
-    // setCategory(expenseCategories[0]); // Optionally reset category
-    // setDate(new Date()); // Optionally reset date
   };
+
+  if (user?.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Alert variant="destructive">
+          <ShieldExclamation className="h-4 w-4" />
+          <AlertTitle>Access Denied</AlertTitle>
+          <AlertDescription>You do not have permission to manage expenses. Please contact an administrator.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <>

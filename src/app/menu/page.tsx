@@ -11,14 +11,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { PlusCircle, Pencil, Trash2 } from 'lucide-react';
+import { PlusCircle, Pencil, Trash2, ShieldExclamation } from 'lucide-react';
 import type { MenuItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const MENU_ITEMS_LOCAL_STORAGE_KEY = 'quoriam-menu-items';
 const MENU_CATEGORIES_LOCAL_STORAGE_KEY = 'quoriam-menu-categories';
 
-const NO_CATEGORY_VALUE = "__no_category__"; // Special value for uncategorized
+const NO_CATEGORY_VALUE = "__no_category__";
 
 const defaultInitialCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
 
@@ -40,6 +42,7 @@ const defaultMenuItems: MenuItem[] = [
 ];
 
 export default function MenuPage() {
+  const { user } = useAuth(); // Get authenticated user
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [categories, setCategories] = useState<string[]>([]);
   const [newCategoryName, setNewCategoryName] = useState('');
@@ -56,16 +59,12 @@ export default function MenuPage() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Load categories
     const storedCategories = localStorage.getItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY);
     if (storedCategories) {
       try {
         const parsedCategories = JSON.parse(storedCategories);
         if (Array.isArray(parsedCategories)) {
           setCategories(parsedCategories);
-          if (parsedCategories.length > 0 && newItemCategory === undefined) {
-            // Keep newItemCategory undefined to show placeholder initially
-          }
         } else {
           setCategories(defaultInitialCategories);
         }
@@ -76,7 +75,6 @@ export default function MenuPage() {
       setCategories(defaultInitialCategories);
     }
 
-    // Load menu items
     const storedItems = localStorage.getItem(MENU_ITEMS_LOCAL_STORAGE_KEY);
     if (storedItems) {
       try {
@@ -125,8 +123,8 @@ export default function MenuPage() {
   const handleDeleteCategory = (categoryToDelete: string) => {
     if (window.confirm(`Are you sure you want to delete the category "${categoryToDelete}"? Items in this category will become uncategorized.`)) {
       setCategories(prev => prev.filter(cat => cat !== categoryToDelete));
-      setMenuItems(prevItems => 
-        prevItems.map(item => 
+      setMenuItems(prevItems =>
+        prevItems.map(item =>
           item.category === categoryToDelete ? { ...item, category: undefined } : item
         )
       );
@@ -149,7 +147,7 @@ export default function MenuPage() {
     setMenuItems(prevItems => [...prevItems, newItem]);
     setNewItemName('');
     setNewItemPrice('');
-    setNewItemCategory(undefined); // Reset to show placeholder
+    setNewItemCategory(undefined);
     toast({ title: "Success", description: `${newItem.name} added to the menu.` });
   };
 
@@ -157,7 +155,7 @@ export default function MenuPage() {
     setEditingItem(item);
     setEditItemName(item.name);
     setEditItemPrice(item.price.toString());
-    setEditItemCategory(item.category); // Stays undefined if item.category is undefined
+    setEditItemCategory(item.category);
     setIsEditDialogOpen(true);
   };
 
@@ -183,6 +181,18 @@ export default function MenuPage() {
       toast({ title: "Success", description: `Item deleted successfully.` });
     }
   };
+  
+  if (user?.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Alert variant="destructive">
+          <ShieldExclamation className="h-4 w-4" />
+          <AlertTitle>Access Denied</AlertTitle>
+          <AlertDescription>You do not have permission to manage the menu. Please contact an administrator.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -195,9 +205,9 @@ export default function MenuPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex space-x-2">
-              <Input 
-                value={newCategoryName} 
-                onChange={(e) => setNewCategoryName(e.target.value)} 
+              <Input
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
                 placeholder="New category name"
               />
               <Button onClick={handleAddCategory} className="whitespace-nowrap">

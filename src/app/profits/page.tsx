@@ -11,10 +11,12 @@ import type { ProfitEntry } from '@/types';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, ShieldExclamation } from 'lucide-react';
 import { format, isWithinInterval, startOfDay, endOfDay, addDays, subMonths, getYear, setYear, startOfYear, endOfYear } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { Calendar } from '@/components/ui/calendar';
+import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const chartConfig: ChartConfig = {
   profit: {
@@ -63,17 +65,18 @@ const mockWeeklyProfits: ProfitEntry[] = [ // Assuming a month like June 2024
   { period: 'Week 4 (Jun)', sales: 65000, expenses: 33000, profit: 32000 },
 ];
 
-const mockBaseDateForDaily = subMonths(new Date(), 2); // Approx 2 months ago
-const mockDailyProfitsData = generateDailyData(mockBaseDateForDaily, 90); // ~3 months of daily data
+const mockBaseDateForDaily = subMonths(new Date(), 2);
+const mockDailyProfitsData = generateDailyData(mockBaseDateForDaily, 90);
 
 const mockAnnualProfits: ProfitEntry[] = [
   { period: (getYear(new Date()) - 2).toString(), sales: 2000000, expenses: 1200000, profit: 800000 },
   { period: (getYear(new Date()) - 1).toString(), sales: 2500000, expenses: 1500000, profit: 1000000 },
-  { period: getYear(new Date()).toString(), sales: 1800000, expenses: 1000000, profit: 800000 }, // Partial year data
+  { period: getYear(new Date()).toString(), sales: 1800000, expenses: 1000000, profit: 800000 },
 ];
 
 
 export default function ProfitsPage() {
+  const { user } = useAuth(); // Get authenticated user
   type Timeframe = 'daily' | 'weekly' | 'monthly' | 'annual' | 'custom';
   const [timeframe, setTimeframe] = useState<Timeframe>('monthly');
   const [profitData, setProfitData] = useState<ProfitEntry[]>(mockMonthlyProfits);
@@ -81,7 +84,6 @@ export default function ProfitsPage() {
   const [customEndDate, setCustomEndDate] = useState<Date | undefined>();
 
   useEffect(() => {
-    // Initialize dates on client-side to avoid hydration mismatch
     const today = new Date();
     setCustomStartDate(startOfDay(subMonths(today, 1)));
     setCustomEndDate(endOfDay(today));
@@ -99,20 +101,31 @@ export default function ProfitsPage() {
     } else if (timeframe === 'custom') {
       if (customStartDate && customEndDate) {
         const filtered = mockDailyProfitsData.filter(entry => {
-          const entryDate = new Date(entry.period); // Assuming daily data period is 'YYYY-MM-DD'
+          const entryDate = new Date(entry.period);
           return isWithinInterval(entryDate, { start: startOfDay(customStartDate), end: endOfDay(customEndDate) });
         });
         setProfitData(filtered);
       } else {
-        setProfitData([]); // Or some placeholder/message
+        setProfitData([]);
       }
     }
   }, [timeframe, customStartDate, customEndDate]);
-  
+
   const totalProfit = profitData.reduce((sum, item) => sum + item.profit, 0);
   const totalSales = profitData.reduce((sum, item) => sum + item.sales, 0);
   const totalExpenses = profitData.reduce((sum, item) => sum + item.expenses, 0);
 
+  if (user?.role !== 'admin') {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Alert variant="destructive">
+          <ShieldExclamation className="h-4 w-4" />
+          <AlertTitle>Access Denied</AlertTitle>
+          <AlertDescription>You do not have permission to view profit visualizations. Please contact an administrator.</AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -201,10 +214,10 @@ export default function ProfitsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={profitData} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="period" tickLine={false} axisLine={false} tickMargin={8} 
+                  <XAxis dataKey="period" tickLine={false} axisLine={false} tickMargin={8}
                     tickFormatter={(value) => {
                       if (timeframe === 'daily') return format(new Date(value), 'MMM d');
-                      if (timeframe === 'custom' && value.length === 10) return format(new Date(value), 'MMM d'); // for daily periods in custom
+                      if (timeframe === 'custom' && value.length === 10) return format(new Date(value), 'MMM d');
                       return value;
                     }}
                   />
@@ -226,7 +239,7 @@ export default function ProfitsPage() {
           )}
         </CardContent>
       </Card>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Detailed Profit Report</CardTitle>
@@ -262,4 +275,3 @@ export default function ProfitsPage() {
     </>
   );
 }
-

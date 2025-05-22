@@ -1,24 +1,32 @@
-// src/components/layout/sidebar-nav.tsx
+
 'use client';
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { SidebarMenu, SidebarMenuItem, SidebarMenuButton } from '@/components/ui/sidebar';
-import { LayoutDashboard, DollarSign, Receipt, TrendingUp, Users, Lightbulb, ListPlus } from 'lucide-react'; // Added ListPlus
+import { LayoutDashboard, DollarSign, Receipt, TrendingUp, Users, Lightbulb, ListPlus, ShieldCheck, ShoppingCart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/context/AuthContext';
 
-const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/sales', label: 'Sales', icon: DollarSign },
-  { href: '/expenses', label: 'Expenses', icon: Receipt },
-  { href: '/profits', label: 'Profits', icon: TrendingUp },
-  { href: '/performance', label: 'Performance', icon: Users },
-  { href: '/menu', label: 'Menu', icon: ListPlus }, // New Menu Item
-  { href: '/insights', label: 'Insights AI', icon: Lightbulb },
+const allNavItems = [
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'employee'] },
+  { href: '/sales', label: 'Sales', icon: DollarSign, roles: ['admin', 'employee'] },
+  { href: '/menu', label: 'Menu', icon: ListPlus, roles: ['admin'] },
+  { href: '/expenses', label: 'Expenses', icon: Receipt, roles: ['admin'] },
+  { href: '/profits', label: 'Profits', icon: TrendingUp, roles: ['admin'] },
+  { href: '/performance', label: 'Performance', icon: Users, roles: ['admin', 'employee'] },
+  { href: '/insights', label: 'Insights AI', icon: Lightbulb, roles: ['admin'] },
+  // Example of a future employee-specific link:
+  // { href: '/my-tasks', label: 'My Tasks', icon: CheckSquare, roles: ['employee'] },
 ];
 
 export function SidebarNav() {
   const pathname = usePathname();
+  const { user } = useAuth();
+
+  const navItems = allNavItems.filter(item => user?.role && item.roles.includes(user.role));
+
+  if (!user) return null; // Or a loading state for nav items
 
   return (
     <SidebarMenu className="px-2 py-2">
