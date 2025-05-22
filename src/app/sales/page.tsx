@@ -29,27 +29,28 @@ interface MenuSelectionItem extends MenuItem {
   quantity: number;
 }
 
-const MENU_LOCAL_STORAGE_KEY = 'quoriam-menu-items';
-const SALES_LOCAL_STORAGE_KEY = 'quoriam-sales-records';
-const MANAGED_EMPLOYEES_KEY = 'quoriam-managed-employees-v2'; // Key from performance page
+const MENU_ITEMS_LOCAL_STORAGE_KEY = 'quoriam-menu-items';
+const MENU_CATEGORIES_LOCAL_STORAGE_KEY = 'quoriam-menu-categories';
+const SALES_RECORDS_LOCAL_STORAGE_KEY = 'quoriam-sales-records';
+const MANAGED_EMPLOYEES_KEY = 'quoriam-managed-employees-v2';
 
-// Default list of cashiers/employees, mimicking allInitialStaffWithRoles from performance page
-// This is used as a fallback if localStorage is empty.
+const defaultInitialCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
 const defaultSalesCashiers: ManagedEmployee[] = [
   { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'Branch Manager' },
-  { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'Shop Keeper' }, // Updated Name
+  { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'Shop Keeper' },
   { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'Delivery Boy' },
   { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'Cashier' },
   { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier' },
   { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'Cashier' },
   { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier' },
-  { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'Staff' }, // Updated Name
+  { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'Staff' },
 ];
 
 
 export default function SalesPage() {
   const [salesRecords, setSalesRecords] = useState<SaleRecord[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [allCategories, setAllCategories] = useState<string[]>([]);
   const [menuSelection, setMenuSelection] = useState<MenuSelectionItem[]>([]);
   
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online' | 'credit'>('cash');
@@ -58,20 +59,16 @@ export default function SalesPage() {
   const [cashierList, setCashierList] = useState<ManagedEmployee[]>([]);
   const [selectedCashier, setSelectedCashier] = useState<ManagedEmployee | undefined>(undefined); 
 
-
   const [showCustomItemForm, setShowCustomItemForm] = useState(false);
   const [customItemName, setCustomItemName] = useState('');
   const [customItemPrice, setCustomItemPrice] = useState('');
+  const [customItemCategory, setCustomItemCategory] = useState<string | undefined>(undefined);
   
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [currentReceipt, setCurrentReceipt] = useState<SaleRecord | null>(null);
 
   const { toast } = useToast();
   
-  const defaultCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
-  const [customItemCategory, setCustomItemCategory] = useState(defaultCategories[0]);
-
-
   useEffect(() => {
     // Load managed employees (cashiers)
     try {
@@ -80,7 +77,6 @@ export default function SalesPage() {
         const parsedEmployees: ManagedEmployee[] = JSON.parse(storedManagedEmployees);
         if (Array.isArray(parsedEmployees) && parsedEmployees.length > 0) {
           setCashierList(parsedEmployees);
-          // setSelectedCashier is handled by the subsequent useEffect
         } else {
           setCashierList(defaultSalesCashiers);
         }
@@ -89,14 +85,32 @@ export default function SalesPage() {
       }
     } catch (error) {
       console.error("Error loading managed employees from localStorage:", error);
-      setCashierList(defaultSalesCashiers); // Fallback to default
+      setCashierList(defaultSalesCashiers);
     }
     
-    if (defaultCategories.length > 0 && !customItemCategory) {
-        setCustomItemCategory(defaultCategories[0]);
+    // Load categories
+    const storedCategories = localStorage.getItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY);
+    if (storedCategories) {
+      try {
+        const parsedCategories = JSON.parse(storedCategories);
+        if (Array.isArray(parsedCategories) && parsedCategories.length > 0) {
+          setAllCategories(parsedCategories);
+          if (customItemCategory === undefined) setCustomItemCategory(parsedCategories[0]);
+        } else {
+          setAllCategories(defaultInitialCategories);
+           if (customItemCategory === undefined) setCustomItemCategory(defaultInitialCategories[0]);
+        }
+      } catch (e) {
+        setAllCategories(defaultInitialCategories);
+        if (customItemCategory === undefined) setCustomItemCategory(defaultInitialCategories[0]);
+      }
+    } else {
+      setAllCategories(defaultInitialCategories);
+      if (customItemCategory === undefined) setCustomItemCategory(defaultInitialCategories[0]);
     }
 
-    const storedMenuItems = localStorage.getItem(MENU_LOCAL_STORAGE_KEY);
+    // Load menu items
+    const storedMenuItems = localStorage.getItem(MENU_ITEMS_LOCAL_STORAGE_KEY);
     let loadedMenuItems: MenuItem[] = [];
     if (storedMenuItems) {
       try {
@@ -107,58 +121,44 @@ export default function SalesPage() {
         }
       } catch (error) {
         console.error("Error parsing menu items from localStorage:", error);
-        localStorage.removeItem(MENU_LOCAL_STORAGE_KEY);
+        // localStorage.removeItem(MENU_ITEMS_LOCAL_STORAGE_KEY); // Consider if removal is desired on error
       }
     }
+    // This effect depends on menuItems, so it should be after menuItems is set
     setMenuSelection(
       loadedMenuItems.map(item => ({ ...item, selected: false, quantity: 1 }))
     );
 
-    const storedSales = localStorage.getItem(SALES_LOCAL_STORAGE_KEY);
+    // Load sales records
+    const storedSales = localStorage.getItem(SALES_RECORDS_LOCAL_STORAGE_KEY);
     if (storedSales) {
       try {
         const parsedSales = JSON.parse(storedSales);
         if (Array.isArray(parsedSales)) {
           setSalesRecords(parsedSales);
         }
-      } catch (error)
-       {
+      } catch (error) {
         console.error("Error parsing sales records from localStorage:", error);
-        localStorage.removeItem(SALES_LOCAL_STORAGE_KEY);
-         // Initialize with some default sales if localStorage is problematic (for demo)
-        const placeholderDate = new Date();
-        const initialRecords: SaleRecord[] = [
-          { id: 'S001', date: format(placeholderDate, 'yyyy-MM-dd'), dateTime: placeholderDate.toISOString(), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card', employeeName: defaultSalesCashiers[0]?.employeeName || "N/A", employeeId: defaultSalesCashiers[0]?.employeeId || "N/A" },
-          { id: 'S002', date: format(new Date(Date.now() - 86400000 * 1 ), 'yyyy-MM-dd'), dateTime: new Date(Date.now() - 86400000 * 1 ).toISOString(), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash', employeeName: defaultSalesCashiers[1]?.employeeName || "N/A", employeeId: defaultSalesCashiers[1]?.employeeId || "N/A" },
-        ];
-        setSalesRecords(initialRecords);
+        // localStorage.removeItem(SALES_RECORDS_LOCAL_STORAGE_KEY);
       }
-    } else {
-        const placeholderDate = new Date();
-        const initialRecords: SaleRecord[] = [
-          { id: 'S001', date: format(placeholderDate, 'yyyy-MM-dd'), dateTime: placeholderDate.toISOString(), items: [{id: 'I001', name: 'Pizza Margherita', quantity: 2, price: 1200, total: 2400}], totalAmount: 2400, paymentMethod: 'card', employeeName: defaultSalesCashiers[0]?.employeeName || "N/A", employeeId: defaultSalesCashiers[0]?.employeeId || "N/A" },
-          { id: 'S002', date: format(new Date(Date.now() - 86400000 * 1 ), 'yyyy-MM-dd'), dateTime: new Date(Date.now() - 86400000 * 1 ).toISOString(), items: [{id: 'I002', name: 'Coca Cola', quantity: 4, price: 150, total: 600}, {id: 'I003', name: 'Fries', quantity: 2, price: 300, total: 600}], totalAmount: 1200, paymentMethod: 'cash', employeeName: defaultSalesCashiers[1]?.employeeName || "N/A", employeeId: defaultSalesCashiers[1]?.employeeId || "N/A" },
-        ];
-        setSalesRecords(initialRecords);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); 
 
   useEffect(() => {
-    // Ensure selectedCashier is updated if cashierList changes and current selected is not in new list,
-    // or if selectedCashier is not set yet.
     if (cashierList.length > 0) {
         const currentSelectedStillExists = cashierList.some(c => c.employeeId === selectedCashier?.employeeId);
         if (!selectedCashier || !currentSelectedStillExists) {
             setSelectedCashier(cashierList[0]);
         }
     } else {
-        setSelectedCashier(undefined); // No cashiers available
+        setSelectedCashier(undefined);
     }
   }, [cashierList, selectedCashier]);
 
 
   useEffect(() => {
+    // Re-initialize menuSelection when menuItems or allCategories change to reflect latest data
     setMenuSelection(
       menuItems.map(item => {
         const existingSelection = menuSelection.find(ms => ms.id === item.id);
@@ -169,12 +169,16 @@ export default function SalesPage() {
         };
       })
     );
+    // Set default custom item category if categories are loaded and it's not set
+    if (allCategories.length > 0 && customItemCategory === undefined) {
+      setCustomItemCategory(allCategories[0]);
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuItems]); 
+  }, [menuItems, allCategories]); 
 
   useEffect(() => {
-    if (salesRecords.length > 0 || localStorage.getItem(SALES_LOCAL_STORAGE_KEY)) {
-        localStorage.setItem(SALES_LOCAL_STORAGE_KEY, JSON.stringify(salesRecords));
+    if (salesRecords.length > 0 || localStorage.getItem(SALES_RECORDS_LOCAL_STORAGE_KEY)) {
+        localStorage.setItem(SALES_RECORDS_LOCAL_STORAGE_KEY, JSON.stringify(salesRecords));
     }
   }, [salesRecords]);
 
@@ -224,15 +228,15 @@ export default function SalesPage() {
   };
 
   const handleAddCustomItemToOrderAndMenu = () => {
-    if (!customItemName || !customItemPrice || parseFloat(customItemPrice) <= 0 || !customItemCategory) {
-      toast({ title: "Error", description: "Custom item name, price, and category are required.", variant: "destructive"});
+    if (!customItemName || !customItemPrice || parseFloat(customItemPrice) <= 0) { // Category is optional
+      toast({ title: "Error", description: "Custom item name and price are required.", variant: "destructive"});
       return;
     }
     const newMenuItem: MenuItem = {
       id: Date.now().toString(),
       name: customItemName,
       price: parseFloat(customItemPrice),
-      category: customItemCategory,
+      category: customItemCategory, // Can be undefined if no category selected
     };
 
     const newItemForOrder: NewSaleItem = {
@@ -246,13 +250,13 @@ export default function SalesPage() {
     
     const updatedMenuItems = [...menuItems, newMenuItem];
     setMenuItems(updatedMenuItems); 
-    localStorage.setItem(MENU_LOCAL_STORAGE_KEY, JSON.stringify(updatedMenuItems));
+    localStorage.setItem(MENU_ITEMS_LOCAL_STORAGE_KEY, JSON.stringify(updatedMenuItems));
 
     toast({ title: "Success", description: `${newMenuItem.name} added to order and menu.` });
 
     setCustomItemName('');
     setCustomItemPrice('');
-    setCustomItemCategory(defaultCategories[0]);
+    if (allCategories.length > 0) setCustomItemCategory(allCategories[0]); else setCustomItemCategory(undefined);
     setShowCustomItemForm(false);
   };
 
@@ -276,7 +280,7 @@ export default function SalesPage() {
       items: currentOrderItems.map(item => ({ ...item, id: `I${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2, 3)}`, total: item.quantity * item.price })),
       totalAmount: currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0),
       paymentMethod,
-      employeeName: selectedCashier.employeeName, // Current name from ManagedEmployee
+      employeeName: selectedCashier.employeeName,
       employeeId: selectedCashier.employeeId,
     };
     setSalesRecords(prevRecords => [newSale, ...prevRecords].sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()));
@@ -294,7 +298,6 @@ export default function SalesPage() {
       setIsReceiptModalOpen(true);
     }
   };
-
 
   const currentOrderTotal = currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0);
 
@@ -404,12 +407,14 @@ export default function SalesPage() {
                         <Label htmlFor="customItemCategory" className="text-xs">Category</Label>
                         <Select value={customItemCategory} onValueChange={setCustomItemCategory}>
                           <SelectTrigger id="customItemCategory">
-                            <SelectValue placeholder="Select category" />
+                            <SelectValue placeholder="Select category (optional)" />
                           </SelectTrigger>
                           <SelectContent>
-                            {defaultCategories.map(cat => (
+                             <SelectItem value="">Uncategorized</SelectItem>
+                            {allCategories.map(cat => (
                               <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                             ))}
+                            {allCategories.length === 0 && <p className="p-2 text-sm text-muted-foreground">No categories defined.</p>}
                           </SelectContent>
                         </Select>
                       </div>
@@ -515,7 +520,8 @@ export default function SalesPage() {
              allSalesData={salesRecords} 
              menuItems={menuItems} 
              onViewReceipt={handleViewReceipt}
-             managedEmployeesList={cashierList} // Pass the dynamic list
+             managedEmployeesList={cashierList}
+             allCategories={allCategories}
            />
         </TabsContent>
       </Tabs>
@@ -530,3 +536,4 @@ export default function SalesPage() {
     </>
   );
 }
+

@@ -11,23 +11,24 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from '@/components/ui/dialog';
-import { PlusCircle, Pencil, Trash2 } from 'lucide-react';
+import { PlusCircle, Pencil, Trash2, ListFilter } from 'lucide-react';
 import type { MenuItem } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 
-const LOCAL_STORAGE_KEY = 'quoriam-menu-items';
+const MENU_ITEMS_LOCAL_STORAGE_KEY = 'quoriam-menu-items';
+const MENU_CATEGORIES_LOCAL_STORAGE_KEY = 'quoriam-menu-categories';
 
-const itemCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
+const defaultInitialCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
 
 const defaultMenuItems: MenuItem[] = [
-  { id: 'default-1', name: 'Quoriam Single', price: 310, category: 'Chicken Items' }, // Was Pulao
-  { id: 'default-2', name: 'Quoriam Half', price: 210, category: 'Chicken Items' }, // Was Pulao
-  { id: 'default-3', name: 'Quoriam Single Choice', price: 320, category: 'Chicken Items' }, // Was Pulao
-  { id: 'default-4', name: 'Quoriam Special', price: 450, category: 'Chicken Items' }, // Was Pulao
-  { id: 'default-5', name: 'Quoriam Single Without Kabab', price: 270, category: 'Chicken Items' }, // Was Pulao
-  { id: 'default-6', name: 'Quoriam Shami Kabab', price: 40, category: 'Extras' }, // Was Kabab
+  { id: 'default-1', name: 'Quoriam Single', price: 310, category: 'Chicken Items' },
+  { id: 'default-2', name: 'Quoriam Half', price: 210, category: 'Chicken Items' },
+  { id: 'default-3', name: 'Quoriam Single Choice', price: 320, category: 'Chicken Items' },
+  { id: 'default-4', name: 'Quoriam Special', price: 450, category: 'Chicken Items' },
+  { id: 'default-5', name: 'Quoriam Single Without Kabab', price: 270, category: 'Chicken Items' },
+  { id: 'default-6', name: 'Quoriam Shami Kabab', price: 40, category: 'Extras' },
   { id: 'default-7', name: 'Quoriam Chicken Piece', price: 90, category: 'Chicken Items' },
-  { id: 'default-8', name: 'Pulao Kabab without Chicken', price: 210, category: 'Beef Items' }, // Was Pulao, assuming Beef Kabab
+  { id: 'default-8', name: 'Pulao Kabab without Chicken', price: 210, category: 'Beef Items' },
   { id: 'default-9', name: 'Quoriam Beef Pulao - Single', price: 350, category: 'Beef Items' },
   { id: 'default-10', name: 'Quoriam Beef Pulao - Half', price: 230, category: 'Beef Items' },
   { id: 'default-11', name: 'Quoriam Beef Pulao - 1 KG Deal', price: 690, category: 'Beef Items' },
@@ -38,41 +39,112 @@ const defaultMenuItems: MenuItem[] = [
 
 export default function MenuPage() {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [newCategoryName, setNewCategoryName] = useState('');
+
   const [newItemName, setNewItemName] = useState('');
   const [newItemPrice, setNewItemPrice] = useState('');
-  const [newItemCategory, setNewItemCategory] = useState(itemCategories[0]);
+  const [newItemCategory, setNewItemCategory] = useState<string | undefined>(undefined);
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [editItemName, setEditItemName] = useState('');
   const [editItemPrice, setEditItemPrice] = useState('');
-  const [editItemCategory, setEditItemCategory] = useState('');
+  const [editItemCategory, setEditItemCategory] = useState<string | undefined>(undefined);
   const { toast } = useToast();
 
   useEffect(() => {
-    const storedItems = localStorage.getItem(LOCAL_STORAGE_KEY);
+    // Load categories
+    const storedCategories = localStorage.getItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY);
+    if (storedCategories) {
+      try {
+        const parsedCategories = JSON.parse(storedCategories);
+        if (Array.isArray(parsedCategories)) {
+          setCategories(parsedCategories);
+          if (parsedCategories.length > 0 && newItemCategory === undefined) {
+            setNewItemCategory(parsedCategories[0]);
+          }
+        } else {
+          setCategories(defaultInitialCategories);
+           if (defaultInitialCategories.length > 0 && newItemCategory === undefined) {
+            setNewItemCategory(defaultInitialCategories[0]);
+          }
+        }
+      } catch (e) {
+        setCategories(defaultInitialCategories);
+         if (defaultInitialCategories.length > 0 && newItemCategory === undefined) {
+            setNewItemCategory(defaultInitialCategories[0]);
+          }
+      }
+    } else {
+      setCategories(defaultInitialCategories);
+      if (defaultInitialCategories.length > 0 && newItemCategory === undefined) {
+            setNewItemCategory(defaultInitialCategories[0]);
+      }
+    }
+
+    // Load menu items
+    const storedItems = localStorage.getItem(MENU_ITEMS_LOCAL_STORAGE_KEY);
     if (storedItems) {
-      const parsedItems = JSON.parse(storedItems);
-      if (parsedItems.length > 0) {
-        setMenuItems(parsedItems);
-      } else {
-        setMenuItems(defaultMenuItems);
+      try {
+        const parsedItems = JSON.parse(storedItems);
+        if (Array.isArray(parsedItems) && parsedItems.length > 0) {
+          setMenuItems(parsedItems);
+        } else {
+          setMenuItems(defaultMenuItems);
+        }
+      } catch (e) {
+         setMenuItems(defaultMenuItems);
       }
     } else {
       setMenuItems(defaultMenuItems);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
-    if (menuItems.length > 0 || localStorage.getItem(LOCAL_STORAGE_KEY)) {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(menuItems));
+    if (categories.length > 0 || localStorage.getItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY)) {
+      localStorage.setItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY, JSON.stringify(categories));
+    }
+  }, [categories]);
+
+  useEffect(() => {
+    if (menuItems.length > 0 || localStorage.getItem(MENU_ITEMS_LOCAL_STORAGE_KEY)) {
+        localStorage.setItem(MENU_ITEMS_LOCAL_STORAGE_KEY, JSON.stringify(menuItems));
     }
   }, [menuItems]);
 
+  const handleAddCategory = () => {
+    if (!newCategoryName.trim()) {
+      toast({ title: "Error", description: "Category name cannot be empty.", variant: "destructive" });
+      return;
+    }
+    const existingCategory = categories.find(cat => cat.toLowerCase() === newCategoryName.trim().toLowerCase());
+    if (existingCategory) {
+      toast({ title: "Error", description: `Category "${newCategoryName.trim()}" already exists.`, variant: "destructive" });
+      return;
+    }
+    setCategories(prev => [...prev, newCategoryName.trim()].sort());
+    setNewCategoryName('');
+    toast({ title: "Success", description: `Category "${newCategoryName.trim()}" added.` });
+  };
+
+  const handleDeleteCategory = (categoryToDelete: string) => {
+    if (window.confirm(`Are you sure you want to delete the category "${categoryToDelete}"? Items in this category will become uncategorized.`)) {
+      setCategories(prev => prev.filter(cat => cat !== categoryToDelete));
+      setMenuItems(prevItems => 
+        prevItems.map(item => 
+          item.category === categoryToDelete ? { ...item, category: undefined } : item
+        )
+      );
+      toast({ title: "Success", description: `Category "${categoryToDelete}" deleted.` });
+    }
+  };
+
   const handleAddNewItem = (e: FormEvent) => {
     e.preventDefault();
-    if (!newItemName || !newItemPrice || parseFloat(newItemPrice) <= 0 || !newItemCategory) {
-      toast({ title: "Error", description: "Please enter a valid name, price, and category.", variant: "destructive" });
+    if (!newItemName || !newItemPrice || parseFloat(newItemPrice) <= 0) { // Category is optional now
+      toast({ title: "Error", description: "Please enter a valid name and price.", variant: "destructive" });
       return;
     }
     const newItem: MenuItem = {
@@ -84,7 +156,7 @@ export default function MenuPage() {
     setMenuItems(prevItems => [...prevItems, newItem]);
     setNewItemName('');
     setNewItemPrice('');
-    setNewItemCategory(itemCategories[0]); // Reset category
+    if (categories.length > 0) setNewItemCategory(categories[0]); else setNewItemCategory(undefined);
     toast({ title: "Success", description: `${newItem.name} added to the menu.` });
   };
 
@@ -92,13 +164,13 @@ export default function MenuPage() {
     setEditingItem(item);
     setEditItemName(item.name);
     setEditItemPrice(item.price.toString());
-    setEditItemCategory(item.category || itemCategories[0]); // Default if category is undefined
+    setEditItemCategory(item.category || (categories.length > 0 ? categories[0] : undefined));
     setIsEditDialogOpen(true);
   };
 
   const handleSaveEditItem = () => {
-    if (!editingItem || !editItemName || !editItemPrice || parseFloat(editItemPrice) <= 0 || !editItemCategory) {
-      toast({ title: "Error", description: "Please enter a valid name, price, and category for editing.", variant: "destructive" });
+    if (!editingItem || !editItemName || !editItemPrice || parseFloat(editItemPrice) <= 0) { // Category is optional
+      toast({ title: "Error", description: "Please enter a valid name and price for editing.", variant: "destructive" });
       return;
     }
     setMenuItems(prevItems =>
@@ -121,9 +193,41 @@ export default function MenuPage() {
 
   return (
     <>
-      <PageHeader title="Menu Management" description="Add, edit, or delete your restaurant's menu items and categories." />
+      <PageHeader title="Menu & Category Management" description="Manage your restaurant's menu items and their categories." />
 
       <div className="grid gap-6 lg:grid-cols-3">
+        <Card className="lg:col-span-1">
+          <CardHeader>
+            <CardTitle>Manage Categories</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex space-x-2">
+              <Input 
+                value={newCategoryName} 
+                onChange={(e) => setNewCategoryName(e.target.value)} 
+                placeholder="New category name"
+              />
+              <Button onClick={handleAddCategory} className="whitespace-nowrap">
+                <PlusCircle className="mr-2 h-4 w-4" /> Add
+              </Button>
+            </div>
+            {categories.length > 0 ? (
+              <ul className="space-y-2 max-h-48 overflow-y-auto border rounded-md p-2">
+                {categories.map(cat => (
+                  <li key={cat} className="flex justify-between items-center p-1 hover:bg-muted/50 rounded">
+                    <span>{cat}</span>
+                    <Button variant="ghost" size="icon" onClick={() => handleDeleteCategory(cat)} className="h-7 w-7">
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-2">No categories defined yet.</p>
+            )}
+          </CardContent>
+        </Card>
+
         <Card className="lg:col-span-1">
           <CardHeader>
             <CardTitle>Add New Menu Item</CardTitle>
@@ -142,12 +246,14 @@ export default function MenuPage() {
                 <Label htmlFor="newItemCategory">Category</Label>
                 <Select value={newItemCategory} onValueChange={setNewItemCategory}>
                   <SelectTrigger id="newItemCategory">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder="Select category (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {itemCategories.map(cat => (
+                    <SelectItem value="">Uncategorized</SelectItem>
+                    {categories.map(cat => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
+                    {categories.length === 0 && <p className="p-2 text-sm text-muted-foreground">No categories defined.</p>}
                   </SelectContent>
                 </Select>
               </div>
@@ -158,7 +264,7 @@ export default function MenuPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
+        <Card className="lg:col-span-1"> {/* Adjusted span if 3 cards in a row */}
           <CardHeader>
             <CardTitle>Current Menu Items</CardTitle>
             <CardDescription>View and manage your existing menu items.</CardDescription>
@@ -182,14 +288,14 @@ export default function MenuPage() {
                 {menuItems.map((item) => (
                   <TableRow key={item.id}>
                     <TableCell>{item.name}</TableCell>
-                    <TableCell>{item.category || 'N/A'}</TableCell>
+                    <TableCell>{item.category || 'Uncategorized'}</TableCell>
                     <TableCell>{item.price.toFixed(2)}</TableCell>
-                    <TableCell className="text-right space-x-2">
-                      <Button variant="outline" size="icon" onClick={() => handleOpenEditDialog(item)}>
+                    <TableCell className="text-right space-x-1">
+                      <Button variant="outline" size="icon" onClick={() => handleOpenEditDialog(item)} className="h-8 w-8">
                         <Pencil className="h-4 w-4" />
                         <span className="sr-only">Edit</span>
                       </Button>
-                      <Button variant="destructive" size="icon" onClick={() => handleDeleteItem(item.id)}>
+                      <Button variant="destructive" size="icon" onClick={() => handleDeleteItem(item.id)} className="h-8 w-8">
                         <Trash2 className="h-4 w-4" />
                         <span className="sr-only">Delete</span>
                       </Button>
@@ -221,12 +327,14 @@ export default function MenuPage() {
                 <Label htmlFor="editItemCategory">Category</Label>
                 <Select value={editItemCategory} onValueChange={setEditItemCategory}>
                   <SelectTrigger id="editItemCategory">
-                    <SelectValue placeholder="Select category" />
+                    <SelectValue placeholder="Select category (optional)" />
                   </SelectTrigger>
                   <SelectContent>
-                    {itemCategories.map(cat => (
+                     <SelectItem value="">Uncategorized</SelectItem>
+                    {categories.map(cat => (
                       <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                     ))}
+                     {categories.length === 0 && <p className="p-2 text-sm text-muted-foreground">No categories defined.</p>}
                   </SelectContent>
                 </Select>
               </div>
@@ -243,3 +351,4 @@ export default function MenuPage() {
     </>
   );
 }
+

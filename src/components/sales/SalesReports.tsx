@@ -1,7 +1,7 @@
 
 'use client';
 
-import type { SaleRecord, MenuItem, ManagedEmployee } from '@/types'; // Updated to ManagedEmployee
+import type { SaleRecord, MenuItem, ManagedEmployee } from '@/types';
 import { useState, useMemo, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar } from '@/components/ui/calendar';
@@ -32,13 +32,14 @@ interface SalesReportsProps {
   allSalesData: SaleRecord[];
   menuItems: MenuItem[];
   onViewReceipt: (saleId: string) => void;
-  managedEmployeesList: ManagedEmployee[]; // Changed from availableCashiers: Cashier[]
+  managedEmployeesList: ManagedEmployee[];
+  allCategories: string[]; // Added prop for all defined categories
 }
 
 type ReportPeriodType = 'daily' | 'weekly' | 'monthly' | 'custom' | 'all';
 const paymentMethods: Array<SaleRecord['paymentMethod']> = ['cash', 'card', 'online', 'credit'];
 
-export default function SalesReports({ allSalesData, menuItems, onViewReceipt, managedEmployeesList }: SalesReportsProps) {
+export default function SalesReports({ allSalesData, menuItems, onViewReceipt, managedEmployeesList, allCategories }: SalesReportsProps) {
   const [reportPeriodType, setReportPeriodType] = useState<ReportPeriodType>('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCustomStart, setSelectedCustomStart] = useState<Date | undefined>();
@@ -48,18 +49,9 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
   const [selectedReportCategory, setSelectedReportCategory] = useState<string | undefined>(undefined);
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<SaleRecord['paymentMethod'] | undefined>(undefined);
 
-
   const [selectedMonth, setSelectedMonth] = useState<number | undefined>();
   const [selectedYear, setSelectedYear] = useState<number | undefined>();
   const [yearsForDropdown, setYearsForDropdown] = useState<number[]>([]);
-
-  const itemCategories = useMemo(() => {
-    const categories = new Set<string>();
-    menuItems.forEach(item => {
-      if (item.category) categories.add(item.category);
-    });
-    return Array.from(categories).sort();
-  }, [menuItems]);
 
   useEffect(() => {
     const now = new Date();
@@ -68,7 +60,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
     if (selectedYear === undefined) {
         const currentActualYear = getYear(now);
         setSelectedYear(currentActualYear);
-        const startYear = currentActualYear - 5; // Show last 5 years + next 4
+        const startYear = currentActualYear - 5;
         setYearsForDropdown(Array.from({ length: 10 }, (_, i) => startYear + i));
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -87,44 +79,43 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
 
     let filtered = salesDataWithParsedDates;
 
-    // 1. Time-based filtering
     if (reportPeriodType === 'daily' && selectedDate) {
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isSameDay(sale.parsedDate, selectedDate));
     } else if (reportPeriodType === 'weekly' && selectedDate) {
-      const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 }); // Assuming week starts on Monday
+      const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
       const weekEnd = endOfWeek(selectedDate, { weekStartsOn: 1 });
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: weekStart, end: weekEnd }));
     } else if (reportPeriodType === 'monthly' && selectedMonth !== undefined && selectedYear !== undefined) {
-      const monthDate = setYear(setMonth(new Date(0,0), selectedMonth), selectedYear); // Create a date in the selected month/year
+      const monthDate = setYear(setMonth(new Date(0,0), selectedMonth), selectedYear);
       const monthStart = startOfMonth(monthDate);
       const monthEnd = endOfMonth(monthDate);
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: monthStart, end: monthEnd }));
     } else if (reportPeriodType === 'custom' && selectedCustomStart && selectedCustomEnd) {
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: selectedCustomStart, end: selectedCustomEnd }));
     }
-    // reportPeriodType === 'all' implies no time-based filtering here
 
-    // 2. Cashier filtering
     if (selectedCashierId) {
       filtered = filtered.filter(sale => sale.employeeId === selectedCashierId);
     }
 
-    // 3. Item-specific or Category filtering
-    if (selectedReportMenuItemId) { // Item-specific filter takes precedence
+    if (selectedReportMenuItemId) {
       const selectedItem = menuItems.find(item => item.id === selectedReportMenuItemId);
       if (selectedItem) {
-         filtered = filtered.filter(sale => sale.items.some(item => item.name === selectedItem.name)); // Assuming item.name is unique identifier here, ideally use ID
+         filtered = filtered.filter(sale => sale.items.some(item => item.name === selectedItem.name));
       }
-    } else if (selectedReportCategory) { // Category filter (if no specific item is chosen)
+    } else if (selectedReportCategory) {
       filtered = filtered.filter(sale => {
         return sale.items.some(saleItem => {
-          const menuItemDetails = menuItems.find(mi => mi.name === saleItem.name); // Assuming name is unique, better to use ID if available on SaleItem
+          // We need to find the category of the saleItem.
+          // The saleItem itself might not have category if it was a custom item added before categories.
+          // Or if it's from the menu, its category might have changed.
+          // So, we look up the current category of the item from the menuItems prop.
+          const menuItemDetails = menuItems.find(mi => mi.name === saleItem.name); // Assuming name is unique for lookup
           return menuItemDetails?.category === selectedReportCategory;
         });
       });
     }
 
-    // 4. Payment Method filtering
     if (selectedPaymentMethod) {
       filtered = filtered.filter(sale => sale.paymentMethod === selectedPaymentMethod);
     }
@@ -158,7 +149,6 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
     filteredSales.forEach(sale => {
       sale.items.forEach(item => {
         const menuItemDetail = menuItems.find(mi => mi.name === item.name);
-        // If category filter is active, only consider items from that category
         if (selectedReportCategory && menuItemDetail?.category !== selectedReportCategory) {
           return;
         }
@@ -189,7 +179,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
         breakdown[sale.paymentMethod].totalAmount += sale.totalAmount;
       }
     });
-    const totalSalesForPercentage = salesSummary.totalRevenue > 0 ? salesSummary.totalRevenue : 1; // Avoid division by zero
+    const totalSalesForPercentage = salesSummary.totalRevenue > 0 ? salesSummary.totalRevenue : 1;
 
     return Object.entries(breakdown).map(([method, data]) => ({
       method: method.charAt(0).toUpperCase() + method.slice(1),
@@ -206,9 +196,9 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
     let totalQuantitySold = 0;
     let totalRevenueFromItem = 0;
 
-    filteredSales.forEach(sale => { // filteredSales already respects date & cashier filters
+    filteredSales.forEach(sale => {
       sale.items.forEach(item => {
-        if (item.name === selectedItem.name) { // Match by name, assumes name is unique enough for this report.
+        if (item.name === selectedItem.name) {
           totalQuantitySold += item.quantity;
           totalRevenueFromItem += item.total;
         }
@@ -307,14 +297,14 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
             </Popover>
           </div>
         );
-      default: // 'all' or undefined
+      default:
         return null;
     }
   };
 
   const getEmployeeNameById = (employeeId: string) => {
     const employee = managedEmployeesList.find(emp => emp.employeeId === employeeId);
-    return employee ? employee.employeeName : employeeId; // Fallback to ID if name not found
+    return employee ? employee.employeeName : (allSalesData.find(s => s.employeeId === employeeId)?.employeeName || employeeId);
   };
 
   return (
@@ -386,9 +376,10 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all-categories">All Categories</SelectItem>
-                  {itemCategories.map(category => (
+                  {allCategories.map(category => (
                     <SelectItem key={category} value={category}>{category}</SelectItem>
                   ))}
+                  {allCategories.length === 0 && <p className="p-2 text-sm text-muted-foreground">No categories defined.</p>}
                 </SelectContent>
               </Select>
             </div>
@@ -628,3 +619,4 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
     </div>
   );
 }
+
