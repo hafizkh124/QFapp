@@ -34,7 +34,7 @@ const allInitialStaffWithRoles: ManagedEmployee[] = [
   { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier' },
   { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'Cashier' },
   { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier' },
-  { employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff' },
+  { employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff' }, // Added Alice Smith for variety
 ];
 
 // Updated Initial Mock Data using QE-prefixed IDs and more variety
@@ -145,22 +145,29 @@ export default function PerformancePage() {
   useEffect(() => {
     const loadData = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T[]>>, defaultValue: T[], keyNameForLog?: string): void => {
       let loadedFromStorage = false;
-      let finalData = defaultValue; // Initialize with default
+      let finalData = defaultValue; 
       try {
         const storedValue = localStorage.getItem(key);
-        if (storedValue !== null) { // Check if item exists
+        if (storedValue) { 
           const parsedValue = JSON.parse(storedValue);
-          // Use stored data only if it's a valid, non-empty array
-          if (Array.isArray(parsedValue) && parsedValue.length > 0) {
-            finalData = parsedValue;
-            loadedFromStorage = true;
-          } else if (Array.isArray(parsedValue) && parsedValue.length === 0) {
-            // If localStorage contains an empty array, respect it (user might have deleted all items)
-            finalData = []; // Use empty array
-            loadedFromStorage = true;
+          if (Array.isArray(parsedValue)) {
+            if (parsedValue.length > 0) {
+              finalData = parsedValue;
+              loadedFromStorage = true;
+            } else { // Parsed value is an empty array []
+              // For MANAGED_EMPLOYEES_KEY, if localStorage has '[]', we still prefer the default if defaults are not empty.
+              // This ensures employee dropdowns are populated for adding records.
+              if (key === MANAGED_EMPLOYEES_KEY && defaultValue.length > 0) {
+                finalData = defaultValue;
+                loadedFromStorage = false; // Indicate we're using defaults, not the stored empty array
+              } else {
+                // For other record types or if defaultValue for employees is also empty, respect the stored empty array.
+                finalData = []; 
+                loadedFromStorage = true;
+              }
+            }
           }
-          // If storedValue was not a non-empty array after parsing (e.g. "null", not an array, etc.),
-          // finalData remains defaultValue from the initial assignment.
+          // If parsedValue is not an array (e.g. "null", or other non-array JSON), finalData remains defaultValue.
         }
       } catch (error) {
         console.error(`Error loading ${key} from localStorage. Using defaults. Error:`, error);
@@ -662,7 +669,11 @@ export default function PerformancePage() {
               <Select name="selectedEmployeeId" value={performanceFormData.selectedEmployeeId || ""} onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'performance')}>
                 <SelectTrigger id="perfEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
-                  {(managedEmployees || []).map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
+                  {(managedEmployees && managedEmployees.length > 0) ? (
+                    managedEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
+                  ) : (
+                    <SelectItem value="no-employees" disabled>No employees found. Please add via Manage Employees.</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -700,7 +711,11 @@ export default function PerformancePage() {
               <Select name="selectedEmployeeId" value={attendanceFormData.selectedEmployeeId || ""} onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'attendance')}>
                 <SelectTrigger id="attEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
-                  {(managedEmployees || []).map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
+                  {(managedEmployees && managedEmployees.length > 0) ? (
+                    managedEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
+                  ) : (
+                    <SelectItem value="no-employees" disabled>No employees found. Please add via Manage Employees.</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
@@ -747,7 +762,11 @@ export default function PerformancePage() {
               <Select name="selectedEmployeeId" value={salaryFormData.selectedEmployeeId || ""} onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'salary')}>
                 <SelectTrigger id="salaryEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
-                  {(managedEmployees || []).map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)}
+                  {(managedEmployees && managedEmployees.length > 0) ? (
+                    managedEmployees.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
+                  ) : (
+                    <SelectItem value="no-employees" disabled>No employees found. Please add via Manage Employees.</SelectItem>
+                  )}
                 </SelectContent>
               </Select>
             </div>
