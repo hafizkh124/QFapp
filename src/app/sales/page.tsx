@@ -2,7 +2,7 @@
 // src/app/sales/page.tsx
 'use client';
 
-import { useState, type FormEvent, useEffect, ChangeEvent } from 'react';
+import { useState, type FormEvent, useEffect, ChangeEvent, useMemo } from 'react';
 import { PageHeader } from '@/components/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -82,14 +82,16 @@ export default function SalesPage() {
         if (Array.isArray(parsedEmployees) && parsedEmployees.length > 0) {
           setCashierList(parsedEmployees);
         } else {
-          setCashierList(defaultSalesCashiersFallback); // Use default if localStorage has empty array
+          // Fallback to default if localStorage has empty array or invalid data
+          setCashierList(defaultSalesCashiersFallback.map(c => ({...c, email: c.email || '', password: c.password || ''})));
         }
       } else {
-        setCashierList(defaultSalesCashiersFallback); // Use default if key not in localStorage
+        // Fallback to default if key not in localStorage
+        setCashierList(defaultSalesCashiersFallback.map(c => ({...c, email: c.email || '', password: c.password || ''})));
       }
     } catch (error) {
       console.error("Error loading managed employees from localStorage:", error);
-      setCashierList(defaultSalesCashiersFallback); // Fallback in case of parsing error
+      setCashierList(defaultSalesCashiersFallback.map(c => ({...c, email: c.email || '', password: c.password || ''}))); // Fallback in case of parsing error
     }
 
     const storedCategories = localStorage.getItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY);
@@ -102,6 +104,7 @@ export default function SalesPage() {
           setAllCategories(defaultFallbackCategories);
         }
       } catch (e) {
+        console.error("Error loading categories from localStorage, using defaults.", e);
         setAllCategories(defaultFallbackCategories);
       }
     } else {
@@ -143,7 +146,6 @@ export default function SalesPage() {
     if (user?.role === 'employee' && user.employeeId) {
       setSelectedCashierId(user.employeeId);
     } else if (user?.role === 'admin' && cashierList.length > 0 && !selectedCashierId) {
-      // If admin and no cashier is selected yet, try to select their own ID if they are in the list, otherwise default to first.
       const adminSelf = cashierList.find(c => c.employeeId === user.employeeId);
       setSelectedCashierId(adminSelf ? adminSelf.employeeId : cashierList[0]?.employeeId);
     }
@@ -256,16 +258,19 @@ export default function SalesPage() {
       return;
     }
 
-    let currentCashierInfo: ManagedEmployee | undefined;
+    let currentCashierInfo: { employeeId: string; employeeName: string; } | undefined;
     if (user?.role === 'employee' && user.employeeId && user.employeeName) {
-        currentCashierInfo = { employeeId: user.employeeId, employeeName: user.employeeName, role: 'employee' };
+        currentCashierInfo = { employeeId: user.employeeId, employeeName: user.employeeName };
     } else if (user?.role === 'admin' && selectedCashierId) {
-        currentCashierInfo = cashierList.find(c => c.employeeId === selectedCashierId);
+        const foundCashier = cashierList.find(c => c.employeeId === selectedCashierId);
+        if (foundCashier) {
+            currentCashierInfo = { employeeId: foundCashier.employeeId, employeeName: foundCashier.employeeName };
+        }
     }
 
 
     if (!currentCashierInfo) {
-      toast({ title: "Error", description: "Cashier information is missing. Please select a cashier.", variant: "destructive"});
+      toast({ title: "Error", description: "Cashier information is missing. Please select a cashier or ensure you are logged in correctly.", variant: "destructive"});
       return;
     }
 
@@ -277,7 +282,7 @@ export default function SalesPage() {
       items: currentOrderItems.map(item => ({ ...item, id: `I${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2, 3)}`, total: item.quantity * item.price })),
       totalAmount: currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0),
       paymentMethod,
-      employeeName: currentCashierInfo.employeeName, // Store current name
+      employeeName: currentCashierInfo.employeeName,
       employeeId: currentCashierInfo.employeeId,
     };
     setSalesRecords(prevRecords => [newSale, ...prevRecords].sort((a, b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime()));
@@ -306,7 +311,7 @@ export default function SalesPage() {
   }, [salesRecords, user]);
 
 
-  if (!user) { // Should be handled by ProtectedLayout, but good fallback
+  if (!user) { 
     return (
       <div className="flex items-center justify-center h-full">
         <Alert variant="destructive">
@@ -408,13 +413,13 @@ export default function SalesPage() {
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Selected Items to Order
                   </Button>
 
-                  {!showCustomItemForm && ( // Custom item button visible to all roles
+                  {(user?.role === 'admin') && !showCustomItemForm && ( 
                     <Button type="button" variant="secondary" onClick={() => setShowCustomItemForm(true)} className="w-full">
                       <UtensilsCrossed className="mr-2 h-4 w-4" /> Add New Custom Item
                     </Button>
                   )}
 
-                  {showCustomItemForm && ( // Custom item form visible to all roles
+                  {showCustomItemForm && (user?.role === 'admin') && ( 
                     <div className="space-y-3 border p-3 rounded-md bg-muted/50">
                       <h4 className="font-medium text-sm text-center">Add Custom Item</h4>
                       <div>
@@ -548,7 +553,7 @@ export default function SalesPage() {
 
         <TabsContent value="salesReports">
            <SalesReports
-             allSalesData={salesDataForReport} // Pass filtered data for employees
+             allSalesData={salesDataForReport} 
              menuItems={menuItems}
              onViewReceipt={handleViewReceipt}
              managedEmployeesList={cashierList}
