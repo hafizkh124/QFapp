@@ -40,19 +40,18 @@ export interface ProfitEntry {
 export interface ManagedEmployee {
   employeeId: string; // Unique Employee ID
   employeeName: string;
-  role: 'admin' | 'employee';
+  role: 'admin' | 'manager' | 'employee';
   email: string; // For login
   password?: string; // For login (mocked, plain text for this simulation)
   phone?: string;
   status: 'active' | 'inactive';
-  // Salary fields like baseSalary, hourlyRate can be added here later
 }
 
 export interface EmployeePerformance {
   id: string; // Record ID
   employeeId: string;
   employeeName: string;
-  role: string; // Denormalized role at the time of record creation
+  role: 'admin' | 'manager' | 'employee'; // Denormalized role at the time of record creation
   date: string;
   salesTarget?: number;
   salesAchieved?: number;
@@ -64,7 +63,7 @@ export interface EmployeeAttendance {
   id: string; // Record ID
   employeeId: string;
   employeeName: string;
-  role: string; // Denormalized role
+  role: 'admin' | 'manager' | 'employee'; // Denormalized role
   date: string;
   inTime?: string;
   outTime?: string;
@@ -75,7 +74,7 @@ export interface EmployeeSalary {
   id: string; // Record ID
   employeeId: string;
   employeeName: string;
-  role: string; // Denormalized role
+  role: 'admin' | 'manager' | 'employee'; // Denormalized role
   month: string; // e.g., 'Mar 2024'
   basicSalary: number;
   advances: number;
@@ -95,8 +94,7 @@ export interface MenuItem {
 export interface AuthUser {
   uid: string; // Can be same as employeeId for simplicity in mock
   email: string | null;
-  role: 'admin' | 'employee';
+  role: 'admin' | 'manager' | 'employee';
   employeeId?: string; // Link to ManagedEmployee ID
   employeeName?: string;
 }
-

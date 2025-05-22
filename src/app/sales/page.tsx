@@ -39,15 +39,18 @@ const MANAGED_EMPLOYEES_KEY = 'quoriam-managed-employees-v2';
 const NO_CATEGORY_VALUE = "__no_category__";
 
 const defaultFallbackCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
+
+// Fallback list of employees if localStorage is empty or invalid.
+// This list should ideally mirror the structure of `allInitialStaffWithRoles` from performance page for consistency.
 const defaultSalesCashiersFallback: ManagedEmployee[] = [
-    { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', email: 'hafizkh124@gmail.com', password: '1quoriam1' },
-    { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee', email: 'khubaib@quoriam.com', password: 'khubaib123' },
-    { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'employee', email: 'shoaib@quoriam.com', password: 'shoaib123' },
-    { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee', email: 'salman@quoriam.com', password: 'salman123' },
-    { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'employee', email: 'suraqa@quoriam.com', password: 'suraqa123' },
-    { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'employee', email: 'bilal@quoriam.com', password: 'bilal123' },
-    { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee', email: 'kaleem@quoriam.com', password: 'kaleem123' },
-    { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', email: 'arslan@quoriam.com', password: 'arslan123' },
+    { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', email: 'hafizkh124@gmail.com', password: '1quoriam1', status: 'active' },
+    { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'manager', email: 'khubaib@quoriam.com', password: 'khubaib123', status: 'active' },
+    { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'employee', email: 'shoaib@quoriam.com', password: 'shoaib123', status: 'active' },
+    { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee', email: 'salman@quoriam.com', password: 'salman123', status: 'active' },
+    { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'employee', email: 'suraqa@quoriam.com', password: 'suraqa123', status: 'active' },
+    { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'employee', email: 'bilal@quoriam.com', password: 'bilal123', status: 'active' },
+    { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee', email: 'kaleem@quoriam.com', password: 'kaleem123', status: 'active' },
+    { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', email: 'arslan@quoriam.com', password: 'arslan123', status: 'active' },
 ];
 
 
@@ -75,25 +78,27 @@ export default function SalesPage() {
   const [currentReceipt, setCurrentReceipt] = useState<SaleRecord | null>(null);
 
   useEffect(() => {
+    // Load Managed Employees (Cashier List)
     try {
       const storedManagedEmployees = localStorage.getItem(MANAGED_EMPLOYEES_KEY);
       if (storedManagedEmployees) {
         const parsedEmployees: ManagedEmployee[] = JSON.parse(storedManagedEmployees);
-        if (Array.isArray(parsedEmployees) && parsedEmployees.length > 0) {
-          setCashierList(parsedEmployees);
+        // Filter for active employees only for cashier selection
+        const activeCashiers = parsedEmployees.filter(emp => emp.status === 'active');
+        if (Array.isArray(activeCashiers) && activeCashiers.length > 0) {
+          setCashierList(activeCashiers);
         } else {
-          // Fallback to default if localStorage has empty array or invalid data
-          setCashierList(defaultSalesCashiersFallback.map(c => ({...c, email: c.email || '', password: c.password || ''})));
+          setCashierList(defaultSalesCashiersFallback.filter(emp => emp.status === 'active'));
         }
       } else {
-        // Fallback to default if key not in localStorage
-        setCashierList(defaultSalesCashiersFallback.map(c => ({...c, email: c.email || '', password: c.password || ''})));
+        setCashierList(defaultSalesCashiersFallback.filter(emp => emp.status === 'active'));
       }
     } catch (error) {
       console.error("Error loading managed employees from localStorage:", error);
-      setCashierList(defaultSalesCashiersFallback.map(c => ({...c, email: c.email || '', password: c.password || ''}))); // Fallback in case of parsing error
+      setCashierList(defaultSalesCashiersFallback.filter(emp => emp.status === 'active'));
     }
 
+    // Load Categories
     const storedCategories = localStorage.getItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY);
     if (storedCategories) {
       try {
@@ -111,6 +116,7 @@ export default function SalesPage() {
       setAllCategories(defaultFallbackCategories);
     }
 
+    // Load Menu Items
     const storedMenuItems = localStorage.getItem(MENU_ITEMS_LOCAL_STORAGE_KEY);
     let loadedMenuItems: MenuItem[] = [];
     if (storedMenuItems) {
@@ -128,6 +134,7 @@ export default function SalesPage() {
       loadedMenuItems.map(item => ({ ...item, selected: false, quantity: 1 }))
     );
 
+    // Load Sales Records
     const storedSales = localStorage.getItem(SALES_RECORDS_LOCAL_STORAGE_KEY);
     if (storedSales) {
       try {
@@ -142,12 +149,14 @@ export default function SalesPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
+  // Effect to set default cashier based on role
+ useEffect(() => {
     if (user?.role === 'employee' && user.employeeId) {
       setSelectedCashierId(user.employeeId);
-    } else if (user?.role === 'admin' && cashierList.length > 0 && !selectedCashierId) {
-      const adminSelf = cashierList.find(c => c.employeeId === user.employeeId);
-      setSelectedCashierId(adminSelf ? adminSelf.employeeId : cashierList[0]?.employeeId);
+    } else if ((user?.role === 'admin' || user?.role === 'manager') && cashierList.length > 0 && !selectedCashierId) {
+      // Admin/Manager can default to themselves if in list, or first active cashier
+      const selfInList = cashierList.find(c => c.employeeId === user.employeeId);
+      setSelectedCashierId(selfInList ? selfInList.employeeId : cashierList[0]?.employeeId);
     }
   }, [user, cashierList, selectedCashierId]);
 
@@ -226,7 +235,7 @@ export default function SalesPage() {
       id: Date.now().toString(),
       name: customItemName,
       price: parseFloat(customItemPrice),
-      category: customItemCategory,
+      category: customItemCategory === NO_CATEGORY_VALUE ? undefined : customItemCategory,
     };
 
     const newItemForOrder: NewSaleItem = {
@@ -261,13 +270,12 @@ export default function SalesPage() {
     let currentCashierInfo: { employeeId: string; employeeName: string; } | undefined;
     if (user?.role === 'employee' && user.employeeId && user.employeeName) {
         currentCashierInfo = { employeeId: user.employeeId, employeeName: user.employeeName };
-    } else if (user?.role === 'admin' && selectedCashierId) {
+    } else if ((user?.role === 'admin' || user?.role === 'manager') && selectedCashierId) {
         const foundCashier = cashierList.find(c => c.employeeId === selectedCashierId);
         if (foundCashier) {
             currentCashierInfo = { employeeId: foundCashier.employeeId, employeeName: foundCashier.employeeName };
         }
     }
-
 
     if (!currentCashierInfo) {
       toast({ title: "Error", description: "Cashier information is missing. Please select a cashier or ensure you are logged in correctly.", variant: "destructive"});
@@ -307,7 +315,7 @@ export default function SalesPage() {
     if (user?.role === 'employee') {
       return salesRecords.filter(sale => sale.employeeId === user.employeeId);
     }
-    return salesRecords;
+    return salesRecords; // Admins and Managers see all sales for now
   }, [salesRecords, user]);
 
 
@@ -322,6 +330,10 @@ export default function SalesPage() {
       </div>
     );
   }
+  
+  const canManageCashierSelection = user.role === 'admin' || user.role === 'manager';
+  const canAddCustomItem = user.role === 'admin' || user.role === 'manager' || user.role === 'employee';
+
 
   return (
     <>
@@ -341,7 +353,7 @@ export default function SalesPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmitSale} className="space-y-4">
-                  {user?.role === 'admin' ? (
+                  {canManageCashierSelection ? (
                     <div>
                       <Label htmlFor="cashierSelect" className="mb-1 block">Select Cashier</Label>
                       <Select
@@ -359,7 +371,7 @@ export default function SalesPage() {
                             <SelectItem key={cashier.employeeId} value={cashier.employeeId}>
                               {cashier.employeeName} (ID: {cashier.employeeId})
                             </SelectItem>
-                          )) : <SelectItem value="no-cashiers" disabled>No cashiers available</SelectItem>}
+                          )) : <SelectItem value="no-cashiers" disabled>No active cashiers available</SelectItem>}
                         </SelectContent>
                       </Select>
                     </div>
@@ -413,13 +425,13 @@ export default function SalesPage() {
                     <PlusCircle className="mr-2 h-4 w-4" /> Add Selected Items to Order
                   </Button>
 
-                  {(user?.role === 'admin') && !showCustomItemForm && ( 
+                  {canAddCustomItem && !showCustomItemForm && ( 
                     <Button type="button" variant="secondary" onClick={() => setShowCustomItemForm(true)} className="w-full">
                       <UtensilsCrossed className="mr-2 h-4 w-4" /> Add New Custom Item
                     </Button>
                   )}
 
-                  {showCustomItemForm && (user?.role === 'admin') && ( 
+                  {showCustomItemForm && canAddCustomItem && ( 
                     <div className="space-y-3 border p-3 rounded-md bg-muted/50">
                       <h4 className="font-medium text-sm text-center">Add Custom Item</h4>
                       <div>
@@ -523,7 +535,7 @@ export default function SalesPage() {
                         </TableCell>
                       </TableRow>
                     ) : (
-                      salesRecords.filter(sale => user?.role === 'admin' || sale.employeeId === user?.employeeId).slice(0, 10).map((sale) => (
+                      salesRecords.filter(sale => user?.role === 'admin' || user?.role === 'manager' || sale.employeeId === user?.employeeId).slice(0, 10).map((sale) => (
                         <TableRow key={sale.id}>
                           <TableCell className="font-medium">{sale.id}</TableCell>
                           <TableCell>{sale.date}</TableCell>
@@ -537,7 +549,7 @@ export default function SalesPage() {
                         </TableRow>
                       ))
                     )}
-                     {salesRecords.filter(sale => user?.role === 'admin' || sale.employeeId === user?.employeeId).length === 0 && salesRecords.length > 0 && (
+                     {salesRecords.filter(sale => user?.role === 'admin' || user?.role === 'manager' || sale.employeeId === user?.employeeId).length === 0 && salesRecords.length > 0 && (
                         <TableRow>
                             <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
                             No sales records found for you.
@@ -572,4 +584,3 @@ export default function SalesPage() {
     </>
   );
 }
-

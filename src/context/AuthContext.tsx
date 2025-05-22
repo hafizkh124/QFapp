@@ -8,11 +8,12 @@ import { useRouter, usePathname } from 'next/navigation';
 
 // Fallback admin user for initial login IF localStorage is empty
 const FALLBACK_ADMIN_USER: ManagedEmployee = {
-  employeeId: 'QE101', // Corresponds to Umar Hayat in initial data
-  employeeName: 'Umar Hayat', // Default admin name
+  employeeId: 'QE101', 
+  employeeName: 'Umar Hayat', 
   role: 'admin',
-  email: 'hafizkh124@gmail.com', // Updated email
-  password: '1quoriam1' // Updated password
+  email: 'hafizkh124@gmail.com', 
+  password: '1quoriam1',
+  status: 'active'
 };
 
 interface AuthContextType {
@@ -72,20 +73,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const storedEmployees: ManagedEmployee[] = JSON.parse(storedEmployeesString);
         if (Array.isArray(storedEmployees)) {
           const foundEmp = storedEmployees.find(emp => emp.email.toLowerCase() === email.toLowerCase() && emp.password === pass);
-          if (foundEmp) {
+          if (foundEmp && foundEmp.status === 'active') { // Check if employee is active
             authenticatedEmployee = foundEmp;
+          } else if (foundEmp && foundEmp.status === 'inactive') {
+            toast({ variant: "destructive", title: "Login Failed", description: "Your account is inactive. Please contact an administrator." });
+            setIsLoading(false);
+            return false;
           }
         }
       }
     } catch (error) {
       console.error("Error reading managed employees from localStorage during login:", error);
-      // Proceed to fallback check
     }
 
-    // If not found in localStorage, check fallback admin
-    if (!authenticatedEmployee && FALLBACK_ADMIN_USER.email.toLowerCase() === email.toLowerCase() && FALLBACK_ADMIN_USER.password === pass) {
+    if (!authenticatedEmployee && FALLBACK_ADMIN_USER.email.toLowerCase() === email.toLowerCase() && FALLBACK_ADMIN_USER.password === pass && FALLBACK_ADMIN_USER.status === 'active') {
         authenticatedEmployee = FALLBACK_ADMIN_USER;
+    } else if (!authenticatedEmployee && FALLBACK_ADMIN_USER.email.toLowerCase() === email.toLowerCase() && FALLBACK_ADMIN_USER.password === pass && FALLBACK_ADMIN_USER.status === 'inactive') {
+       toast({ variant: "destructive", title: "Login Failed", description: "Your account is inactive. Please contact an administrator." });
+       setIsLoading(false);
+       return false;
     }
+
 
     if (authenticatedEmployee) {
       const authUserPayload: AuthUser = {
@@ -100,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setIsLoading(false);
       return true;
     } else {
-      toast({ variant: "destructive", title: "Login Failed", description: "Invalid email or password." });
+      toast({ variant: "destructive", title: "Login Failed", description: "Invalid email or password, or account is inactive." });
       setIsLoading(false);
       return false;
     }

@@ -9,13 +9,13 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/context/AuthContext';
 
 const allNavItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'employee'] },
-  { href: '/sales', label: 'Sales', icon: DollarSign, roles: ['admin', 'employee'] },
-  { href: '/menu', label: 'Menu', icon: ListPlus, roles: ['admin', 'employee'] }, 
-  { href: '/expenses', label: 'Expenses', icon: Receipt, roles: ['admin', 'employee'] }, 
-  { href: '/profits', label: 'Profits', icon: TrendingUp, roles: ['admin', 'employee'] }, 
-  { href: '/performance', label: 'Performance', icon: Users, roles: ['admin', 'employee'] },
-  { href: '/insights', label: 'Insights AI', icon: Lightbulb, roles: ['admin', 'employee'] }, 
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard, roles: ['admin', 'manager', 'employee'] },
+  { href: '/sales', label: 'Sales', icon: DollarSign, roles: ['admin', 'manager', 'employee'] },
+  { href: '/menu', label: 'Menu', icon: ListPlus, roles: ['admin', 'manager', 'employee'] }, 
+  { href: '/expenses', label: 'Expenses', icon: Receipt, roles: ['admin', 'manager', 'employee'] }, 
+  { href: '/profits', label: 'Profits', icon: TrendingUp, roles: ['admin', 'manager', 'employee'] }, 
+  { href: '/performance', label: 'Performance', icon: Users, roles: ['admin', 'manager', 'employee'] },
+  { href: '/insights', label: 'Insights AI', icon: Lightbulb, roles: ['admin', 'manager', 'employee'] }, 
   { href: '/admin/employee-management', label: 'Employee Mgmt', icon: UserCog, roles: ['admin'] },
 ];
 
@@ -23,9 +23,10 @@ export function SidebarNav() {
   const pathname = usePathname();
   const { user } = useAuth();
 
+  if (!user) return null; 
+
   const navItems = allNavItems.filter(item => user?.role && item.roles.includes(user.role));
 
-  if (!user) return null; // Or a loading state for nav items
 
   return (
     <SidebarMenu className="px-2 py-2">

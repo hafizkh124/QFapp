@@ -30,12 +30,12 @@ const defaultMenuItems: MenuItem[] = [
   { id: 'default-3', name: 'Quoriam Single Choice', price: 320, category: 'Chicken Items' },
   { id: 'default-4', name: 'Quoriam Special', price: 450, category: 'Chicken Items' },
   { id: 'default-5', name: 'Quoriam Single Without Kabab', price: 270, category: 'Chicken Items' },
-  { id: 'default-6', name: 'Quoriam Shami Kabab', price: 40, category: 'Extras' }, // Was 'Kabab'
+  { id: 'default-6', name: 'Quoriam Shami Kabab', price: 40, category: 'Extras' },
   { id: 'default-7', name: 'Quoriam Chicken Piece', price: 90, category: 'Chicken Items' },
-  { id: 'default-8', name: 'Pulao Kabab without Chicken', price: 210, category: 'Beef Items' }, // Re-categorized, was 'Pulao'
-  { id: 'default-9', name: 'Quoriam Beef Pulao - Single', price: 350, category: 'Beef Items' }, // Re-categorized
-  { id: 'default-10', name: 'Quoriam Beef Pulao - Half', price: 230, category: 'Beef Items' }, // Re-categorized
-  { id: 'default-11', name: 'Quoriam Beef Pulao - 1 KG Deal', price: 690, category: 'Beef Items' }, // Re-categorized
+  { id: 'default-8', name: 'Pulao Kabab without Chicken', price: 210, category: 'Beef Items' },
+  { id: 'default-9', name: 'Quoriam Beef Pulao - Single', price: 350, category: 'Beef Items' },
+  { id: 'default-10', name: 'Quoriam Beef Pulao - Half', price: 230, category: 'Beef Items' },
+  { id: 'default-11', name: 'Quoriam Beef Pulao - 1 KG Deal', price: 690, category: 'Beef Items' },
   { id: 'default-12', name: 'Quoriam Raita', price: 30, category: 'Extras' },
   { id: 'default-13', name: 'Quoriam Salad', price: 30, category: 'Extras' },
   { id: 'default-14', name: 'Quoriam Qehwa', price: 50, category: 'Beverages' },
@@ -182,7 +182,7 @@ export default function MenuPage() {
     }
   };
   
-  if (!user) { // Should be handled by ProtectedLayout
+  if (!user) { 
     return (
       <div className="flex items-center justify-center h-full">
         <Alert variant="destructive">
@@ -194,13 +194,14 @@ export default function MenuPage() {
     );
   }
 
+  const canManageMenu = user.role === 'admin' || user.role === 'manager';
 
   return (
     <>
       <PageHeader title="Menu & Category Management" description="Manage your restaurant's menu items and their categories." />
 
       <div className="grid gap-6 lg:grid-cols-3">
-        {user.role === 'admin' && (
+        {canManageMenu && (
           <>
             <Card className="lg:col-span-1">
               <CardHeader>
@@ -252,7 +253,7 @@ export default function MenuPage() {
                     <Label htmlFor="newItemCategory">Category</Label>
                     <Select
                       value={newItemCategory === undefined ? NO_CATEGORY_VALUE : newItemCategory}
-                      onValueChange={(value) => setNewItemCategory(value)}
+                      onValueChange={(value) => setNewItemCategory(value === NO_CATEGORY_VALUE ? undefined : value)}
                     >
                       <SelectTrigger id="newItemCategory">
                         <SelectValue placeholder="Select category (optional)" />
@@ -275,11 +276,11 @@ export default function MenuPage() {
           </>
         )}
 
-        <Card className={user.role === 'admin' ? "lg:col-span-1" : "lg:col-span-3"}>
+        <Card className={canManageMenu ? "lg:col-span-1" : "lg:col-span-3"}>
           <CardHeader>
             <CardTitle>Current Menu Items</CardTitle>
             <CardDescription>
-              {user.role === 'admin' ? "View and manage your existing menu items." : "Browse available menu items."}
+              {canManageMenu ? "View and manage your existing menu items." : "Browse available menu items."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -289,13 +290,13 @@ export default function MenuPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Category</TableHead>
                   <TableHead>Price (PKR)</TableHead>
-                  {user.role === 'admin' && <TableHead className="text-right">Actions</TableHead>}
+                  {canManageMenu && <TableHead className="text-right">Actions</TableHead>}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {menuItems.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={user.role === 'admin' ? 4 : 3} className="text-center text-muted-foreground">No menu items yet. {user.role === 'admin' && 'Add some!'}</TableCell>
+                    <TableCell colSpan={canManageMenu ? 4 : 3} className="text-center text-muted-foreground">No menu items yet. {canManageMenu && 'Add some!'}</TableCell>
                   </TableRow>
                 )}
                 {menuItems.map((item) => (
@@ -303,7 +304,7 @@ export default function MenuPage() {
                     <TableCell>{item.name}</TableCell>
                     <TableCell>{item.category || 'Uncategorized'}</TableCell>
                     <TableCell>{item.price.toFixed(2)}</TableCell>
-                    {user.role === 'admin' && (
+                    {canManageMenu && (
                       <TableCell className="text-right space-x-1">
                         <Button variant="outline" size="icon" onClick={() => handleOpenEditDialog(item)} className="h-8 w-8">
                           <Pencil className="h-4 w-4" />
@@ -323,7 +324,7 @@ export default function MenuPage() {
         </Card>
       </div>
 
-      {editingItem && user.role === 'admin' && (
+      {editingItem && canManageMenu && (
         <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
@@ -342,7 +343,7 @@ export default function MenuPage() {
                 <Label htmlFor="editItemCategory">Category</Label>
                 <Select
                   value={editItemCategory === undefined ? NO_CATEGORY_VALUE : editItemCategory}
-                  onValueChange={(value) => setEditItemCategory(value)}
+                  onValueChange={(value) => setEditItemCategory(value === NO_CATEGORY_VALUE ? undefined : value)}
                 >
                   <SelectTrigger id="editItemCategory">
                     <SelectValue placeholder="Select category (optional)" />
@@ -369,4 +370,3 @@ export default function MenuPage() {
     </>
   );
 }
-

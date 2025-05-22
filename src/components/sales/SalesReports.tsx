@@ -27,10 +27,10 @@ import {
   setYear,
   setMonth
 } from 'date-fns';
-import { useAuth } from '@/context/AuthContext'; // Import useAuth
+import { useAuth } from '@/context/AuthContext';
 
 interface SalesReportsProps {
-  allSalesData: SaleRecord[]; // Renamed to reflect it can be pre-filtered for employees
+  allSalesData: SaleRecord[];
   menuItems: MenuItem[];
   onViewReceipt: (saleId: string) => void;
   managedEmployeesList: ManagedEmployee[];
@@ -41,7 +41,7 @@ type ReportPeriodType = 'daily' | 'weekly' | 'monthly' | 'custom' | 'all';
 const paymentMethods: Array<SaleRecord['paymentMethod']> = ['cash', 'card', 'online', 'credit'];
 
 export default function SalesReports({ allSalesData, menuItems, onViewReceipt, managedEmployeesList, allCategories }: SalesReportsProps) {
-  const { user } = useAuth(); // Get user from AuthContext
+  const { user } = useAuth();
   const [reportPeriodType, setReportPeriodType] = useState<ReportPeriodType>('all');
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [selectedCustomStart, setSelectedCustomStart] = useState<Date | undefined>();
@@ -81,7 +81,6 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
 
     let filtered = salesDataWithParsedDates;
 
-    // Apply time-based filtering
     if (reportPeriodType === 'daily' && selectedDate) {
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isSameDay(sale.parsedDate, selectedDate));
     } else if (reportPeriodType === 'weekly' && selectedDate) {
@@ -97,12 +96,16 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
       filtered = filtered.filter(sale => isValid(sale.parsedDate) && isWithinInterval(sale.parsedDate, { start: selectedCustomStart, end: selectedCustomEnd }));
     }
 
-    // Apply cashier filter (only if admin, employees see their own data from prop)
-    if (user?.role === 'admin' && selectedCashierId) {
-      filtered = filtered.filter(sale => sale.employeeId === selectedCashierId);
+    if (user?.role === 'admin' || user?.role === 'manager') {
+      if (selectedCashierId) {
+        filtered = filtered.filter(sale => sale.employeeId === selectedCashierId);
+      }
+    } else if (user?.role === 'employee') {
+      // Employees only see their own sales, data already pre-filtered in parent component.
+      // No additional cashier filtering needed here for employees.
     }
+    
 
-    // Apply item/category filter
     if (selectedReportMenuItemId) {
       const selectedItem = menuItems.find(item => item.id === selectedReportMenuItemId);
       if (selectedItem) {
@@ -117,7 +120,6 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
       });
     }
 
-    // Apply payment method filter
     if (selectedPaymentMethod) {
       filtered = filtered.filter(sale => sale.paymentMethod === selectedPaymentMethod);
     }
@@ -132,7 +134,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
     selectedMonth,
     selectedYear,
     selectedCashierId,
-    user?.role, // Add user role to dependency array for cashier filter
+    user?.role,
     selectedReportMenuItemId,
     selectedReportCategory,
     selectedPaymentMethod,
@@ -307,9 +309,10 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
 
   const getEmployeeNameById = (employeeId: string) => {
     const employee = managedEmployeesList.find(emp => emp.employeeId === employeeId);
-    // Fallback to employeeName stored in sale record if not found in current managed list
     return employee ? employee.employeeName : (allSalesData.find(s => s.employeeId === employeeId)?.employeeName || employeeId);
   };
+
+  const canViewAllCashiersFilter = user?.role === 'admin' || user?.role === 'manager';
 
   return (
     <div className="space-y-6">
@@ -352,7 +355,7 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
                 </SelectContent>
               </Select>
             </div>
-            {user?.role === 'admin' && ( // Only show Cashier filter for Admins
+            {canViewAllCashiersFilter && (
               <div>
                 <Label htmlFor="reportCashier">By Cashier</Label>
                 <Select value={selectedCashierId} onValueChange={(value) => setSelectedCashierId(value === 'all-cashiers' ? undefined : value)}>
@@ -625,4 +628,3 @@ export default function SalesReports({ allSalesData, menuItems, onViewReceipt, m
     </div>
   );
 }
-

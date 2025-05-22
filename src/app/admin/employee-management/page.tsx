@@ -18,16 +18,13 @@ import { useAuth } from '@/context/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const MANAGED_EMPLOYEES_KEY = 'quoriam-managed-employees-v2';
-// Keys for other record types, used to check if an employee has associated records
 const PERFORMANCE_KEY = 'quoriam-performanceRecords-v2';
 const ATTENDANCE_KEY = 'quoriam-attendanceRecords-v2';
 const SALARY_KEY = 'quoriam-salaryRecords-v2';
 
-// Default employees - This list will be used if localStorage is empty.
-// It should be the single source of truth for initial employee data.
 const allInitialStaffWithRoles: ManagedEmployee[] = [
   { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', email: 'hafizkh124@gmail.com', password: '1quoriam1', phone: '03001234567', status: 'active' },
-  { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee', email: 'khubaib@quoriam.com', password: 'khubaib123', phone: '03011234567', status: 'active' },
+  { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'manager', email: 'khubaib@quoriam.com', password: 'khubaib123', phone: '03011234567', status: 'active' },
   { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'employee', email: 'shoaib@quoriam.com', password: 'shoaib123', phone: '03021234567', status: 'active' },
   { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee', email: 'salman@quoriam.com', password: 'salman123', phone: '03031234567', status: 'active' },
   { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'employee', email: 'suraqa@quoriam.com', password: 'suraqa123', phone: '03041234567', status: 'active' },
@@ -42,11 +39,11 @@ const deriveInitialManagedEmployees = (): ManagedEmployee[] => {
 
 const generateNewEmployeeId = (employees: ManagedEmployee[] | null): string => {
   const prefix = "QE";
-  let maxNum = 100;
+  let maxNum = 100; // Start checking from 100
   (employees || []).forEach(emp => {
     if (emp && emp.employeeId && emp.employeeId.startsWith(prefix)) {
       const numPartString = emp.employeeId.substring(prefix.length);
-      if (numPartString.length > 0) {
+      if (numPartString.length > 0) { // Ensure there's a numeric part
         const numPart = parseInt(numPartString, 10);
         if (!isNaN(numPart) && numPart > maxNum) {
           maxNum = numPart;
@@ -82,9 +79,8 @@ export default function EmployeeManagementPage() {
             finalData = parsedValue;
             loadedFromStorage = true;
           } else if (key === MANAGED_EMPLOYEES_KEY && Array.isArray(parsedValue) && parsedValue.length === 0) {
-            // If localStorage has an empty array for managed employees, use defaults
             finalData = defaultValue;
-            loadedFromStorage = false; // Treated as loaded from defaults
+            loadedFromStorage = false; 
           }
         }
       } catch (error) {
@@ -142,7 +138,7 @@ export default function EmployeeManagementPage() {
       employeeName: currentEditingEmployee.employeeName!,
       role: currentEditingEmployee.role!,
       email: currentEditingEmployee.email!,
-      password: currentEditingEmployee.password, // Preserve existing if not changing
+      password: currentEditingEmployee.password, 
       phone: currentEditingEmployee.phone || '',
       status: currentEditingEmployee.status!,
     };
@@ -178,7 +174,6 @@ export default function EmployeeManagementPage() {
       return;
     }
     
-    // Check for associated records - This is a client-side check and might not cover all scenarios for a real app.
     const performanceRecords = JSON.parse(localStorage.getItem(PERFORMANCE_KEY) || '[]') as any[];
     const attendanceRecords = JSON.parse(localStorage.getItem(ATTENDANCE_KEY) || '[]') as any[];
     const salaryRecords = JSON.parse(localStorage.getItem(SALARY_KEY) || '[]') as any[];
@@ -211,7 +206,7 @@ export default function EmployeeManagementPage() {
 
   return (
     <>
-      <PageHeader title="Employee Management" description="Add, edit, and manage employee details and roles.">
+      <PageHeader title="Employee Management" description="Add, edit, and manage employee details, roles, and credentials.">
         <Button onClick={handleOpenAddEmployeeDialog}>
           <PlusCircle className="mr-2 h-4 w-4" /> Add New Employee
         </Button>
@@ -289,10 +284,11 @@ export default function EmployeeManagementPage() {
               </div>
               <div>
                 <Label htmlFor="empFormRole">Role</Label>
-                <Select value={currentEditingEmployee.role || 'employee'} onValueChange={(value: 'admin' | 'employee') => setCurrentEditingEmployee(prev => prev ? { ...prev, role: value } : null)}>
+                <Select value={currentEditingEmployee.role || 'employee'} onValueChange={(value: 'admin' | 'manager' | 'employee') => setCurrentEditingEmployee(prev => prev ? { ...prev, role: value } : null)}>
                   <SelectTrigger id="empFormRole"><SelectValue placeholder="Select role" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
                     <SelectItem value="employee">Employee</SelectItem>
                   </SelectContent>
                 </Select>
@@ -311,18 +307,6 @@ export default function EmployeeManagementPage() {
           </DialogContent>
         </Dialog>
       )}
-      {/* Placeholder for Feature-Level Permission Management UI - To be added in next phase */}
-      {/* 
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle>Feature Permissions (Conceptual)</CardTitle>
-          <CardDescription>This is a visual representation. Actual permission changes require backend/security rule updates.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-muted-foreground">UI for managing feature permissions will go here.</p>
-        </CardContent>
-      </Card>
-      */}
     </>
   );
 }

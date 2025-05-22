@@ -21,17 +21,14 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from '@/context/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-// LocalStorage Keys
-const MANAGED_EMPLOYEES_KEY = 'quoriam-managed-employees-v2'; // Used to load employee list
+const MANAGED_EMPLOYEES_KEY = 'quoriam-managed-employees-v2';
 const PERFORMANCE_KEY = 'quoriam-performanceRecords-v2';
 const ATTENDANCE_KEY = 'quoriam-attendanceRecords-v2';
 const SALARY_KEY = 'quoriam-salaryRecords-v2';
 
-// This list is now primarily for providing initial mock data for records
-// The source of truth for the employee list itself is now managed in Employee Management.
 const allInitialStaffWithRoles: ManagedEmployee[] = [
   { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', email: 'hafizkh124@gmail.com', password: '1quoriam1', phone: '03001234567', status: 'active' },
-  { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee', email: 'khubaib@quoriam.com', password: 'khubaib123', phone: '03011234567', status: 'active' },
+  { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'manager', email: 'khubaib@quoriam.com', password: 'khubaib123', phone: '03011234567', status: 'active' },
   { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'employee', email: 'shoaib@quoriam.com', password: 'shoaib123', phone: '03021234567', status: 'active' },
   { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee', email: 'salman@quoriam.com', password: 'salman123', phone: '03031234567', status: 'active' },
   { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'employee', email: 'suraqa@quoriam.com', password: 'suraqa123', phone: '03041234567', status: 'active' },
@@ -40,27 +37,29 @@ const allInitialStaffWithRoles: ManagedEmployee[] = [
   { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', email: 'arslan@quoriam.com', password: 'arslan123', phone: '03071234567', status: 'active' },
 ];
 
-const initialMockPerformance: EmployeePerformance[] = allInitialStaffWithRoles.slice(0, 6).map((emp, index) => ({
-  id: `P00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: format(new Date(Date.now() - (index * 86400000)), 'yyyy-MM-dd'), salesTarget: 5000 - (index * 500), salesAchieved: 4800 - (index * 500), tasksCompleted: 8 - index, tasksAssigned: 10 - index
+const initialMockPerformance: EmployeePerformance[] = allInitialStaffWithRoles.map((emp, index) => ({
+  id: `P00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: format(new Date(Date.now() - (index * 86400000)), 'yyyy-MM-dd'), salesTarget: 5000 - (index * 500), salesAchieved: emp.status === 'active' ? 4800 - (index * 500) : 0, tasksCompleted: emp.status === 'active' ? 8 - index : 0, tasksAssigned: 10 - index
 }));
-initialMockPerformance.push(
-    { id: `P007`, employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee', date: format(new Date(Date.now() - (6 * 86400000)), 'yyyy-MM-dd'), salesTarget: 4000, salesAchieved: 3800, tasksCompleted: 7, tasksAssigned: 9 },
-    { id: `P008`, employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', date: format(new Date(Date.now() - (7 * 86400000)), 'yyyy-MM-dd'), salesTarget: 4200, salesAchieved: 4000, tasksCompleted: 8, tasksAssigned: 10 }
-);
 
-const initialMockAttendance: EmployeeAttendance[] = allInitialStaffWithRoles.slice(0, 7).map((emp, index) => ({
-  id: `A00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: format(new Date(Date.now() - (index * 86400000)), 'yyyy-MM-dd'), inTime: `09:0${index} AM`, outTime: `05:0${index} PM`, status: 'Present'
+const initialMockAttendance: EmployeeAttendance[] = allInitialStaffWithRoles.map((emp, index) => ({
+  id: `A00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, date: format(new Date(Date.now() - (index * 86400000)), 'yyyy-MM-dd'), 
+  inTime: emp.status === 'active' ? `09:0${index % 6} AM` : undefined, 
+  outTime: emp.status === 'active' ? `05:0${index % 6} PM` : undefined, 
+  status: emp.status === 'active' ? 'Present' : 'Absent'
 }));
-initialMockAttendance.push({ id: 'A00X', employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'employee', date: format(new Date(Date.now() - (8 * 86400000)), 'yyyy-MM-dd'), status: 'Leave' });
-initialMockAttendance.push({ id: 'A00Y', employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', date: format(new Date(Date.now() - (1 * 86400000)), 'yyyy-MM-dd'), inTime: '09:15 AM', outTime: '05:30 PM', status: 'Present' });
+initialMockAttendance.push({ id: 'A00X', employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'manager', date: format(new Date(Date.now() - (8 * 86400000)), 'yyyy-MM-dd'), status: 'Leave' });
 
-const initialMockSalaries: EmployeeSalary[] = allInitialStaffWithRoles.slice(0, 5).map((emp, index) => ({
-  id: `S00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, month: format(new Date(new Date().getFullYear(), new Date().getMonth() - index, 1), 'yyyy-MM'), basicSalary: emp.role === 'admin' ? 50000 : 30000 - (index * 1000), advances: emp.role === 'admin' ? 5000 : 2000, bonuses: emp.role === 'admin' ? 3000 : 1500, deductions: 500, netSalary: (emp.role === 'admin' ? 50000 : 30000 - (index * 1000)) + (emp.role === 'admin' ? 3000 : 1500) - (emp.role === 'admin' ? 5000 : 2000) - 500
+
+const initialMockSalaries: EmployeeSalary[] = allInitialStaffWithRoles.map((emp, index) => ({
+  id: `S00${index + 1}`, employeeId: emp.employeeId, employeeName: emp.employeeName, role: emp.role, 
+  month: format(new Date(new Date().getFullYear(), new Date().getMonth() - index, 1), 'yyyy-MM'), 
+  basicSalary: emp.role === 'admin' ? 70000 : (emp.role === 'manager' ? 50000 : 30000 - (index * 1000)), 
+  advances: emp.role === 'admin' ? 5000 : (emp.role === 'manager' ? 2000 : 1000), 
+  bonuses: emp.role === 'admin' ? 3000 : (emp.role === 'manager' ? 1500 : 500), 
+  deductions: 500, 
+  netSalary: (emp.role === 'admin' ? 70000 : (emp.role === 'manager' ? 50000 : 30000 - (index * 1000))) + (emp.role === 'admin' ? 3000 : (emp.role === 'manager' ? 1500 : 500)) - (emp.role === 'admin' ? 5000 : (emp.role === 'manager' ? 2000 : 1000)) - 500
 }));
-initialMockSalaries.push(
-    { id: 'S006', employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'employee', month: format(new Date(new Date().getFullYear(), new Date().getMonth() - 5, 1), 'yyyy-MM'), basicSalary: 28000, advances: 1000, bonuses: 1000, deductions: 300, netSalary: 28000 + 1000 - 1000 - 300 },
-    { id: 'S007', employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee', month: format(new Date(new Date().getFullYear(), new Date().getMonth() - 6, 1), 'yyyy-MM'), basicSalary: 27000, advances: 0, bonuses: 2000, deductions: 200, netSalary: 27000 + 2000 - 0 - 200 }
-);
+
 
 interface RecordFormDataBase {
   selectedEmployeeId?: string;
@@ -89,7 +88,7 @@ export default function PerformancePage() {
   const { toast } = useToast();
   const { user } = useAuth();
 
-  const [managedEmployees, setManagedEmployees] = useState<ManagedEmployee[]>([]); // Loaded from localStorage
+  const [managedEmployees, setManagedEmployees] = useState<ManagedEmployee[]>([]);
   const [performanceRecords, setPerformanceRecords] = useState<EmployeePerformance[]>([]);
   const [attendanceRecords, setAttendanceRecords] = useState<EmployeeAttendance[]>([]);
   const [salaryRecords, setSalaryRecords] = useState<EmployeeSalary[]>([]);
@@ -114,8 +113,6 @@ export default function PerformancePage() {
             finalData = parsedValue;
             loadedFromStorage = true;
           } else if (key === MANAGED_EMPLOYEES_KEY && Array.isArray(parsedValue) && parsedValue.length === 0) {
-            // If localStorage has an empty array for managed employees, use defaults
-            // This is crucial for populating dropdowns in "Add Record" dialogs if no employees are managed yet
             finalData = defaultValue; 
             loadedFromStorage = false; 
           }
@@ -128,7 +125,6 @@ export default function PerformancePage() {
         console.log(`${keyNameForLog} loaded from ${loadedFromStorage ? 'localStorage' : 'defaults'}. Count: ${finalData.length}`);
       }
     };
-    // Load managed employees first, as they are needed for dropdowns
     loadData<ManagedEmployee>(MANAGED_EMPLOYEES_KEY, setManagedEmployees, allInitialStaffWithRoles, 'Managed Employees (Performance Page)');
     loadData<EmployeePerformance>(PERFORMANCE_KEY, setPerformanceRecords, initialMockPerformance, 'Performance Records');
     loadData<EmployeeAttendance>(ATTENDANCE_KEY, setAttendanceRecords, initialMockAttendance, 'Attendance Records');
@@ -266,7 +262,10 @@ export default function PerformancePage() {
 
     if (user?.role === 'employee' && user.employeeId) {
       dataToSet = { ...dataToSet, selectedEmployeeId: user.employeeId };
+    } else if ((user?.role === 'admin' || user?.role === 'manager') && (!initialData.selectedEmployeeId && employeeDropdownList.length > 0)) {
+        dataToSet = { ...dataToSet, selectedEmployeeId: employeeDropdownList[0].employeeId }
     }
+
 
     if (!initialData.hasOwnProperty('date') && !initialData.hasOwnProperty('month')) { 
       dataToSet = { ...dataToSet, date: defaultDate }; 
@@ -277,28 +276,29 @@ export default function PerformancePage() {
     setter(true);
   };
 
-  const userPerformanceRecords = useMemo(() => {
+  const displayedPerformanceRecords = useMemo(() => {
     if (!user) return [];
-    if (user.role === 'employee') {
-      return (performanceRecords || []).filter(r => r.employeeId === user.employeeId);
+    if (user.role === 'admin' || user.role === 'manager') {
+      return performanceRecords || [];
     }
-    return performanceRecords || [];
+    return (performanceRecords || []).filter(r => r.employeeId === user.employeeId);
   }, [performanceRecords, user]);
 
-  const userAttendanceRecords = useMemo(() => {
+  const displayedAttendanceRecords = useMemo(() => {
     if (!user) return [];
-    if (user.role === 'employee') {
-      return (attendanceRecords || []).filter(r => r.employeeId === user.employeeId);
+    if (user.role === 'admin' || user.role === 'manager') {
+      return attendanceRecords || [];
     }
-    return attendanceRecords || [];
+    return (attendanceRecords || []).filter(r => r.employeeId === user.employeeId);
   }, [attendanceRecords, user]);
 
-  const userSalaryRecords = useMemo(() => {
+  const displayedSalaryRecords = useMemo(() => {
     if (!user) return [];
-    if (user.role === 'employee') {
-      return (salaryRecords || []).filter(r => r.employeeId === user.employeeId);
+    if (user.role === 'admin') { // Only admin sees all salaries
+        return salaryRecords || [];
     }
-    return salaryRecords || [];
+    // Managers and Employees see only their own salary
+    return (salaryRecords || []).filter(r => r.employeeId === user.employeeId);
   }, [salaryRecords, user]);
 
   const employeeDropdownList = useMemo(() => {
@@ -306,9 +306,34 @@ export default function PerformancePage() {
     if (user?.role === 'employee' && user.employeeId) {
       return (managedEmployees || []).filter(emp => emp.employeeId === user.employeeId && emp.status === 'active');
     }
-    // For admins, show all active employees
     return (managedEmployees || []).filter(emp => emp.status === 'active');
   }, [managedEmployees, user]);
+
+  const canAddOrDeleteRecord = (recordEmployeeId?: string) => {
+    if (!user) return false;
+    if (user.role === 'admin') return true;
+    if (user.role === 'manager' && recordEmployeeId) {
+        const targetEmployee = managedEmployees.find(emp => emp.employeeId === recordEmployeeId);
+        return targetEmployee?.role !== 'admin'; // Manager can manage other managers and employees, but not admins
+    }
+    if (user.role === 'employee' && recordEmployeeId) {
+        return user.employeeId === recordEmployeeId; // Employee can only manage their own
+    }
+    return false; // Default to no permission if no recordEmployeeId provided for an action by employee/manager
+  };
+
+  const canAddRecordForSelected = (selectedEmpId?: string) => {
+    if (!user || !selectedEmpId) return false;
+    if (user.role === 'admin') return true;
+    if (user.role === 'manager') {
+        const targetEmployee = managedEmployees.find(emp => emp.employeeId === selectedEmpId);
+        return targetEmployee?.role !== 'admin';
+    }
+    if (user.role === 'employee') {
+        return user.employeeId === selectedEmpId;
+    }
+    return false;
+  }
 
 
   if (!user) {
@@ -340,8 +365,8 @@ export default function PerformancePage() {
                 <CardTitle>Daily Performance Records</CardTitle>
                 <CardDescription>Monitor sales targets and task completion.</CardDescription>
               </div>
-              {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId)) && (
-                <Button size="sm" onClick={() => openRecordDialog(setIsAddPerformanceDialogOpen, setPerformanceFormData, { date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : undefined })}>
+              {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'employee') && (
+                <Button size="sm" onClick={() => openRecordDialog(setIsAddPerformanceDialogOpen, setPerformanceFormData, { date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : employeeDropdownList[0]?.employeeId })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Add Record
                 </Button>
               )}
@@ -361,7 +386,7 @@ export default function PerformancePage() {
                   </TableRow>
                 </TableHeaderComponent>
                 <TableBody>
-                  {(userPerformanceRecords || []).map((record) => (
+                  {(displayedPerformanceRecords || []).map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>{record.employeeId}</TableCell>
                       <TableCell>{record.employeeName}</TableCell>
@@ -371,7 +396,7 @@ export default function PerformancePage() {
                       <TableCell>PKR {record.salesAchieved?.toLocaleString() || 'N/A'}</TableCell>
                       <TableCell>{record.tasksCompleted}/{record.tasksAssigned}</TableCell>
                       <TableCell className="text-right">
-                        {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId === record.employeeId)) && (
+                        {canAddOrDeleteRecord(record.employeeId) && (
                           <Button variant="ghost" size="icon" onClick={() => handleDeletePerformanceRecord(record.id)} aria-label="Delete performance record">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -379,7 +404,7 @@ export default function PerformancePage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {(userPerformanceRecords || []).length === 0 && (
+                  {(displayedPerformanceRecords || []).length === 0 && (
                     <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-4">No performance records yet.</TableCell></TableRow>
                   )}
                 </TableBody>
@@ -395,8 +420,8 @@ export default function PerformancePage() {
                 <CardTitle>Employee Attendance</CardTitle>
                 <CardDescription>Track daily in-time and out-time.</CardDescription>
               </div>
-              {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId)) && (
-                <Button size="sm" onClick={() => openRecordDialog(setIsAddAttendanceDialogOpen, setAttendanceFormData, { date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : undefined })}>
+              {(user?.role === 'admin' || user?.role === 'manager' || user?.role === 'employee') && (
+                <Button size="sm" onClick={() => openRecordDialog(setIsAddAttendanceDialogOpen, setAttendanceFormData, { date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : employeeDropdownList[0]?.employeeId })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Mark Attendance
                 </Button>
               )}
@@ -416,7 +441,7 @@ export default function PerformancePage() {
                   </TableRow>
                 </TableHeaderComponent>
                 <TableBody>
-                  {(userAttendanceRecords || []).map((record) => (
+                  {(displayedAttendanceRecords || []).map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>{record.employeeId}</TableCell>
                       <TableCell>{record.employeeName}</TableCell>
@@ -426,7 +451,7 @@ export default function PerformancePage() {
                       <TableCell>{record.outTime || 'N/A'}</TableCell>
                       <TableCell>{record.status}</TableCell>
                       <TableCell className="text-right">
-                        {(user?.role === 'admin' || (user?.role === 'employee' && user.employeeId === record.employeeId)) && (
+                         {canAddOrDeleteRecord(record.employeeId) && (
                           <Button variant="ghost" size="icon" onClick={() => handleDeleteAttendanceRecord(record.id)} aria-label="Delete attendance record">
                             <Trash2 className="h-4 w-4 text-destructive" />
                           </Button>
@@ -434,7 +459,7 @@ export default function PerformancePage() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {(userAttendanceRecords || []).length === 0 && (
+                  {(displayedAttendanceRecords || []).length === 0 && (
                     <TableRow><TableCell colSpan={8} className="text-center text-muted-foreground py-4">No attendance records yet.</TableCell></TableRow>
                   )}
                 </TableBody>
@@ -451,7 +476,7 @@ export default function PerformancePage() {
                 <CardDescription>Manage monthly salaries, advances, bonuses, and deductions.</CardDescription>
               </div>
               {user?.role === 'admin' && ( 
-                <Button size="sm" onClick={() => openRecordDialog(setIsAddSalaryDialogOpen, setSalaryFormData, { month: format(new Date(), 'yyyy-MM') })}>
+                <Button size="sm" onClick={() => openRecordDialog(setIsAddSalaryDialogOpen, setSalaryFormData, { month: format(new Date(), 'yyyy-MM'), selectedEmployeeId: employeeDropdownList[0]?.employeeId })}>
                   <PlusCircle className="mr-2 h-4 w-4" /> Add Salary Entry
                 </Button>
               )}
@@ -473,7 +498,7 @@ export default function PerformancePage() {
                   </TableRow>
                 </TableHeaderComponent>
                 <TableBody>
-                  {(userSalaryRecords || []).map((record) => (
+                  {(displayedSalaryRecords || []).map((record) => (
                     <TableRow key={record.id}>
                       <TableCell>{record.employeeId}</TableCell>
                       <TableCell>{record.employeeName}</TableCell>
@@ -493,7 +518,7 @@ export default function PerformancePage() {
                       )}
                     </TableRow>
                   ))}
-                  {(userSalaryRecords || []).length === 0 && (
+                  {(displayedSalaryRecords || []).length === 0 && (
                     <TableRow><TableCell colSpan={user?.role === 'admin' ? 10 : 9} className="text-center text-muted-foreground py-4">No salary records yet.</TableCell></TableRow>
                   )}
                 </TableBody>
@@ -504,7 +529,8 @@ export default function PerformancePage() {
       </Tabs>
 
       {/* Add Performance Record Dialog */}
-      <Dialog open={isAddPerformanceDialogOpen} onOpenChange={(isOpen) => { setIsAddPerformanceDialogOpen(isOpen); if (!isOpen) { setPerformanceFormData({ date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : undefined }); } }}>
+      {isAddPerformanceDialogOpen && (
+      <Dialog open={isAddPerformanceDialogOpen} onOpenChange={(isOpen) => { setIsAddPerformanceDialogOpen(isOpen); if (!isOpen) { setPerformanceFormData({ date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : employeeDropdownList[0]?.employeeId }); } }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Add Performance Record</DialogTitle></DialogHeader>
           <form onSubmit={handleAddPerformanceRecord} className="space-y-4 py-4">
@@ -514,14 +540,14 @@ export default function PerformancePage() {
                 name="selectedEmployeeId"
                 value={performanceFormData.selectedEmployeeId || ""}
                 onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'performance')}
-                disabled={user?.role === 'employee'}
+                disabled={user?.role === 'employee' || !canAddRecordForSelected(performanceFormData.selectedEmployeeId)}
               >
                 <SelectTrigger id="perfEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
                   {(employeeDropdownList && employeeDropdownList.length > 0) ? (
-                    employeeDropdownList.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
+                    employeeDropdownList.filter(emp => user?.role === 'admin' || user?.role === 'manager' || emp.employeeId === user?.employeeId).map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId} disabled={!canAddRecordForSelected(emp.employeeId)}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
                   ) : (
-                    <SelectItem value="no-employees" disabled>No employees found. Please add via Manage Employees.</SelectItem>
+                    <SelectItem value="no-employees" disabled>No active employees found.</SelectItem>
                   )}
                 </SelectContent>
               </Select>
@@ -544,14 +570,16 @@ export default function PerformancePage() {
             <div><Label htmlFor="tasksAssigned">Tasks Assigned</Label><Input id="tasksAssigned" name="tasksAssigned" type="number" value={performanceFormData.tasksAssigned || ''} onChange={(e) => handleRecordFormInputChange(e, 'performance')} min="0" /></div>
             <DialogFooter>
               <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-              <Button type="submit">Add Record</Button>
+              <Button type="submit" disabled={!canAddRecordForSelected(performanceFormData.selectedEmployeeId)}>Add Record</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+      )}
 
       {/* Add Attendance Record Dialog */}
-      <Dialog open={isAddAttendanceDialogOpen} onOpenChange={(isOpen) => { setIsAddAttendanceDialogOpen(isOpen); if (!isOpen) { setAttendanceFormData({ date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : undefined }); } }}>
+      {isAddAttendanceDialogOpen && (
+      <Dialog open={isAddAttendanceDialogOpen} onOpenChange={(isOpen) => { setIsAddAttendanceDialogOpen(isOpen); if (!isOpen) { setAttendanceFormData({ date: new Date(), selectedEmployeeId: user?.role === 'employee' ? user.employeeId : employeeDropdownList[0]?.employeeId }); } }}>
         <DialogContent>
           <DialogHeader><DialogTitle>Mark Attendance</DialogTitle></DialogHeader>
           <form onSubmit={handleAddAttendanceRecord} className="space-y-4 py-4">
@@ -561,14 +589,14 @@ export default function PerformancePage() {
                 name="selectedEmployeeId"
                 value={attendanceFormData.selectedEmployeeId || ""}
                 onValueChange={(value) => handleRecordFormSelectChange(value, 'selectedEmployeeId', 'attendance')}
-                disabled={user?.role === 'employee'}
+                disabled={user?.role === 'employee' || !canAddRecordForSelected(attendanceFormData.selectedEmployeeId)}
               >
                 <SelectTrigger id="attEmployeeId"><SelectValue placeholder="Select Employee" /></SelectTrigger>
                 <SelectContent>
                   {(employeeDropdownList && employeeDropdownList.length > 0) ? (
-                    employeeDropdownList.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
+                    employeeDropdownList.filter(emp => user?.role === 'admin' || user?.role === 'manager' || emp.employeeId === user?.employeeId).map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId} disabled={!canAddRecordForSelected(emp.employeeId)}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
                   ) : (
-                     <SelectItem value="no-employees" disabled>No employees found. Please add via Manage Employees.</SelectItem>
+                     <SelectItem value="no-employees" disabled>No active employees found.</SelectItem>
                   )}
                 </SelectContent>
               </Select>
@@ -600,15 +628,16 @@ export default function PerformancePage() {
             </div>
             <DialogFooter>
               <DialogClose asChild><Button variant="outline" type="button">Cancel</Button></DialogClose>
-              <Button type="submit">Mark Attendance</Button>
+              <Button type="submit" disabled={!canAddRecordForSelected(attendanceFormData.selectedEmployeeId)}>Mark Attendance</Button>
             </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+      )}
 
       {/* Add Salary Record Dialog - Only for Admins */}
       {user?.role === 'admin' && isAddSalaryDialogOpen && (
-        <Dialog open={isAddSalaryDialogOpen} onOpenChange={(isOpen) => { setIsAddSalaryDialogOpen(isOpen); if (!isOpen) { setSalaryFormData({ month: format(new Date(), 'yyyy-MM')}); } }}>
+        <Dialog open={isAddSalaryDialogOpen} onOpenChange={(isOpen) => { setIsAddSalaryDialogOpen(isOpen); if (!isOpen) { setSalaryFormData({ month: format(new Date(), 'yyyy-MM'), selectedEmployeeId: employeeDropdownList[0]?.employeeId }); } }}>
           <DialogContent>
             <DialogHeader><DialogTitle>Add Salary Entry</DialogTitle></DialogHeader>
             <form onSubmit={handleAddSalaryRecord} className="space-y-4 py-4">
@@ -624,7 +653,7 @@ export default function PerformancePage() {
                     {(employeeDropdownList && employeeDropdownList.length > 0) ? (
                       employeeDropdownList.map(emp => <SelectItem key={emp.employeeId} value={emp.employeeId}>{emp.employeeName} ({emp.employeeId})</SelectItem>)
                     ) : (
-                       <SelectItem value="no-employees" disabled>No employees found. Please add via Manage Employees.</SelectItem>
+                       <SelectItem value="no-employees" disabled>No active employees found.</SelectItem>
                     )}
                   </SelectContent>
                 </Select>
