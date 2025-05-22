@@ -45,7 +45,7 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
     text += `Order ID: ${saleRecord.id}\n`;
     text += `Date & Time: ${formattedDateTime}\n`;
     text += `Order Type: ${saleRecord.orderType}\n`;
-    text += `Cashier ID: ${saleRecord.employeeId}\n`; // Displaying Employee ID
+    text += `Cashier ID: ${saleRecord.employeeId}\n`;
     text += `-------------------------\n`;
     text += `Items Purchased:\n`;
     saleRecord.items.forEach(item => {
@@ -65,7 +65,6 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
     const shareData = {
       title: `Quoriam Foods Receipt - Order ${saleRecord.id}`,
       text: generateShareableText(),
-      // url: window.location.href, // Optional: You can share a URL to view the receipt if you have one
     };
 
     if (navigator.share) {
@@ -74,18 +73,31 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
         toast({ title: "Receipt Shared", description: "The receipt details have been shared." });
       } catch (error) {
         console.error('Error sharing:', error);
-        // Check if it's an AbortError (user cancelled the share dialog)
-        if (error instanceof DOMException && error.name === 'AbortError') {
+        if (error instanceof DOMException) {
+          if (error.name === 'AbortError') {
             toast({
-                variant: "default", // Or "info" if you create one
-                title: "Share Cancelled",
-                description: "You cancelled the share operation.",
+              variant: "default",
+              title: "Share Cancelled",
+              description: "You cancelled the share operation.",
             });
-        } else {
+          } else if (error.name === 'NotAllowedError') {
+             toast({
+              variant: "destructive",
+              title: "Share Failed",
+              description: "Permission to share was denied. This may be due to browser settings or not using HTTPS.",
+            });
+          } else {
             toast({
               variant: "destructive",
               title: "Share Failed",
-              description: "Could not share the receipt at this time.",
+              description: `Could not share the receipt: ${error.message}`,
+            });
+          }
+        } else {
+           toast({
+              variant: "destructive",
+              title: "Share Failed",
+              description: "An unexpected error occurred during sharing.",
             });
         }
       }
