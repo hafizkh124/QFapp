@@ -34,7 +34,7 @@ const allInitialStaffWithRoles: ManagedEmployee[] = [
   { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'Cashier' },
   { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'Cashier' },
   { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'Cashier' },
-  { employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff' },
+  { employeeId: 'QE108', employeeName: 'Alice Smith', role: 'Staff' }, // Example additional staff
 ];
 
 // Initial Mock Data (using QE-prefixed IDs)
@@ -61,12 +61,12 @@ const deriveInitialManagedEmployees = (): ManagedEmployee[] => {
 // Function to generate new Employee ID
 const generateNewEmployeeId = (employees: ManagedEmployee[]): string => {
   const prefix = "QE";
-  let maxNum = 100; // Start before 101, so the first generated ID is QE101 if no QE prefix IDs exist
+  let maxNum = 100; 
   
   employees.forEach(emp => {
     if (emp.employeeId.startsWith(prefix)) {
       const numPartString = emp.employeeId.substring(prefix.length);
-      if (numPartString.length > 0) { // Ensure there is a numeric part
+      if (numPartString.length > 0) { 
         const numPart = parseInt(numPartString, 10);
         if (!isNaN(numPart) && numPart > maxNum) {
           maxNum = numPart;
@@ -74,10 +74,6 @@ const generateNewEmployeeId = (employees: ManagedEmployee[]): string => {
       }
     }
   });
-  // If maxNum is still 100, it means no QE prefixed IDs were found, or they were <= QE100
-  // So, the next ID will be QE101 in that case too.
-  // If employees list is empty, maxNum remains 100, next is QE101.
-  // If highest was QE101, maxNum becomes 101, next is QE102.
   return `${prefix}${maxNum + 1}`;
 };
 
@@ -104,8 +100,6 @@ interface SalaryFormData extends Omit<RecordFormDataBase, 'date'> {
   bonuses?: number;
   deductions?: number;
 }
-
-// Removed EmployeeFormState, as currentEditingEmployee will be ManagedEmployee | null
 
 
 export default function PerformancePage() {
@@ -135,17 +129,17 @@ export default function PerformancePage() {
     
   // Load data from localStorage on mount
   useEffect(() => {
-    const loadData = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T[]>>, defaultValue: T[], isEmployeeList = false): void => {
+    const loadData = <T,>(key: string, setter: React.Dispatch<React.SetStateAction<T[]>>, defaultValue: T[]): void => {
       try {
         const storedValue = localStorage.getItem(key);
         if (storedValue) {
           const parsedValue = JSON.parse(storedValue);
-           if (Array.isArray(parsedValue) && parsedValue.length > 0) { // Ensure it's a non-empty array
-            setter(parsedValue);
-          } else { // If empty array, null, or not an array, use default
+           if (Array.isArray(parsedValue)) { // Ensure it's an array
+            setter(parsedValue.length > 0 ? parsedValue : defaultValue); // Use default if parsed array is empty
+          } else { 
             setter(defaultValue);
           }
-        } else { // If key not found, use default
+        } else { 
           setter(defaultValue);
         }
       } catch (error) {
@@ -153,7 +147,7 @@ export default function PerformancePage() {
         setter(defaultValue); 
       }
     };
-    loadData<ManagedEmployee>(MANAGED_EMPLOYEES_KEY, setManagedEmployees, deriveInitialManagedEmployees(), true);
+    loadData<ManagedEmployee>(MANAGED_EMPLOYEES_KEY, setManagedEmployees, deriveInitialManagedEmployees());
     loadData<EmployeePerformance>(PERFORMANCE_KEY, setPerformanceRecords, initialMockPerformance);
     loadData<EmployeeAttendance>(ATTENDANCE_KEY, setAttendanceRecords, initialMockAttendance);
     loadData<EmployeeSalary>(SALARY_KEY, setSalaryRecords, initialMockSalaries);
@@ -177,7 +171,7 @@ export default function PerformancePage() {
 
   const handleOpenEditEmployeeDialog = (employee: ManagedEmployee) => {
     setEmployeeFormMode('edit');
-    setCurrentEditingEmployee({...employee}); // Clone to avoid direct state mutation before save
+    setCurrentEditingEmployee({...employee}); 
     setIsEmployeeFormDialogOpen(true);
   };
 
@@ -189,10 +183,9 @@ export default function PerformancePage() {
     }
 
     if (employeeFormMode === 'add') {
-      // ID uniqueness is handled by generation, but name/role validation can be here
       setManagedEmployees(prev => [...prev, { ...currentEditingEmployee }].sort((a,b) => a.employeeName.localeCompare(b.employeeName)));
       toast({ title: "Success", description: "New employee added." });
-    } else { // 'edit'
+    } else { 
       setManagedEmployees(prev => prev.map(emp => emp.employeeId === currentEditingEmployee.employeeId ? { ...currentEditingEmployee } : emp).sort((a,b) => a.employeeName.localeCompare(b.employeeName)));
       
       const updatedPerformanceRecords = performanceRecords.map(rec => 
@@ -222,9 +215,9 @@ export default function PerformancePage() {
   };
   
   const handleDeleteEmployee = (employeeId: string) => {
-    const hasRecords = performanceRecords.some(r => r.employeeId === employeeId) ||
-                       attendanceRecords.some(r => r.employeeId === employeeId) ||
-                       salaryRecords.some(r => r.employeeId === employeeId);
+    const hasRecords = (performanceRecords || []).some(r => r.employeeId === employeeId) ||
+                       (attendanceRecords || []).some(r => r.employeeId === employeeId) ||
+                       (salaryRecords || []).some(r => r.employeeId === employeeId);
     if (hasRecords) {
       toast({ title: "Cannot Delete", description: "Employee has existing records. Please delete their records first or reassign them.", variant: "destructive" });
       return;
@@ -425,9 +418,13 @@ export default function PerformancePage() {
                       </TableCell>
                     </TableRow>
                   ))}
+                  {(performanceRecords || []).length === 0 && (
+                     <TableRow>
+                        <TableCell colSpan={8} className="text-center text-muted-foreground py-4">No performance records yet.</TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
-              {(performanceRecords || []).length === 0 && <p className="text-center text-muted-foreground py-4">No performance records yet.</p>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -468,16 +465,20 @@ export default function PerformancePage() {
                       <TableCell>{record.inTime || 'N/A'}</TableCell>
                       <TableCell>{record.outTime || 'N/A'}</TableCell>
                       <TableCell>{record.status}</TableCell>
-                       <TableCell className="text-right">
+                      <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteAttendanceRecord(record.id)} aria-label="Delete attendance record">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))}
+                  {(attendanceRecords || []).length === 0 && (
+                    <TableRow>
+                        <TableCell colSpan={8} className="text-center text-muted-foreground py-4">No attendance records yet.</TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
-              {(attendanceRecords || []).length === 0 && <p className="text-center text-muted-foreground py-4">No attendance records yet.</p>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -516,22 +517,26 @@ export default function PerformancePage() {
                       <TableCell>{record.employeeId}</TableCell>
                       <TableCell>{record.employeeName}</TableCell>
                       <TableCell>{record.role || 'N/A'}</TableCell>
-                      <TableCell>{record.month ? format(parseISO(record.month + '-01'), 'MMMM yyyy') : 'N/A'}</TableCell> {/* Display month name */}
+                      <TableCell>{record.month ? format(parseISO(record.month + '-01'), 'MMMM yyyy') : 'N/A'}</TableCell>
                       <TableCell>PKR {record.basicSalary.toLocaleString()}</TableCell>
                       <TableCell>PKR {record.advances.toLocaleString()}</TableCell>
                       <TableCell>PKR {record.bonuses.toLocaleString()}</TableCell>
                       <TableCell>PKR {record.deductions.toLocaleString()}</TableCell>
                       <TableCell className="font-semibold">PKR {record.netSalary.toLocaleString()}</TableCell>
-                       <TableCell className="text-right">
+                      <TableCell className="text-right">
                         <Button variant="ghost" size="icon" onClick={() => handleDeleteSalaryRecord(record.id)} aria-label="Delete salary record">
                           <Trash2 className="h-4 w-4 text-destructive" />
                         </Button>
                       </TableCell>
                     </TableRow>
                   ))}
+                  {(salaryRecords || []).length === 0 && (
+                     <TableRow>
+                        <TableCell colSpan={10} className="text-center text-muted-foreground py-4">No salary records yet.</TableCell>
+                    </TableRow>
+                  )}
                 </TableBody>
               </Table>
-              {(salaryRecords || []).length === 0 && <p className="text-center text-muted-foreground py-4">No salary records yet.</p>}
             </CardContent>
           </Card>
         </TabsContent>
@@ -565,7 +570,7 @@ export default function PerformancePage() {
                     </TableCell>
                   </TableRow>
                 ))}
-                {managedEmployees.length === 0 && <TableRow><TableCell colSpan={4} className="text-center">No employees managed yet.</TableCell></TableRow>}
+                {managedEmployees.length === 0 && <TableRow><TableCell colSpan={4} className="text-center text-muted-foreground py-4">No employees managed yet.</TableCell></TableRow>}
               </TableBody>
             </Table>
             <DialogFooter>
@@ -585,7 +590,7 @@ export default function PerformancePage() {
                 <Input 
                   id="empFormId" 
                   value={currentEditingEmployee.employeeId} 
-                  disabled // Always disabled as it's auto-generated or non-editable
+                  disabled 
                   className="bg-muted/50"
                 />
               </div>
@@ -731,3 +736,5 @@ export default function PerformancePage() {
     </>
   );
 }
+
+    
