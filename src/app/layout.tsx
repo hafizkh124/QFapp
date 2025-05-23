@@ -9,6 +9,11 @@ import React from 'react'; // React import might still be needed for JSX
 export const metadata: Metadata = {
   title: 'Quoriam Foods',
   description: 'Restaurant Management App by Quoriam Foods',
+  icons: {
+    icon: '/favicon.ico', // Standard path for favicon
+    // You can also add other icon types like apple-touch-icon
+    // apple: '/apple-touch-icon.png',
+  },
 };
 
 export default function RootLayout({
