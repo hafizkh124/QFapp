@@ -11,19 +11,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Trash2, UtensilsCrossed, Eye, UserCircle, ShieldAlert, ShoppingBag, Car, Utensils, Pencil } from 'lucide-react';
+import { PlusCircle, Trash2, UtensilsCrossed, Eye, UserCircle, ShieldAlert, ShoppingBag, Car, Utensils, Pencil, CalendarIcon } from 'lucide-react';
 import type { SaleRecord, SaleItem, MenuItem, ManagedEmployee, OrderType } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SalesReports from '@/components/sales/SalesReports';
 import ReceiptModal from '@/components/sales/ReceiptModal';
-import { format, differenceInMilliseconds, parseISO } from 'date-fns';
+import { format, differenceInMilliseconds, parseISO, setHours, setMinutes, setSeconds, setMilliseconds, startOfDay } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 interface NewSaleItem extends Omit<SaleItem, 'id' | 'total'> {
-  tempId: string; // for client-side list management
+  tempId: string; // for client-side list management, typically menuItem.id
 }
 
 interface MenuSelectionItem extends MenuItem {
@@ -68,6 +71,7 @@ export default function SalesPage() {
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [menuSelection, setMenuSelection] = useState<MenuSelectionItem[]>([]);
 
+  const [saleDate, setSaleDate] = useState<Date | undefined>(new Date());
   const [orderType, setOrderType] = useState<OrderType>('Dine-in');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online' | 'credit'>('cash');
   const [currentOrderItems, setCurrentOrderItems] = useState<NewSaleItem[]>([]);
@@ -87,7 +91,6 @@ export default function SalesPage() {
   const [editOrderOriginalDateTime, setEditOrderOriginalDateTime] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load Managed Employees (Cashier List)
     let loadedCashiers: ManagedEmployee[] = [];
     try {
       const storedManagedEmployees = localStorage.getItem(MANAGED_EMPLOYEES_KEY);
@@ -105,8 +108,6 @@ export default function SalesPage() {
     }
     setCashierList(loadedCashiers);
 
-
-    // Load Categories
     const storedCategories = localStorage.getItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY);
     if (storedCategories) {
       try {
@@ -124,7 +125,6 @@ export default function SalesPage() {
       setAllCategories(defaultFallbackCategories);
     }
 
-    // Load Menu Items
     const storedMenuItems = localStorage.getItem(MENU_ITEMS_LOCAL_STORAGE_KEY);
     let loadedMenuItems: MenuItem[] = [];
     if (storedMenuItems) {
@@ -146,8 +146,6 @@ export default function SalesPage() {
       }))
     );
 
-
-    // Load Sales Records
     const storedSales = localStorage.getItem(SALES_RECORDS_LOCAL_STORAGE_KEY);
     if (storedSales) {
       try {
@@ -179,15 +177,17 @@ export default function SalesPage() {
     setMenuSelection(
       menuItems.map(item => {
         const existingSelection = menuSelection.find(ms => ms.id === item.id);
+        // Check if item is in currentOrderItems to maintain selection state if form resets
+        const isInCurrentOrder = currentOrderItems.some(orderItem => orderItem.tempId === item.id);
         return {
           ...item,
-          selected: existingSelection?.selected || false,
-          quantity: existingSelection?.quantity || 1
+          selected: existingSelection?.selected || isInCurrentOrder || false,
+          quantity: existingSelection?.quantity || (isInCurrentOrder ? currentOrderItems.find(orderItem => orderItem.tempId === item.id)!.quantity : 1)
         };
       })
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuItems]);
+  }, [menuItems]); // Only re-run if menuItems itself changes. currentOrderItems dependency might cause loops if not handled carefully elsewhere.
 
   useEffect(() => {
     if (salesRecords.length > 0 || localStorage.getItem(SALES_RECORDS_LOCAL_STORAGE_KEY)) {
@@ -196,6 +196,9 @@ export default function SalesPage() {
   }, [salesRecords]);
 
   const handleMenuSelectionChange = (itemId: string, checked: boolean) => {
+    const selectedMenuItem = menuItems.find(mi => mi.id === itemId);
+    if (!selectedMenuItem) return;
+
     setMenuSelection(prevSelection =>
       prevSelection.map(item =>
         item.id === itemId
@@ -203,41 +206,52 @@ export default function SalesPage() {
           : item
       )
     );
+
+    if (checked) {
+      const currentMenuItemState = menuSelection.find(item => item.id === itemId) || { ...selectedMenuItem, quantity: 1 };
+      const newItemForOrder: NewSaleItem = {
+        tempId: selectedMenuItem.id, // Use menu item's actual ID
+        name: selectedMenuItem.name,
+        quantity: currentMenuItemState.quantity,
+        price: selectedMenuItem.price,
+        category: selectedMenuItem.category,
+      };
+      setCurrentOrderItems(prevOrderItems => {
+        // Avoid duplicates if somehow already added
+        if (prevOrderItems.some(item => item.tempId === selectedMenuItem.id)) {
+          return prevOrderItems.map(item => item.tempId === selectedMenuItem.id ? { ...item, quantity: currentMenuItemState.quantity } : item);
+        }
+        return [...prevOrderItems, newItemForOrder];
+      });
+    } else {
+      setCurrentOrderItems(prevOrderItems => prevOrderItems.filter(item => item.tempId !== itemId));
+    }
   };
 
   const handleMenuSelectionQuantityChange = (itemId: string, quantity: number) => {
+    const newQuantity = Math.max(1, quantity);
     setMenuSelection(prevSelection =>
       prevSelection.map(item =>
-        item.id === itemId ? { ...item, quantity: Math.max(1, quantity) } : item
+        item.id === itemId ? { ...item, quantity: newQuantity } : item
       )
     );
-  };
-
-  const handleAddSelectedItemsToOrder = () => {
-    const itemsToAdd = menuSelection.filter(item => item.selected && item.quantity > 0);
-    if (itemsToAdd.length === 0) {
-      toast({ title: "No items selected", description: "Please select items and specify quantities.", variant: "destructive"});
-      return;
-    }
-
-    const newOrderItems: NewSaleItem[] = itemsToAdd.map(item => ({
-      tempId: `${Date.now().toString()}-${item.id}`,
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      category: item.category
-    }));
-
-    setCurrentOrderItems(prevOrderItems => [...prevOrderItems, ...newOrderItems]);
-
-    setMenuSelection(prevSelection =>
-      prevSelection.map(item => ({ ...item, selected: false, quantity: 1 }))
+    // If the item is already selected (i.e., in currentOrderItems), update its quantity there too
+    setCurrentOrderItems(prevOrderItems =>
+        prevOrderItems.map(item =>
+            item.tempId === itemId ? { ...item, quantity: newQuantity } : item
+        )
     );
-    toast({ title: "Items Added", description: `${itemsToAdd.length} item(s) added to the current order.` });
   };
+
 
   const handleRemoveItemFromOrder = (tempId: string) => {
     setCurrentOrderItems(currentOrderItems.filter(item => item.tempId !== tempId));
+    // Also uncheck it in menuSelection
+    setMenuSelection(prevSelection =>
+      prevSelection.map(item =>
+        item.id === tempId ? { ...item, selected: false, quantity: 1 } : item
+      )
+    );
   };
 
   const handleAddCustomItemToOrderAndMenu = () => {
@@ -253,7 +267,7 @@ export default function SalesPage() {
     };
 
     const newItemForOrder: NewSaleItem = {
-      tempId: `custom-${newMenuItem.id}`,
+      tempId: newMenuItem.id, // Use the new menu item's ID
       name: newMenuItem.name,
       quantity: 1,
       price: newMenuItem.price,
@@ -264,6 +278,13 @@ export default function SalesPage() {
     const updatedMenuItems = [...menuItems, newMenuItem];
     setMenuItems(updatedMenuItems);
     localStorage.setItem(MENU_ITEMS_LOCAL_STORAGE_KEY, JSON.stringify(updatedMenuItems));
+
+    // Automatically select the new custom item in the menuSelection
+    setMenuSelection(prevSelection => [
+        ...prevSelection,
+        { ...newMenuItem, selected: true, quantity: 1}
+    ]);
+
 
     toast({ title: "Success", description: `${newMenuItem.name} added to order and menu.` });
 
@@ -284,7 +305,7 @@ export default function SalesPage() {
     setCurrentOrderItems([]);
     setOrderType('Dine-in');
     setPaymentMethod('cash');
-    // Reset menu selection checks and quantities
+    setSaleDate(new Date());
     setMenuSelection(prev => prev.map(item => ({ ...item, selected: false, quantity: 1 })));
     if (user && user.role === 'employee' && user.employeeId) {
         setSelectedCashierId(user.employeeId);
@@ -302,16 +323,24 @@ export default function SalesPage() {
         return;
     }
     setEditingSaleId(saleToEdit.id);
+    const originalDate = parseISO(saleToEdit.dateTime);
     setEditOrderOriginalDateTime(saleToEdit.dateTime);
-    setCurrentOrderItems(saleToEdit.items.map(item => ({ ...item, tempId: `edit-${item.id}-${Math.random()}` }))); // Ensure unique tempIds for editing
+    setSaleDate(originalDate); // Set the date picker to the sale's original date
+
+    setCurrentOrderItems(saleToEdit.items.map(item => ({
+        tempId: item.id, // Use original item ID if available, or map to menu item ID
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        category: item.category
+     })));
     setOrderType(saleToEdit.orderType);
     setPaymentMethod(saleToEdit.paymentMethod);
     setSelectedCashierId(saleToEdit.employeeId);
 
-    // Update menuSelection based on items in the sale
     setMenuSelection(prevMenuSelection => {
         return prevMenuSelection.map(menuItem => {
-            const itemInSale = saleToEdit.items.find(saleItem => saleItem.name === menuItem.name && saleItem.price === menuItem.price); // Match by name and price
+            const itemInSale = saleToEdit.items.find(saleItem => saleItem.name === menuItem.name && saleItem.price === menuItem.price);
             return {
                 ...menuItem,
                 selected: !!itemInSale,
@@ -339,6 +368,11 @@ export default function SalesPage() {
         toast({ title: "Error", description: "Please select an Order Type.", variant: "destructive"});
         return;
     }
+    if (!saleDate) {
+      toast({ title: "Error", description: "Please select a Sale Date.", variant: "destructive"});
+      return;
+    }
+
 
     let currentCashierInfo: { employeeId: string; employeeName: string; } | undefined;
 
@@ -356,9 +390,12 @@ export default function SalesPage() {
       return;
     }
 
-    const now = new Date();
+    const now = new Date(); // For current time component
+    const finalSaleDateTime = setMilliseconds(setSeconds(setMinutes(setHours(saleDate, now.getHours()), now.getMinutes()), now.getSeconds()), now.getMilliseconds());
+
+
     const saleItems: SaleItem[] = currentOrderItems.map((item, index) => ({
-        id: editingSaleId ? (item.id || `I${Date.now().toString().slice(-5)}-${index}`) : `I${Date.now().toString().slice(-5)}-${index}`, // Try to preserve original item ID if editing, otherwise new
+        id: editingSaleId && item.id ? item.id : `I${Date.now().toString().slice(-5)}-${index}`,
         name: item.name,
         quantity: item.quantity,
         price: item.price,
@@ -376,8 +413,8 @@ export default function SalesPage() {
 
         const updatedSale: SaleRecord = {
             id: editingSaleId,
-            date: format(now, 'yyyy-MM-dd'), // Update date to edit date
-            dateTime: now.toISOString(), // Update dateTime to edit time
+            date: format(finalSaleDateTime, 'yyyy-MM-dd'),
+            dateTime: finalSaleDateTime.toISOString(),
             items: saleItems,
             totalAmount: totalAmount,
             paymentMethod,
@@ -397,8 +434,8 @@ export default function SalesPage() {
     } else {
         const newSale: SaleRecord = {
           id: `S${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2,4)}`,
-          date: format(now, 'yyyy-MM-dd'),
-          dateTime: now.toISOString(),
+          date: format(finalSaleDateTime, 'yyyy-MM-dd'),
+          dateTime: finalSaleDateTime.toISOString(),
           items: saleItems,
           totalAmount: totalAmount,
           paymentMethod,
@@ -467,13 +504,41 @@ export default function SalesPage() {
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmitSale} className="space-y-4">
+                  <div>
+                      <Label htmlFor="saleDate">Sale Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !saleDate && "text-muted-foreground"
+                            )}
+                            disabled={!!editingSaleId && !isSaleEditable(editOrderOriginalDateTime || "")}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {saleDate ? format(saleDate, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={saleDate}
+                            onSelect={setSaleDate}
+                            initialFocus
+                            disabled={!!editingSaleId && !isSaleEditable(editOrderOriginalDateTime || "")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
                   {canManageCashierSelection && user?.role !== 'employee' ? (
                     <div>
                       <Label htmlFor="cashierSelect" className="mb-1 block">Select Cashier</Label>
                       <Select
                         value={selectedCashierId || ""}
                         onValueChange={(employeeId) => setSelectedCashierId(employeeId)}
-                        disabled={!!editingSaleId && user.role !== 'admin'} // Non-admins cannot change cashier during edit
+                        disabled={!!editingSaleId && user.role !== 'admin'}
                       >
                         <SelectTrigger id="cashierSelect" className="w-full">
                            <div className="flex items-center gap-2">
@@ -561,9 +626,7 @@ export default function SalesPage() {
                     </ScrollArea>
                   </div>
 
-                  <Button type="button" variant="outline" onClick={handleAddSelectedItemsToOrder} className="w-full">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Selected Items to Order
-                  </Button>
+                  {/* Removed "Add Selected Items to Order" button */}
 
                   {canAddCustomItem && !showCustomItemForm && !editingSaleId && (
                     <Button type="button" variant="secondary" onClick={() => setShowCustomItemForm(true)} className="w-full">
