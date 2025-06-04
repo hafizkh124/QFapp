@@ -11,19 +11,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
-import { PlusCircle, Trash2, UtensilsCrossed, Eye, UserCircle, ShieldAlert, ShoppingBag, Car, Utensils } from 'lucide-react';
+import { PlusCircle, Trash2, UtensilsCrossed, Eye, UserCircle, ShieldAlert, ShoppingBag, Car, Utensils, Pencil, CalendarIcon } from 'lucide-react';
 import type { SaleRecord, SaleItem, MenuItem, ManagedEmployee, OrderType } from '@/types';
 import { useToast } from "@/hooks/use-toast";
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SalesReports from '@/components/sales/SalesReports';
 import ReceiptModal from '@/components/sales/ReceiptModal';
-import { format } from 'date-fns';
+import { format, differenceInMilliseconds, parseISO, setHours, setMinutes, setSeconds, setMilliseconds, startOfDay } from 'date-fns';
 import { useAuth } from '@/context/AuthContext';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 interface NewSaleItem extends Omit<SaleItem, 'id' | 'total'> {
-  tempId: string; // for client-side list management
+  tempId: string; // for client-side list management, typically menuItem.id
 }
 
 interface MenuSelectionItem extends MenuItem {
@@ -41,14 +44,14 @@ const NO_CATEGORY_VALUE = "__no_category__";
 const defaultFallbackCategories = ["Chicken Items", "Beef Items", "Extras", "Beverages"];
 
 const defaultSalesCashiersFallback: ManagedEmployee[] = [
-    { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', email: 'hafizkh124@gmail.com', password: '1quoriam1', status: 'active' },
-    { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'manager', email: 'khubaib@quoriam.com', password: 'khubaib123', status: 'active' },
-    { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'employee', email: 'shoaib@quoriam.com', password: 'shoaib123', status: 'active' },
-    { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee', email: 'salman@quoriam.com', password: 'salman123', status: 'active' },
-    { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'employee', email: 'suraqa@quoriam.com', password: 'suraqa123', status: 'active' },
-    { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'employee', email: 'bilal@quoriam.com', password: 'bilal123', status: 'active' },
-    { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee', email: 'kaleem@quoriam.com', password: 'kaleem123', status: 'active' },
-    { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', email: 'arslan@quoriam.com', password: 'arslan123', status: 'active' },
+    { employeeId: 'QE101', employeeName: 'Umar Hayat', role: 'admin', email: 'hafizkh124@gmail.com', password: '1quoriam1', status: 'active', phone: '03001234567' },
+    { employeeId: 'QE102', employeeName: 'Abdullah Khubaib', role: 'manager', email: 'khubaib@quoriam.com', password: 'khubaib123', status: 'active', phone: '03011234567' },
+    { employeeId: 'QE103', employeeName: 'Shoaib Ashfaq', role: 'employee', email: 'shoaib@quoriam.com', password: 'shoaib123', status: 'active', phone: '03021234567' },
+    { employeeId: 'QE104', employeeName: 'Salman Karamat', role: 'employee', email: 'salman@quoriam.com', password: 'salman123', status: 'active', phone: '03031234567' },
+    { employeeId: 'QE105', employeeName: 'Suraqa Zohaib', role: 'employee', email: 'suraqa@quoriam.com', password: 'suraqa123', status: 'active', phone: '03041234567' },
+    { employeeId: 'QE106', employeeName: 'Bilal Karamat', role: 'employee', email: 'bilal@quoriam.com', password: 'bilal123', status: 'active', phone: '03051234567' },
+    { employeeId: 'QE107', employeeName: 'Kaleemullah Qarafi', role: 'employee', email: 'kaleem@quoriam.com', password: 'kaleem123', status: 'active', phone: '03061234567' },
+    { employeeId: 'QE108', employeeName: 'Arslan Mushtaq', role: 'employee', email: 'arslan@quoriam.com', password: 'arslan123', status: 'active', phone: '03071234567' },
 ];
 
 const orderTypeOptions: { value: OrderType; label: string; icon?: React.ElementType }[] = [
@@ -57,6 +60,7 @@ const orderTypeOptions: { value: OrderType; label: string; icon?: React.ElementT
   { value: 'Delivery', label: 'Delivery (ڈلیوری)', icon: Car },
 ];
 
+const FIVE_MINUTES_IN_MS = 5 * 60 * 1000;
 
 export default function SalesPage() {
   const { user } = useAuth();
@@ -67,6 +71,7 @@ export default function SalesPage() {
   const [allCategories, setAllCategories] = useState<string[]>([]);
   const [menuSelection, setMenuSelection] = useState<MenuSelectionItem[]>([]);
 
+  const [saleDate, setSaleDate] = useState<Date | undefined>(new Date());
   const [orderType, setOrderType] = useState<OrderType>('Dine-in');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'online' | 'credit'>('cash');
   const [currentOrderItems, setCurrentOrderItems] = useState<NewSaleItem[]>([]);
@@ -82,8 +87,10 @@ export default function SalesPage() {
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [currentReceipt, setCurrentReceipt] = useState<SaleRecord | null>(null);
 
+  const [editingSaleId, setEditingSaleId] = useState<string | null>(null);
+  const [editOrderOriginalDateTime, setEditOrderOriginalDateTime] = useState<string | null>(null);
+
   useEffect(() => {
-    // Load Managed Employees (Cashier List)
     let loadedCashiers: ManagedEmployee[] = [];
     try {
       const storedManagedEmployees = localStorage.getItem(MANAGED_EMPLOYEES_KEY);
@@ -101,8 +108,6 @@ export default function SalesPage() {
     }
     setCashierList(loadedCashiers);
 
-
-    // Load Categories
     const storedCategories = localStorage.getItem(MENU_CATEGORIES_LOCAL_STORAGE_KEY);
     if (storedCategories) {
       try {
@@ -120,7 +125,6 @@ export default function SalesPage() {
       setAllCategories(defaultFallbackCategories);
     }
 
-    // Load Menu Items
     const storedMenuItems = localStorage.getItem(MENU_ITEMS_LOCAL_STORAGE_KEY);
     let loadedMenuItems: MenuItem[] = [];
     if (storedMenuItems) {
@@ -134,20 +138,14 @@ export default function SalesPage() {
         console.error("Error parsing menu items from localStorage:", error);
       }
     }
-    // Initialize menuSelection based on loadedMenuItems, preserving existing selection if any
-    setMenuSelection(prevSelection => {
-        return loadedMenuItems.map(item => {
-            const existing = prevSelection.find(ps => ps.id === item.id);
-            return {
-                ...item,
-                selected: existing?.selected || false,
-                quantity: existing?.quantity || 1
-            };
-        });
-    });
+    setMenuSelection(
+      loadedMenuItems.map(item => ({
+        ...item,
+        selected: false,
+        quantity: 1,
+      }))
+    );
 
-
-    // Load Sales Records
     const storedSales = localStorage.getItem(SALES_RECORDS_LOCAL_STORAGE_KEY);
     if (storedSales) {
       try {
@@ -164,30 +162,32 @@ export default function SalesPage() {
 
 
  useEffect(() => {
-    if (user?.role === 'employee' && user.employeeId) {
-      setSelectedCashierId(user.employeeId);
-    } else if ((user?.role === 'admin' || user?.role === 'manager') && cashierList.length > 0 && !selectedCashierId) {
-      const selfInList = cashierList.find(c => c.employeeId === user?.employeeId);
-      setSelectedCashierId(selfInList ? selfInList.employeeId : cashierList[0]?.employeeId);
+    if (user) {
+        if (user.role === 'employee' && user.employeeId) {
+            setSelectedCashierId(user.employeeId);
+        } else if ((user.role === 'admin' || user.role === 'manager') && cashierList.length > 0 && !selectedCashierId) {
+            const selfInList = cashierList.find(c => c.employeeId === user.employeeId);
+            setSelectedCashierId(selfInList ? selfInList.employeeId : cashierList[0]?.employeeId);
+        }
     }
   }, [user, cashierList, selectedCashierId]);
 
 
   useEffect(() => {
-    // This effect ensures menuSelection is updated if menuItems list changes dynamically elsewhere
-    // (e.g., if another component modified localStorage for menuItems)
     setMenuSelection(
       menuItems.map(item => {
         const existingSelection = menuSelection.find(ms => ms.id === item.id);
+        // Check if item is in currentOrderItems to maintain selection state if form resets
+        const isInCurrentOrder = currentOrderItems.some(orderItem => orderItem.tempId === item.id);
         return {
           ...item,
-          selected: existingSelection?.selected || false,
-          quantity: existingSelection?.quantity || 1
+          selected: existingSelection?.selected || isInCurrentOrder || false,
+          quantity: existingSelection?.quantity || (isInCurrentOrder ? currentOrderItems.find(orderItem => orderItem.tempId === item.id)!.quantity : 1)
         };
       })
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [menuItems]); // Rerun if menuItems itself changes
+  }, [menuItems]); // Only re-run if menuItems itself changes. currentOrderItems dependency might cause loops if not handled carefully elsewhere.
 
   useEffect(() => {
     if (salesRecords.length > 0 || localStorage.getItem(SALES_RECORDS_LOCAL_STORAGE_KEY)) {
@@ -196,6 +196,9 @@ export default function SalesPage() {
   }, [salesRecords]);
 
   const handleMenuSelectionChange = (itemId: string, checked: boolean) => {
+    const selectedMenuItem = menuItems.find(mi => mi.id === itemId);
+    if (!selectedMenuItem) return;
+
     setMenuSelection(prevSelection =>
       prevSelection.map(item =>
         item.id === itemId
@@ -203,41 +206,52 @@ export default function SalesPage() {
           : item
       )
     );
+
+    if (checked) {
+      const currentMenuItemState = menuSelection.find(item => item.id === itemId) || { ...selectedMenuItem, quantity: 1 };
+      const newItemForOrder: NewSaleItem = {
+        tempId: selectedMenuItem.id, // Use menu item's actual ID
+        name: selectedMenuItem.name,
+        quantity: currentMenuItemState.quantity,
+        price: selectedMenuItem.price,
+        category: selectedMenuItem.category,
+      };
+      setCurrentOrderItems(prevOrderItems => {
+        // Avoid duplicates if somehow already added
+        if (prevOrderItems.some(item => item.tempId === selectedMenuItem.id)) {
+          return prevOrderItems.map(item => item.tempId === selectedMenuItem.id ? { ...item, quantity: currentMenuItemState.quantity } : item);
+        }
+        return [...prevOrderItems, newItemForOrder];
+      });
+    } else {
+      setCurrentOrderItems(prevOrderItems => prevOrderItems.filter(item => item.tempId !== itemId));
+    }
   };
 
   const handleMenuSelectionQuantityChange = (itemId: string, quantity: number) => {
+    const newQuantity = Math.max(1, quantity);
     setMenuSelection(prevSelection =>
       prevSelection.map(item =>
-        item.id === itemId ? { ...item, quantity: Math.max(1, quantity) } : item
+        item.id === itemId ? { ...item, quantity: newQuantity } : item
       )
     );
-  };
-
-  const handleAddSelectedItemsToOrder = () => {
-    const itemsToAdd = menuSelection.filter(item => item.selected && item.quantity > 0);
-    if (itemsToAdd.length === 0) {
-      toast({ title: "No items selected", description: "Please select items and specify quantities.", variant: "destructive"});
-      return;
-    }
-
-    const newOrderItems: NewSaleItem[] = itemsToAdd.map(item => ({
-      tempId: `${Date.now().toString()}-${item.id}`,
-      name: item.name,
-      quantity: item.quantity,
-      price: item.price,
-      category: item.category
-    }));
-
-    setCurrentOrderItems(prevOrderItems => [...prevOrderItems, ...newOrderItems]);
-
-    setMenuSelection(prevSelection =>
-      prevSelection.map(item => ({ ...item, selected: false, quantity: 1 }))
+    // If the item is already selected (i.e., in currentOrderItems), update its quantity there too
+    setCurrentOrderItems(prevOrderItems =>
+        prevOrderItems.map(item =>
+            item.tempId === itemId ? { ...item, quantity: newQuantity } : item
+        )
     );
-    toast({ title: "Items Added", description: `${itemsToAdd.length} item(s) added to the current order.` });
   };
+
 
   const handleRemoveItemFromOrder = (tempId: string) => {
     setCurrentOrderItems(currentOrderItems.filter(item => item.tempId !== tempId));
+    // Also uncheck it in menuSelection
+    setMenuSelection(prevSelection =>
+      prevSelection.map(item =>
+        item.id === tempId ? { ...item, selected: false, quantity: 1 } : item
+      )
+    );
   };
 
   const handleAddCustomItemToOrderAndMenu = () => {
@@ -253,7 +267,7 @@ export default function SalesPage() {
     };
 
     const newItemForOrder: NewSaleItem = {
-      tempId: `custom-${newMenuItem.id}`,
+      tempId: newMenuItem.id, // Use the new menu item's ID
       name: newMenuItem.name,
       quantity: 1,
       price: newMenuItem.price,
@@ -262,8 +276,15 @@ export default function SalesPage() {
     setCurrentOrderItems(prevOrderItems => [...prevOrderItems, newItemForOrder]);
 
     const updatedMenuItems = [...menuItems, newMenuItem];
-    setMenuItems(updatedMenuItems); // Update state
-    localStorage.setItem(MENU_ITEMS_LOCAL_STORAGE_KEY, JSON.stringify(updatedMenuItems)); // Update localStorage
+    setMenuItems(updatedMenuItems);
+    localStorage.setItem(MENU_ITEMS_LOCAL_STORAGE_KEY, JSON.stringify(updatedMenuItems));
+
+    // Automatically select the new custom item in the menuSelection
+    setMenuSelection(prevSelection => [
+        ...prevSelection,
+        { ...newMenuItem, selected: true, quantity: 1}
+    ]);
+
 
     toast({ title: "Success", description: `${newMenuItem.name} added to order and menu.` });
 
@@ -273,17 +294,85 @@ export default function SalesPage() {
     setShowCustomItemForm(false);
   };
 
+  const isSaleEditable = (saleDateTime: string): boolean => {
+    if (!saleDateTime) return false;
+    const saleTime = parseISO(saleDateTime).getTime();
+    const currentTime = new Date().getTime();
+    return (currentTime - saleTime) < FIVE_MINUTES_IN_MS;
+  };
+
+  const resetSaleForm = () => {
+    setCurrentOrderItems([]);
+    setOrderType('Dine-in');
+    setPaymentMethod('cash');
+    setSaleDate(new Date());
+    setMenuSelection(prev => prev.map(item => ({ ...item, selected: false, quantity: 1 })));
+    if (user && user.role === 'employee' && user.employeeId) {
+        setSelectedCashierId(user.employeeId);
+    } else if (user && (user.role === 'admin' || user.role === 'manager') && cashierList.length > 0) {
+        const selfInList = cashierList.find(c => c.employeeId === user.employeeId);
+        setSelectedCashierId(selfInList ? selfInList.employeeId : cashierList[0]?.employeeId);
+    } else {
+        setSelectedCashierId(undefined);
+    }
+  };
+
+  const handleStartEditSale = (saleToEdit: SaleRecord) => {
+    if (!isSaleEditable(saleToEdit.dateTime)) {
+        toast({ title: "Edit Window Expired", description: "This order can no longer be edited.", variant: "destructive" });
+        return;
+    }
+    setEditingSaleId(saleToEdit.id);
+    const originalDate = parseISO(saleToEdit.dateTime);
+    setEditOrderOriginalDateTime(saleToEdit.dateTime);
+    setSaleDate(originalDate); // Set the date picker to the sale's original date
+
+    setCurrentOrderItems(saleToEdit.items.map(item => ({
+        tempId: item.id, // Use original item ID if available, or map to menu item ID
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        category: item.category
+     })));
+    setOrderType(saleToEdit.orderType);
+    setPaymentMethod(saleToEdit.paymentMethod);
+    setSelectedCashierId(saleToEdit.employeeId);
+
+    setMenuSelection(prevMenuSelection => {
+        return prevMenuSelection.map(menuItem => {
+            const itemInSale = saleToEdit.items.find(saleItem => saleItem.name === menuItem.name && saleItem.price === menuItem.price);
+            return {
+                ...menuItem,
+                selected: !!itemInSale,
+                quantity: itemInSale ? itemInSale.quantity : 1
+            };
+        });
+    });
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSaleId(null);
+    setEditOrderOriginalDateTime(null);
+    resetSaleForm();
+  };
+
 
   const handleSubmitSale = (e: FormEvent) => {
     e.preventDefault();
     if (currentOrderItems.length === 0) {
-      toast({ title: "Error", description: "Please add items to the order before completing sale.", variant: "destructive"});
+      toast({ title: "Error", description: "Please add items to the order.", variant: "destructive"});
       return;
     }
     if (!orderType) {
         toast({ title: "Error", description: "Please select an Order Type.", variant: "destructive"});
         return;
     }
+    if (!saleDate) {
+      toast({ title: "Error", description: "Please select a Sale Date.", variant: "destructive"});
+      return;
+    }
+
 
     let currentCashierInfo: { employeeId: string; employeeName: string; } | undefined;
 
@@ -297,30 +386,70 @@ export default function SalesPage() {
     }
 
     if (!currentCashierInfo) {
-      toast({ title: "Error", description: "Cashier information is missing. Please select a cashier or ensure you are logged in correctly.", variant: "destructive"});
+      toast({ title: "Error", description: "Cashier information is missing.", variant: "destructive"});
       return;
     }
 
-    const now = new Date();
-    const newSale: SaleRecord = {
-      id: `S${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2,4)}`,
-      date: format(now, 'yyyy-MM-dd'),
-      dateTime: now.toISOString(),
-      items: currentOrderItems.map(item => ({ ...item, id: `I${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2, 3)}`, total: item.quantity * item.price })),
-      totalAmount: currentOrderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0),
-      paymentMethod,
-      orderType,
-      employeeName: currentCashierInfo.employeeName,
-      employeeId: currentCashierInfo.employeeId,
-    };
-    const updatedSalesRecords = [newSale, ...salesRecords].sort((a,b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
-    setSalesRecords(updatedSalesRecords);
-    setCurrentReceipt(newSale);
-    setIsReceiptModalOpen(true);
+    const now = new Date(); // For current time component
+    const finalSaleDateTime = setMilliseconds(setSeconds(setMinutes(setHours(saleDate, now.getHours()), now.getMinutes()), now.getSeconds()), now.getMilliseconds());
 
-    setCurrentOrderItems([]);
-    setOrderType('Dine-in'); // Reset order type to default
-    toast({ title: "Sale Recorded!", description: `Sale ID: ${newSale.id} completed successfully.`});
+
+    const saleItems: SaleItem[] = currentOrderItems.map((item, index) => ({
+        id: editingSaleId && item.id ? item.id : `I${Date.now().toString().slice(-5)}-${index}`,
+        name: item.name,
+        quantity: item.quantity,
+        price: item.price,
+        total: item.quantity * item.price,
+        category: item.category
+    }));
+    const totalAmount = saleItems.reduce((sum, item) => sum + item.total, 0);
+
+    if (editingSaleId) {
+        if (!editOrderOriginalDateTime || !isSaleEditable(editOrderOriginalDateTime)) {
+            toast({ title: "Edit Window Expired", description: "This order can no longer be edited. Changes were not saved.", variant: "destructive" });
+            handleCancelEdit();
+            return;
+        }
+
+        const updatedSale: SaleRecord = {
+            id: editingSaleId,
+            date: format(finalSaleDateTime, 'yyyy-MM-dd'),
+            dateTime: finalSaleDateTime.toISOString(),
+            items: saleItems,
+            totalAmount: totalAmount,
+            paymentMethod,
+            orderType,
+            employeeName: currentCashierInfo.employeeName,
+            employeeId: currentCashierInfo.employeeId,
+        };
+
+        const updatedSalesRecords = salesRecords.map(sale => sale.id === editingSaleId ? updatedSale : sale)
+            .sort((a,b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
+        setSalesRecords(updatedSalesRecords);
+        setCurrentReceipt(updatedSale);
+        setIsReceiptModalOpen(true);
+        toast({ title: "Sale Updated!", description: `Sale ID: ${updatedSale.id} updated successfully.`});
+        handleCancelEdit();
+
+    } else {
+        const newSale: SaleRecord = {
+          id: `S${Date.now().toString().slice(-5)}-${Math.random().toString(36).substr(2,4)}`,
+          date: format(finalSaleDateTime, 'yyyy-MM-dd'),
+          dateTime: finalSaleDateTime.toISOString(),
+          items: saleItems,
+          totalAmount: totalAmount,
+          paymentMethod,
+          orderType,
+          employeeName: currentCashierInfo.employeeName,
+          employeeId: currentCashierInfo.employeeId,
+        };
+        const updatedSalesRecords = [newSale, ...salesRecords].sort((a,b) => new Date(b.dateTime).getTime() - new Date(a.dateTime).getTime());
+        setSalesRecords(updatedSalesRecords);
+        setCurrentReceipt(newSale);
+        setIsReceiptModalOpen(true);
+        resetSaleForm();
+        toast({ title: "Sale Recorded!", description: `Sale ID: ${newSale.id} completed successfully.`});
+    }
   };
 
   const handleViewReceipt = (saleId: string) => {
@@ -354,7 +483,6 @@ export default function SalesPage() {
   }
 
   const canManageCashierSelection = user.role === 'admin' || user.role === 'manager';
-  // Employees can now add custom items as per new requirements
   const canAddCustomItem = user.role === 'admin' || user.role === 'manager' || user.role === 'employee';
 
 
@@ -364,7 +492,7 @@ export default function SalesPage() {
 
       <Tabs defaultValue="recordSale" className="w-full">
         <TabsList className="grid w-full grid-cols-2 mb-6">
-          <TabsTrigger value="recordSale">Record Sale</TabsTrigger>
+          <TabsTrigger value="recordSale"> {editingSaleId ? `Edit Sale (ID: ${editingSaleId})` : 'Record Sale'} </TabsTrigger>
           <TabsTrigger value="salesReports">Sales Reports</TabsTrigger>
         </TabsList>
 
@@ -372,16 +500,45 @@ export default function SalesPage() {
           <div className="grid gap-6 lg:grid-cols-3">
             <Card className="lg:col-span-1">
               <CardHeader>
-                <CardTitle>Record New Sale</CardTitle>
+                <CardTitle>{editingSaleId ? `Editing Sale: ${editingSaleId}` : 'Record New Sale'}</CardTitle>
               </CardHeader>
               <CardContent>
                 <form onSubmit={handleSubmitSale} className="space-y-4">
+                  <div>
+                      <Label htmlFor="saleDate">Sale Date</Label>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant={"outline"}
+                            className={cn(
+                              "w-full justify-start text-left font-normal",
+                              !saleDate && "text-muted-foreground"
+                            )}
+                            disabled={!!editingSaleId && !isSaleEditable(editOrderOriginalDateTime || "")}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {saleDate ? format(saleDate, "PPP") : <span>Pick a date</span>}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0">
+                          <Calendar
+                            mode="single"
+                            selected={saleDate}
+                            onSelect={setSaleDate}
+                            initialFocus
+                            disabled={!!editingSaleId && !isSaleEditable(editOrderOriginalDateTime || "")}
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+
                   {canManageCashierSelection && user?.role !== 'employee' ? (
                     <div>
                       <Label htmlFor="cashierSelect" className="mb-1 block">Select Cashier</Label>
                       <Select
                         value={selectedCashierId || ""}
                         onValueChange={(employeeId) => setSelectedCashierId(employeeId)}
+                        disabled={!!editingSaleId && user.role !== 'admin'}
                       >
                         <SelectTrigger id="cashierSelect" className="w-full">
                            <div className="flex items-center gap-2">
@@ -469,17 +626,15 @@ export default function SalesPage() {
                     </ScrollArea>
                   </div>
 
-                  <Button type="button" variant="outline" onClick={handleAddSelectedItemsToOrder} className="w-full">
-                    <PlusCircle className="mr-2 h-4 w-4" /> Add Selected Items to Order
-                  </Button>
+                  {/* Removed "Add Selected Items to Order" button */}
 
-                  {canAddCustomItem && !showCustomItemForm && (
+                  {canAddCustomItem && !showCustomItemForm && !editingSaleId && (
                     <Button type="button" variant="secondary" onClick={() => setShowCustomItemForm(true)} className="w-full">
                       <UtensilsCrossed className="mr-2 h-4 w-4" /> Add New Custom Item
                     </Button>
                   )}
 
-                  {showCustomItemForm && canAddCustomItem && (
+                  {showCustomItemForm && canAddCustomItem && !editingSaleId && (
                     <div className="space-y-3 border p-3 rounded-md bg-muted/50">
                       <h4 className="font-medium text-sm text-center">Add Custom Item</h4>
                       <div>
@@ -551,10 +706,16 @@ export default function SalesPage() {
                       </SelectContent>
                     </Select>
                   </div>
-
-                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground" disabled={currentOrderItems.length === 0}>
-                    Complete Sale (Total: PKR {currentOrderTotal.toFixed(2)})
-                  </Button>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <Button type="submit" className="w-full bg-primary hover:bg-primary/90 text-primary-foreground flex-1" disabled={currentOrderItems.length === 0}>
+                      {editingSaleId ? 'Update Sale' : 'Complete Sale'} (Total: PKR {currentOrderTotal.toFixed(2)})
+                    </Button>
+                    {editingSaleId && (
+                      <Button type="button" variant="outline" onClick={handleCancelEdit} className="w-full sm:w-auto flex-1 sm:flex-none">
+                        Cancel Edit
+                      </Button>
+                    )}
+                  </div>
                 </form>
               </CardContent>
             </Card>
@@ -569,7 +730,7 @@ export default function SalesPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>ID</TableHead>
-                      <TableHead>Date</TableHead>
+                      <TableHead>Date & Time</TableHead>
                       <TableHead>Items</TableHead>
                       <TableHead className="text-right">Total (PKR)</TableHead>
                       <TableHead className="text-center">Actions</TableHead>
@@ -586,13 +747,18 @@ export default function SalesPage() {
                       salesRecords.filter(sale => user?.role === 'admin' || user?.role === 'manager' || sale.employeeId === user?.employeeId).slice(0, 10).map((sale) => (
                         <TableRow key={sale.id}>
                           <TableCell className="font-medium">{sale.id}</TableCell>
-                          <TableCell>{sale.date}</TableCell>
+                          <TableCell>{format(parseISO(sale.dateTime), "PPpp")}</TableCell>
                           <TableCell className="max-w-[150px] truncate" title={sale.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}>{sale.items.map(i => `${i.name} (x${i.quantity})`).join(', ')}</TableCell>
                           <TableCell className="text-right">{sale.totalAmount.toFixed(2)}</TableCell>
-                          <TableCell className="text-center">
+                          <TableCell className="text-center space-x-1">
                             <Button variant="ghost" size="icon" onClick={() => handleViewReceipt(sale.id)} title="View Receipt">
                               <Eye className="h-4 w-4" />
                             </Button>
+                            {isSaleEditable(sale.dateTime) && (user?.role === 'admin' || user?.role === 'manager' || sale.employeeId === user?.employeeId) && (
+                                <Button variant="ghost" size="icon" onClick={() => handleStartEditSale(sale)} title="Edit Sale">
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
+                            )}
                           </TableCell>
                         </TableRow>
                       ))
@@ -633,4 +799,3 @@ export default function SalesPage() {
     </>
   );
 }
-
