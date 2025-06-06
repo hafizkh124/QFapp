@@ -80,7 +80,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex justify-center">
-            <AppLogo width={64} height={64} alt="Quoriam Insights Logo" />
+            <AppLogo src="/logo.png" width={64} height={64} alt="Quoriam Insights Logo" />
           </div>
           <CardTitle className="text-2xl">Welcome to Quoriam Insights</CardTitle>
           <CardDescription>Please sign in to continue</CardDescription>

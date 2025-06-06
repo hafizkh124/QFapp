@@ -117,7 +117,7 @@ export default function ReceiptModal({ isOpen, onClose, saleRecord }: ReceiptMod
         <div id="receipt-content" className="p-6">
           <DialogHeader className="mb-4 text-center">
             <div className="flex justify-center mb-2">
-                <AppLogo width={48} height={48} alt="Quoriam Foods Logo" />
+                <AppLogo src="/logo.png" width={48} height={48} alt="Quoriam Foods Logo" />
             </div>
             <DialogTitle className="text-2xl">Quoriam Foods</DialogTitle>
             <p className="text-sm text-muted-foreground">Your Trusted Taste</p>

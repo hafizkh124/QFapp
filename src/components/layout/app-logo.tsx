@@ -11,7 +11,7 @@ interface AppLogoProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> 
   src?: string; // Allow custom src, default to /logo.png
 }
 
-export function AppLogo({ width, height, className, alt = "App Logo", src = "/logo.png", ...props }: AppLogoProps) {
+export function AppLogo({ width, height, className, alt = "Quoriam Foods Logo", src = "/logo.png", ...props }: AppLogoProps) {
   return (
     <div className={cn("relative", className)} style={{ width, height }} {...props}>
       <Image
