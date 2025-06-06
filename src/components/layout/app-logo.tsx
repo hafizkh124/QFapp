@@ -1,6 +1,7 @@
 
 import Image from 'next/image';
 import type { HTMLAttributes } from 'react';
+import { cn } from '@/lib/utils';
 
 interface AppLogoProps extends Omit<HTMLAttributes<HTMLDivElement>, 'children'> {
   width: number;
@@ -22,13 +23,4 @@ export function AppLogo({ width, height, className, alt = "App Logo", src = "/lo
       />
     </div>
   );
-}
-
-// Helper cn function if not already globally available or imported from utils
-// For this component, assuming cn is imported or available. If not, add:
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
-
-function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
 }
