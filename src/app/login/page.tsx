@@ -80,7 +80,7 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-xl">
         <CardHeader className="text-center">
           <div className="mx-auto mb-4 flex justify-center">
-            <AppLogo className="w-16 h-16 text-primary" />
+            <AppLogo width={64} height={64} alt="Quoriam Insights Logo" />
           </div>
           <CardTitle className="text-2xl">Welcome to Quoriam Insights</CardTitle>
           <CardDescription>Please sign in to continue</CardDescription>
@@ -119,7 +119,7 @@ export default function LoginPage() {
                   size="icon"
                   className="absolute right-2 top-1/2 -translate-y-1/2 h-7 w-7 text-muted-foreground hover:text-foreground"
                   onClick={() => setShowPassword(!showPassword)}
-                  tabIndex={-1} 
+                  tabIndex={-1}
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}

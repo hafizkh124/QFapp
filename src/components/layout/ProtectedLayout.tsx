@@ -44,7 +44,7 @@ export default function ProtectedLayout({ children }: { children: ReactNode }) {
       <Sidebar side="left" variant="sidebar" className="flex flex-col">
         <SidebarHeader className="p-4">
           <div className="flex items-center gap-2">
-            <AppLogo className="w-8 h-8 text-primary" />
+            <AppLogo width={32} height={32} alt="Quoriam Foods Logo" />
             <h1 className="text-xl font-semibold text-sidebar-foreground group-data-[collapsible=icon]:hidden">Quoriam Foods</h1>
           </div>
         </SidebarHeader>
